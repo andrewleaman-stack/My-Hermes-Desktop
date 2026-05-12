@@ -1,0 +1,76 @@
+// ─── Session ──────────────────────────────────────────────────────────────────
+
+export interface Session {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count?: number;
+  cost?: number;
+  model?: string;
+}
+
+// ─── Message Blocks ───────────────────────────────────────────────────────────
+
+export interface TextBlock {
+  type: "text";
+  content: string;
+}
+
+export interface ThinkBlock {
+  type: "think";
+  content: string;
+}
+
+export interface ToolCallBlock {
+  type: "tool";
+  name: string;
+  input: string;
+  output: string;
+  outputDone: boolean;
+}
+
+export type MessageBlock = TextBlock | ThinkBlock | ToolCallBlock;
+
+// ─── Messages ─────────────────────────────────────────────────────────────────
+
+export interface Message {
+  id: string;
+  role: "user" | "assistant";
+  blocks: MessageBlock[];
+  timestamp: string;
+  status?: "streaming" | "done" | "error";
+}
+
+// ─── Stream ───────────────────────────────────────────────────────────────────
+
+export interface StreamChunk {
+  kind:
+    | "text"
+    | "think"
+    | "think_start"
+    | "think_end"
+    | "tool_name"
+    | "tool_input"
+    | "tool_output"
+    | "tool_output_end"
+    | "status"
+    | "session_stat"
+    | "done"
+    | "error"
+    | "new_session_id"
+    | "raw";
+  content: string;
+}
+
+// ─── App State ────────────────────────────────────────────────────────────────
+
+export interface HermesStatus {
+  model: string;
+  tokensUsed: string;
+  tokensMax: string;
+  cost: string;
+  duration: string;
+  msgCount: string;
+  raw: string;
+}
