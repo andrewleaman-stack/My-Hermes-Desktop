@@ -5,17 +5,24 @@
   "_updated": "2026-05-12",
   "features": [
     {
+      "id": "feat-000",
+      "description": "路由 + NavBar 基础改造 — 安装 react-router-dom，新建左侧图标导航栏（对话/记忆/管理），将 App.tsx 拆成 ChatPage / MemoryPage / DashboardPage，搭好空页面占位",
+      "acceptance": "点击左侧导航图标可在对话、记忆、管理三个页面间切换，URL 路由正确变化，ChatPage 保持现有对话功能不回归",
+      "depends_on": [],
+      "passes": false
+    },
+    {
       "id": "feat-001",
       "description": "Dashboard 集成 — Rust 层启动/守护/退出 hermes dashboard 进程，前端通过左侧导航入口打开全屏 iframe（localhost:9119），依赖缺失时显示安装引导卡片",
       "acceptance": "左侧导航点击"管理"可打开 hermes dashboard 全屏 iframe；应用启动时自动拉起 dashboard 进程，应用退出时自动 kill；dashboard 未安装时弹出含复制命令和"在终端中打开"的引导卡片",
-      "depends_on": [],
+      "depends_on": ["feat-000"],
       "passes": false
     },
     {
       "id": "feat-002",
       "description": "Memory 编辑器 — 读写 ~/.hermes/memories/ 下的 MEMORY.md 和 USER.md，双面板编辑器，含字数进度条（2200/1375 字符上限），超限禁止保存",
       "acceptance": "在 UI 内可读取、编辑、保存 MEMORY.md 和 USER.md；字数进度条颜色随用量变化（绿/橙/红）；超出上限时保存按钮禁用",
-      "depends_on": [],
+      "depends_on": ["feat-000"],
       "passes": false
     },
     {

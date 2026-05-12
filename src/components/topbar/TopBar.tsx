@@ -4,10 +4,12 @@ interface Props {
   streaming: boolean;
   status: HermesStatus | null;
   hermesVersion: string;
+  toolCallCount: number;
   onOpenTerminal: () => void;
+  onSendMessage: (text: string) => void;
 }
 
-export default function TopBar({ streaming, status, hermesVersion, onOpenTerminal }: Props) {
+export default function TopBar({ streaming, status, hermesVersion, toolCallCount, onOpenTerminal }: Props) {
   return (
     <div className="topbar">
       {/* Logo */}
@@ -32,19 +34,15 @@ export default function TopBar({ streaming, status, hermesVersion, onOpenTermina
       {/* Model */}
       <div className="status-pill">
         <span className="label">Model</span>
-        <span className="value topbar-model">
-          {status?.model || "—"}
-        </span>
+        <span className="value topbar-model">{status?.model || "—"}</span>
       </div>
 
       <div className="topbar-divider" />
 
-      {/* Message count */}
+      {/* Tool call steps */}
       <div className="status-pill">
-        <span className="label">Msgs</span>
-        <span className="value">
-          {status?.msgCount || "—"}
-        </span>
+        <span className="label">Steps</span>
+        <span className="value">{toolCallCount > 0 ? toolCallCount : "—"}</span>
       </div>
 
       {/* Cost */}
