@@ -1,5 +1,6 @@
 import { useEffect, useRef, KeyboardEvent } from "react";
 import { Message } from "../types";
+import Icon from "./Icon";
 import MessageBubble from "./chat/MessageBubble";
 
 interface Props {
@@ -60,7 +61,9 @@ export default function ChatView({ messages, streaming, onSend, error, hasSessio
       {messages.length === 0 ? (
         <div className="chat-messages">
           <div className="chat-empty">
-            <div className="chat-empty-icon">⚡</div>
+            <div className="chat-empty-icon">
+              <Icon name="spark" size={34} />
+            </div>
             <div className="chat-empty-title ui-font">
               {hasSession ? "Session loaded" : "Start a conversation"}
             </div>
@@ -85,7 +88,8 @@ export default function ChatView({ messages, streaming, onSend, error, hasSessio
           ))}
           {error && (
             <div className="error-banner fade-in">
-              ⚠ {error}
+              <Icon name="alert" size={15} />
+              <span>{error}</span>
             </div>
           )}
           <div ref={messagesEndRef} />
@@ -95,7 +99,8 @@ export default function ChatView({ messages, streaming, onSend, error, hasSessio
       {/* Error (when no messages) */}
       {error && messages.length === 0 && (
         <div className="error-banner" style={{ margin: "8px 16px" }}>
-          ⚠ {error}
+          <Icon name="alert" size={15} />
+          <span>{error}</span>
         </div>
       )}
 
@@ -125,7 +130,10 @@ export default function ChatView({ messages, streaming, onSend, error, hasSessio
                 <span className="loading-dots" style={{ color: "var(--primary)" }} />
               </>
             ) : (
-              <>Send ↵</>
+              <>
+                Send
+                <Icon name="send" size={14} />
+              </>
             )}
           </button>
         </div>
@@ -137,8 +145,9 @@ export default function ChatView({ messages, streaming, onSend, error, hasSessio
             <kbd>Shift+Enter</kbd> for newline
           </span>
           {streaming && (
-            <span style={{ color: "var(--primary)", marginLeft: "auto" }}>
-              ● Agent running...
+            <span className="agent-running">
+              <span className="agent-running-dot" />
+              Agent running...
             </span>
           )}
         </div>

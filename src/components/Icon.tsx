@@ -1,0 +1,151 @@
+import type { SVGProps } from "react";
+
+type IconName =
+  | "alert"
+  | "brain"
+  | "check"
+  | "chevronRight"
+  | "close"
+  | "command"
+  | "dashboard"
+  | "keyboard"
+  | "message"
+  | "package"
+  | "refresh"
+  | "send"
+  | "spark"
+  | "terminal"
+  | "timer"
+  | "tool";
+
+interface IconProps extends SVGProps<SVGSVGElement> {
+  name: IconName;
+  size?: number;
+}
+
+const paths: Record<IconName, JSX.Element> = {
+  alert: (
+    <>
+      <path d="M12 4.4 3.8 18.6a1.4 1.4 0 0 0 1.2 2.1h14a1.4 1.4 0 0 0 1.2-2.1L12 4.4Z" />
+      <path d="M12 9v4.5" />
+      <path d="M12 17.2h.01" />
+    </>
+  ),
+  brain: (
+    <>
+      <path d="M9.5 4.5a3 3 0 0 0-3 3v.3A3.4 3.4 0 0 0 4 11.1c0 1 .4 1.9 1.1 2.5A3.7 3.7 0 0 0 8.8 18h.7" />
+      <path d="M14.5 4.5a3 3 0 0 1 3 3v.3a3.4 3.4 0 0 1 2.5 3.3c0 1-.4 1.9-1.1 2.5A3.7 3.7 0 0 1 15.2 18h-.7" />
+      <path d="M12 5v14" />
+      <path d="M8.2 9.2c.9-.3 1.9 0 2.4.8" />
+      <path d="M15.8 9.2c-.9-.3-1.9 0-2.4.8" />
+      <path d="M8.4 14.2c.9.5 1.9.5 2.8-.1" />
+      <path d="M15.6 14.2c-.9.5-1.9.5-2.8-.1" />
+    </>
+  ),
+  check: <path d="m5 12.5 4 4L19 6.5" />,
+  chevronRight: <path d="m9 6 6 6-6 6" />,
+  close: (
+    <>
+      <path d="M6 6l12 12" />
+      <path d="M18 6 6 18" />
+    </>
+  ),
+  command: (
+    <>
+      <path d="M9 9H7.5A2.5 2.5 0 1 1 10 6.5V18a2.5 2.5 0 1 1-2.5-2.5H18" />
+      <path d="M15 9h1.5A2.5 2.5 0 1 0 14 6.5V18a2.5 2.5 0 1 0 2.5-2.5H6" />
+    </>
+  ),
+  dashboard: (
+    <>
+      <rect x="4" y="4" width="7" height="7" rx="1.5" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" />
+    </>
+  ),
+  keyboard: (
+    <>
+      <rect x="3" y="6" width="18" height="12" rx="2" />
+      <path d="M7 10h.01M10.5 10h.01M14 10h.01M17.5 10h.01" />
+      <path d="M7 14h10" />
+    </>
+  ),
+  message: (
+    <>
+      <path d="M5 6.5A3.5 3.5 0 0 1 8.5 3h7A3.5 3.5 0 0 1 19 6.5v4.2a3.5 3.5 0 0 1-3.5 3.5H11l-5.2 4.3v-4.4A3.5 3.5 0 0 1 5 10.7V6.5Z" />
+      <path d="M9 8.2h6" />
+      <path d="M9 11.2h3.5" />
+    </>
+  ),
+  package: (
+    <>
+      <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" />
+      <path d="M4.4 7.7 12 12l7.6-4.3" />
+      <path d="M12 12v8.6" />
+    </>
+  ),
+  refresh: (
+    <>
+      <path d="M20 6v5h-5" />
+      <path d="M4 18v-5h5" />
+      <path d="M18.4 10A6.5 6.5 0 0 0 7 6.6L4 9.5" />
+      <path d="M5.6 14A6.5 6.5 0 0 0 17 17.4l3-2.9" />
+    </>
+  ),
+  send: (
+    <>
+      <path d="M21 3 10 14" />
+      <path d="m21 3-7 18-4-7-7-4 18-7Z" />
+    </>
+  ),
+  spark: (
+    <>
+      <path d="M13.5 2.8 6.5 13H12l-1.5 8.2 7-10.2H12l1.5-8.2Z" />
+      <path d="M4.8 5.2 3.5 7.8" />
+      <path d="M20.5 16.2l-1.3 2.6" />
+    </>
+  ),
+  terminal: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m7 9 3 3-3 3" />
+      <path d="M12.5 15h4.5" />
+    </>
+  ),
+  timer: (
+    <>
+      <circle cx="12" cy="13" r="7" />
+      <path d="M12 13V9" />
+      <path d="M12 13l3 2" />
+      <path d="M9 2h6" />
+    </>
+  ),
+  tool: (
+    <>
+      <path d="M14.7 6.3a4.2 4.2 0 0 0 4.7 5.5l-7.6 7.6a2.3 2.3 0 0 1-3.2-3.2l7.6-7.6a4.2 4.2 0 0 0-1.5-2.3Z" />
+      <path d="m6.5 17.5 2 2" />
+    </>
+  ),
+};
+
+export default function Icon({ name, size = 16, className = "", ...props }: IconProps) {
+  return (
+    <svg
+      className={`ui-icon ${className}`.trim()}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      {paths[name]}
+    </svg>
+  );
+}

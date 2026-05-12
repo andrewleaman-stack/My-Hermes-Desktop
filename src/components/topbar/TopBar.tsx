@@ -1,4 +1,5 @@
 import { HermesStatus } from "../../types";
+import Icon from "../Icon";
 import ContextBar from "./ContextBar";
 
 interface Props {
@@ -20,7 +21,10 @@ export default function TopBar({ streaming, status, hermesVersion, toolCallCount
     <div className="topbar">
       {/* Logo */}
       <div className="topbar-logo">
-        ⚡ <span className="topbar-logo-name">Hermes</span>
+        <span className="brand-mark" aria-hidden="true">
+          <Icon name="spark" size={15} />
+        </span>
+        <span className="topbar-logo-name">Hermes</span>
         <span className="topbar-logo-sub">Desktop</span>
       </div>
 
@@ -67,7 +71,7 @@ export default function TopBar({ streaming, status, hermesVersion, toolCallCount
         <>
           <div className="topbar-divider" />
           <div className="status-pill">
-            <span className="label">⏱</span>
+            <Icon name="timer" size={13} className="status-icon" />
             <span className="value">{status.duration}</span>
           </div>
         </>
@@ -86,7 +90,8 @@ export default function TopBar({ streaming, status, hermesVersion, toolCallCount
         onClick={onOpenTerminal}
         title="打开 Hermes 交互终端（支持 slash 命令）"
       >
-        ⌨ Terminal
+        <Icon name="terminal" size={14} />
+        Terminal
       </button>
 
       {/* Hermes version */}

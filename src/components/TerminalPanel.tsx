@@ -5,6 +5,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
+import Icon from "./Icon";
 
 interface Props {
   sessionId: string | null;
@@ -83,9 +84,14 @@ export default function TerminalPanel({ sessionId, onClose }: Props) {
   return (
     <div className="terminal-panel">
       <div className="terminal-panel-header">
-        <span className="terminal-panel-title">⚡ Hermes Terminal</span>
+        <span className="terminal-panel-title">
+          <Icon name="terminal" size={14} />
+          Hermes Terminal
+        </span>
         <span className="terminal-panel-hint">支持所有 slash 命令（/compact、/help 等）</span>
-        <button className="terminal-panel-close" onClick={doClose} title="关闭终端">✕</button>
+        <button className="terminal-panel-close" onClick={doClose} title="关闭终端">
+          <Icon name="close" size={14} />
+        </button>
       </div>
       <div ref={containerRef} className="terminal-panel-body" />
     </div>

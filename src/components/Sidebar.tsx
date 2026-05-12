@@ -1,4 +1,5 @@
 import { Session } from "../types";
+import Icon from "./Icon";
 
 interface Props {
   sessions: Session[];
@@ -72,7 +73,7 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete 
               }}
               title="Delete session"
             >
-              ✕
+              <Icon name="close" size={12} />
             </button>
           </div>
         ))}

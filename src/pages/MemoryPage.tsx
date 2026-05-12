@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import Icon from "../components/Icon";
 
 const LIMITS = { "MEMORY.md": 2200, "USER.md": 1375 } as const;
 type MemFile = keyof typeof LIMITS;
@@ -74,7 +75,9 @@ function MemoryPanel({ filename, label, description }: PanelProps) {
           <div className="memory-panel-desc">{description}</div>
         </div>
         <div className="memory-panel-actions">
-          <button className="mem-btn-refresh" onClick={load} title="重新加载" disabled={loading}>↺</button>
+          <button className="mem-btn-refresh" onClick={load} title="重新加载" disabled={loading}>
+            <Icon name="refresh" size={14} />
+          </button>
           <button
             className={`mem-btn-save ui-font${overLimit ? " disabled" : dirty ? " dirty" : ""}`}
             onClick={save}
@@ -129,7 +132,9 @@ export default function MemoryPage() {
   return (
     <div className="memory-page">
       <div className="memory-page-header">
-        <span className="memory-page-icon">🧠</span>
+        <span className="memory-page-icon">
+          <Icon name="brain" size={22} />
+        </span>
         <div>
           <div className="memory-page-title ui-font">Agent Memory</div>
           <div className="memory-page-subtitle">编辑 Agent 的记忆文件，超出上限时禁止保存</div>

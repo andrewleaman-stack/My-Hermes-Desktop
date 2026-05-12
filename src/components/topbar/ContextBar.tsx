@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { HermesStatus } from "../../types";
+import Icon from "../Icon";
 
 // Parse "12.4K", "200K", "1.5M" → number
 function parseTokenCount(s: string): number {
@@ -65,7 +66,8 @@ export default function ContextBar({ status, onCompress }: Props) {
         onClick={() => setPopoverOpen((o) => !o)}
         title="压缩上下文"
       >
-        ⚡ 压缩
+        <Icon name="spark" size={12} />
+        压缩
       </button>
 
       {/* Popover */}

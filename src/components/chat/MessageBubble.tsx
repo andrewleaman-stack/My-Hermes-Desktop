@@ -2,6 +2,7 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Message, ToolCallBlock } from "../../types";
+import Icon from "../Icon";
 
 // ─── Think Block ──────────────────────────────────────────────────────────────
 
@@ -11,14 +12,14 @@ function ThinkBlock({ content }: { content: string }) {
   return (
     <div className="think-block fade-in">
       <div className="think-header" onClick={() => setOpen((o) => !o)}>
-        <span style={{ fontSize: 12 }}>🧠</span>
+        <Icon name="brain" size={13} className="think-icon" />
         <span className="think-label ui-font">Thinking</span>
         {content && (
           <span style={{ fontSize: 10, color: "var(--muted)", marginLeft: 4 }}>
             {content.split(/\s+/).length} words
           </span>
         )}
-        <span className={`think-chevron ${open ? "open" : ""}`}>▶</span>
+        <Icon name="chevronRight" size={13} className={`think-chevron ${open ? "open" : ""}`} />
       </div>
       {open && (
         <div className="think-body selectable">
@@ -45,7 +46,7 @@ function ToolBlock({ block }: { block: ToolCallBlock }) {
   return (
     <div className="tool-block fade-in">
       <div className="tool-header" onClick={() => setOpen((o) => !o)}>
-        <span className="tool-icon">⚙</span>
+        <Icon name="tool" size={13} className="tool-icon" />
         <span className="tool-name ui-font">{block.name}</span>
         {!block.outputDone && !open && (
           <span style={{ fontSize: 10, color: "var(--muted)" }} className="loading-dots" />
@@ -53,7 +54,7 @@ function ToolBlock({ block }: { block: ToolCallBlock }) {
         {block.outputDone && (
           <span className="tool-badge">done</span>
         )}
-        <span className={`tool-chevron ${open ? "open" : ""}`}>▶</span>
+        <Icon name="chevronRight" size={13} className={`tool-chevron ${open ? "open" : ""}`} />
       </div>
       {open && (
         <div className="tool-body">
@@ -141,7 +142,10 @@ export default function MessageBubble({ message, isLastAssistant, streaming }: P
   return (
     <div className="message-group fade-in">
       <div className="message-header">
-        <span className="message-role assistant ui-font">⚡ Hermes</span>
+        <span className="message-role assistant ui-font">
+          <Icon name="spark" size={12} />
+          Hermes
+        </span>
         <span className="message-time">{formatTime(message.timestamp)}</span>
         {message.status === "error" && (
           <span style={{ fontSize: 10, color: "var(--error)" }}>error</span>

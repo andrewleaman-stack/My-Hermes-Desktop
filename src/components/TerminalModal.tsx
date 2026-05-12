@@ -5,6 +5,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
+import Icon from "./Icon";
 
 interface Props {
   sessionId: string | null;
@@ -118,9 +119,14 @@ export default function TerminalModal({ sessionId, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="terminal-modal-header">
-          <span className="terminal-modal-title">⚡ Hermes Terminal</span>
+          <span className="terminal-modal-title">
+            <Icon name="terminal" size={14} />
+            Hermes Terminal
+          </span>
           <span className="terminal-modal-hint">ESC 或点击外部关闭</span>
-          <button className="terminal-modal-close" onClick={handleClose}>✕</button>
+          <button className="terminal-modal-close" onClick={handleClose} title="关闭终端">
+            <Icon name="close" size={14} />
+          </button>
         </div>
         <div ref={containerRef} className="terminal-modal-body" />
       </div>

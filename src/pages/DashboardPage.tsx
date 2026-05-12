@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import Icon from "../components/Icon";
 
 const DASHBOARD_URL = "http://127.0.0.1:9119";
 const INSTALL_CMD = "pip install 'hermes-agent[web,pty]'";
@@ -60,7 +61,9 @@ export default function DashboardPage() {
   if (status === "missing") {
     return (
       <div className="dashboard-guide">
-        <div className="dashboard-guide-icon">📦</div>
+        <div className="dashboard-guide-icon">
+          <Icon name="package" size={34} />
+        </div>
         <div className="dashboard-guide-title ui-font">需要安装 Dashboard 依赖</div>
         <div className="dashboard-guide-desc">
           运行以下命令安装，完成后点击"重试"。
@@ -68,7 +71,8 @@ export default function DashboardPage() {
         <div className="dashboard-guide-cmd">
           <code>{INSTALL_CMD}</code>
           <button className="guide-copy-btn ui-font" onClick={copyCmd}>
-            {copied ? "✓ 已复制" : "复制"}
+            {copied && <Icon name="check" size={12} />}
+            {copied ? "已复制" : "复制"}
           </button>
         </div>
         <button className="guide-retry-btn ui-font" onClick={start}>重试</button>
@@ -80,7 +84,9 @@ export default function DashboardPage() {
   if (status === "error") {
     return (
       <div className="dashboard-guide">
-        <div className="dashboard-guide-icon">⚠</div>
+        <div className="dashboard-guide-icon error">
+          <Icon name="alert" size={34} />
+        </div>
         <div className="dashboard-guide-title ui-font">Dashboard 启动失败</div>
         <div className="dashboard-guide-desc" style={{ color: "var(--error)" }}>
           {errorMsg}

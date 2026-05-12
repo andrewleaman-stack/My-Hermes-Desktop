@@ -1,15 +1,16 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme, type Theme } from "../hooks/useTheme";
+import Icon from "./Icon";
 
 const NAV_ITEMS = [
-  { path: "/", icon: "💬", label: "对话" },
-  { path: "/memory", icon: "🧠", label: "记忆" },
-  { path: "/dashboard", icon: "⚙", label: "管理" },
-];
+  { path: "/", icon: "message", label: "对话" },
+  { path: "/memory", icon: "brain", label: "记忆" },
+  { path: "/dashboard", icon: "dashboard", label: "管理" },
+] as const;
 
-const THEME_META: Record<Theme, { icon: string; title: string }> = {
-  claude: { icon: "◎", title: "切换到 Apple 风格" },
-  apple:  { icon: "⌘", title: "切换到 Claude 风格" },
+const THEME_META: Record<Theme, { icon: "command" | "spark"; title: string }> = {
+  claude: { icon: "spark", title: "切换到 Apple 风格" },
+  apple:  { icon: "command", title: "切换到 Claude 风格" },
 };
 
 export default function NavBar() {
@@ -26,7 +27,7 @@ export default function NavBar() {
           onClick={() => navigate(path)}
           title={label}
         >
-          <span className="navbar-icon">{icon}</span>
+          <Icon name={icon} className="navbar-icon" size={17} />
           <span className="navbar-label ui-font">{label}</span>
         </button>
       ))}
@@ -38,7 +39,7 @@ export default function NavBar() {
         onClick={toggle}
         title={THEME_META[theme].title}
       >
-        {THEME_META[theme].icon}
+        <Icon name={THEME_META[theme].icon} size={17} />
         <span className="theme-dot" />
       </button>
     </nav>
