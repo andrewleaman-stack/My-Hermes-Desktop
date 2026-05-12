@@ -40,11 +40,15 @@ pub struct AppState {
     pub pty_writers: std::sync::Mutex<
         std::collections::HashMap<String, Box<dyn std::io::Write + Send>>,
     >,
+    pub dashboard_child: std::sync::Mutex<Option<std::process::Child>>,
 }
 
 impl AppState {
     pub fn new() -> Self {
-        AppState { pty_writers: std::sync::Mutex::new(std::collections::HashMap::new()) }
+        AppState {
+            pty_writers: std::sync::Mutex::new(std::collections::HashMap::new()),
+            dashboard_child: std::sync::Mutex::new(None),
+        }
     }
 }
 
@@ -55,6 +59,18 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .manage(AppState::new())
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                let opt = tauri::Manager::state::<AppState>(window)
+                    .dashboard_child
+                    .lock()
+                    .unwrap()
+                    .take();
+                if let Some(mut child) = opt {
+                    child.kill().ok();
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             commands::sessions::list_sessions,
             commands::sessions::get_session_history,
@@ -63,6 +79,9 @@ pub fn run() {
             commands::chat::get_hermes_info,
             commands::memory::read_memory,
             commands::memory::save_memory,
+            commands::dashboard::dashboard_start,
+            commands::dashboard::dashboard_stop,
+            commands::dashboard::dashboard_status,
             commands::terminal::pty_open,
             commands::terminal::pty_write,
             commands::terminal::pty_resize,
