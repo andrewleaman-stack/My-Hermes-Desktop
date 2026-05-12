@@ -1,0 +1,36 @@
+{
+  "_readme": "只允许把 passes 从 false 改成 true。禁止删除条目或修改 description。违反视为严重错误。",
+  "_project": "hermes-desktop",
+  "_sprint": "Phase 0 — 产品闭环（Week 1～2）",
+  "_updated": "2026-05-12",
+  "features": [
+    {
+      "id": "feat-001",
+      "description": "Dashboard 集成 — Rust 层启动/守护/退出 hermes dashboard 进程，前端通过左侧导航入口打开全屏 iframe（localhost:9119），依赖缺失时显示安装引导卡片",
+      "acceptance": "左侧导航点击"管理"可打开 hermes dashboard 全屏 iframe；应用启动时自动拉起 dashboard 进程，应用退出时自动 kill；dashboard 未安装时弹出含复制命令和"在终端中打开"的引导卡片",
+      "depends_on": [],
+      "passes": false
+    },
+    {
+      "id": "feat-002",
+      "description": "Memory 编辑器 — 读写 ~/.hermes/memories/ 下的 MEMORY.md 和 USER.md，双面板编辑器，含字数进度条（2200/1375 字符上限），超限禁止保存",
+      "acceptance": "在 UI 内可读取、编辑、保存 MEMORY.md 和 USER.md；字数进度条颜色随用量变化（绿/橙/红）；超出上限时保存按钮禁用",
+      "depends_on": [],
+      "passes": false
+    },
+    {
+      "id": "feat-003",
+      "description": "状态栏完善 — TopBar 新增四色 Context 窗口进度条（绿→黄→橙→红，阈值 70/85/95%）、费用统计、Tool Call 步数计数",
+      "acceptance": "TopBar 实时显示 Context 使用率进度条（四色过渡正确）、本次对话累计费用、tool call 调用次数",
+      "depends_on": [],
+      "passes": false
+    },
+    {
+      "id": "feat-004",
+      "description": "上下文压缩触发器 — Context 进度条旁显示"压缩"按钮，>70% 时高亮；点击弹出焦点输入框，确认后发送 /compress [focus] 命令",
+      "acceptance": "Context >70% 时"压缩"按钮高亮；点击弹出 Popover，可选填压缩焦点；确认后发送 /compress 命令，对话流中出现"✓ 上下文已压缩"系统消息",
+      "depends_on": ["feat-003"],
+      "passes": false
+    }
+  ]
+}

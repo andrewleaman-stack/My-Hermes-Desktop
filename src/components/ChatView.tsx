@@ -1,6 +1,6 @@
 import { useEffect, useRef, KeyboardEvent } from "react";
 import { Message } from "../types";
-import MessageBubble from "./MessageBubble";
+import MessageBubble from "./chat/MessageBubble";
 
 interface Props {
   messages: Message[];

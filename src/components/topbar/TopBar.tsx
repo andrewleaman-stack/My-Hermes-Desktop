@@ -1,4 +1,4 @@
-import { HermesStatus } from "../types";
+import { HermesStatus } from "../../types";
 
 interface Props {
   streaming: boolean;
@@ -27,7 +27,6 @@ export default function TopBar({ streaming, status, hermesVersion, onOpenTermina
         <span className="label">{streaming ? "Running" : "Ready"}</span>
       </div>
 
-      {/* ── Live hermes status ── */}
       <div className="topbar-divider" />
 
       {/* Model */}

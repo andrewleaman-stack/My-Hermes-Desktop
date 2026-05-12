@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { Session, Message, MessageBlock, StreamChunk, HermesStatus } from "./types";
+import { Session, Message, StreamChunk, HermesStatus } from "./types";
 import Sidebar from "./components/Sidebar";
-import TopBar from "./components/TopBar";
+import TopBar from "./components/topbar/TopBar";
 import ChatView from "./components/ChatView";
 import TerminalPanel from "./components/TerminalPanel";
 

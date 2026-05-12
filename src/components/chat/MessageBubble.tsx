@@ -1,7 +1,7 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Message, MessageBlock, ToolCallBlock } from "../types";
+import { Message, ToolCallBlock } from "../../types";
 
 // ─── Think Block ──────────────────────────────────────────────────────────────
 
@@ -136,7 +136,6 @@ export default function MessageBubble({ message, isLastAssistant, streaming }: P
     );
   }
 
-  // Assistant message
   const hasContent = message.blocks.length > 0;
 
   return (
