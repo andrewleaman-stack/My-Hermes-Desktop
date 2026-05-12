@@ -225,11 +225,19 @@ export default function ChatPage() {
           const blocks = [...msg.blocks];
 
           switch (chunk.kind) {
+            case "raw": {
+              msg.rawOutput = msg.rawOutput
+                ? `${msg.rawOutput}\n${chunk.content}`
+                : chunk.content;
+              break;
+            }
             case "text": {
               const last = blocks[blocks.length - 1];
               if (last?.type === "text") {
-                blocks[blocks.length - 1] = { ...last, content: last.content + "\n" + chunk.content };
-              } else {
+                const next = last.content + "\n" + chunk.content;
+                // collapse 3+ consecutive newlines to 2 (avoid excess blank lines)
+                blocks[blocks.length - 1] = { ...last, content: next.replace(/\n{3,}/g, "\n\n") };
+              } else if (chunk.content.trim()) {
                 blocks.push({ type: "text", content: chunk.content });
               }
               break;
@@ -292,9 +300,15 @@ export default function ChatPage() {
               break;
             case "error":
               setError(chunk.content);
+              msg.status = "error";
+              msg.rawOutput = msg.rawOutput
+                ? `${msg.rawOutput}\n${chunk.content}`
+                : chunk.content;
               break;
             case "done":
-              msg.status = "done";
+              if (msg.status !== "error") {
+                msg.status = "done";
+              }
               justFinishedRef.current = true;
               setStreaming(false);
               break;
@@ -310,10 +324,19 @@ export default function ChatPage() {
       try {
         await invoke("send_message", { sessionId: activeSessionId, message: text.trim() });
       } catch (e) {
-        setError(String(e));
+        const message = String(e);
+        setError(message);
         setStreaming(false);
         setMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, status: "error" } : m))
+          prev.map((m) =>
+            m.id === assistantId
+              ? {
+                  ...m,
+                  rawOutput: m.rawOutput ? `${m.rawOutput}\n${message}` : message,
+                  status: "error",
+                }
+              : m
+          )
         );
       }
     },

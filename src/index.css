@@ -724,6 +724,55 @@ body {
   color: var(--body);
 }
 
+/* ── Streaming terminal preview ── */
+.stream-terminal {
+  border: 1px solid var(--hairline-dark);
+  background: var(--surface-dark);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+}
+.stream-terminal.error {
+  border-color: rgba(198, 69, 69, 0.55);
+}
+.stream-terminal-header {
+  height: 34px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--hairline-dark);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--on-dark-soft);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+.stream-terminal-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+}
+.stream-terminal.error .stream-terminal-dot {
+  background: var(--error);
+  box-shadow: 0 0 8px rgba(198, 69, 69, 0.55);
+}
+.stream-terminal-body {
+  max-height: min(42vh, 420px);
+  margin: 0;
+  padding: 14px 16px;
+  overflow: auto;
+  color: var(--on-dark);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* ── Think Block (dark surface) ── */
 .think-block {
   border: 1px solid var(--think-border);
@@ -955,6 +1004,7 @@ body {
 .md-content { line-height: 1.7; }
 .md-content p { margin: 0 0 10px; }
 .md-content p:last-child { margin: 0; }
+.md-content hr { border: none; border-top: 1px solid var(--hairline); margin: 16px 0; }
 .md-content code {
   background: var(--surface-card);
   border: 1px solid var(--hairline);
@@ -980,6 +1030,8 @@ body {
   font-size: 13px;
 }
 .md-content ul, .md-content ol { padding-left: 20px; margin: 8px 0; }
+.md-content ul { list-style-type: disc; }
+.md-content ol { list-style-type: decimal; }
 .md-content li { margin: 3px 0; }
 .md-content strong { color: var(--ink); font-weight: 600; }
 .md-content em { color: var(--muted); }

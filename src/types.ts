@@ -38,6 +38,7 @@ export interface Message {
   id: string;
   role: "user" | "assistant";
   blocks: MessageBlock[];
+  rawOutput?: string;
   timestamp: string;
   status?: "streaming" | "done" | "error";
 }

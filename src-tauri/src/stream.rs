@@ -54,9 +54,15 @@ pub fn is_decorative(trimmed: &str) -> bool {
     if trimmed.starts_with('╭') || trimmed.starts_with('╰') { return true; }
     if trimmed.starts_with('┊') { return true; }
 
+    // Box-drawing lines (─ ═ ━ │) but NOT plain ASCII dashes.
+    // "---" is a valid markdown <hr> and must pass through.
     if trimmed.len() > 4
-        && trimmed.chars().all(|c| matches!(c, '─' | '═' | '━' | '-' | '│' | ' '))
+        && trimmed.chars().all(|c| matches!(c, '─' | '═' | '━' | '│' | ' '))
     {
+        return true;
+    }
+    // Very long dash runs (20+) are decorative separators, not markdown hr
+    if trimmed.len() >= 20 && trimmed.chars().all(|c| c == '-') {
         return true;
     }
 
@@ -68,15 +74,6 @@ pub fn is_decorative(trimmed: &str) -> bool {
         if trimmed.starts_with(prefix) { return true; }
     }
 
-    // Status bar: ⚕ model │ 12.4K/200K │ ...
-    if trimmed.contains('│') && (trimmed.contains("K/") || trimmed.contains("M/")) {
-        return true;
-    }
-    // PTY status bar with block chars
-    if (trimmed.contains('░') || trimmed.contains('█')) && trimmed.contains('|') {
-        return true;
-    }
-    if trimmed.starts_with("-- |") || trimmed.starts_with("ctx --") { return true; }
     if trimmed.contains("reflecting...") { return true; }
     if trimmed.contains("msg=interrupt") || trimmed.contains("Ctrl+C cancel") { return true; }
     if trimmed == "❯" { return true; }

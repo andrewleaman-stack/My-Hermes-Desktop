@@ -96,6 +96,21 @@ function TextBlock({ content, streaming }: { content: string; streaming: boolean
   );
 }
 
+function TerminalOutput({ content, error }: { content: string; error: boolean }) {
+  return (
+    <div className={`stream-terminal selectable ${error ? "error" : ""}`}>
+      <div className="stream-terminal-header ui-font">
+        <span className="stream-terminal-dot" />
+        <span>{error ? "Hermes exited with an error" : "Hermes is responding"}</span>
+      </div>
+      <pre className="stream-terminal-body">
+        {content || "Starting Hermes..."}
+        {!error && <span className="cursor-blink" />}
+      </pre>
+    </div>
+  );
+}
+
 // ─── Message Bubble ───────────────────────────────────────────────────────────
 
 interface Props {
@@ -138,6 +153,9 @@ export default function MessageBubble({ message, isLastAssistant, streaming }: P
   }
 
   const hasContent = message.blocks.length > 0;
+  const showTerminal =
+    !isUser &&
+    ((isStreaming && message.rawOutput !== undefined) || message.status === "error");
 
   return (
     <div className="message-group fade-in">
@@ -152,32 +170,41 @@ export default function MessageBubble({ message, isLastAssistant, streaming }: P
         )}
       </div>
       <div className="message-bubble assistant">
-        {!hasContent && isStreaming && (
-          <span style={{ color: "var(--muted)", fontStyle: "italic" }}>
-            Thinking<span className="loading-dots" />
-          </span>
+        {showTerminal ? (
+          <TerminalOutput
+            content={message.rawOutput ?? ""}
+            error={message.status === "error"}
+          />
+        ) : (
+          <>
+            {!hasContent && isStreaming && (
+              <span style={{ color: "var(--muted)", fontStyle: "italic" }}>
+                Thinking<span className="loading-dots" />
+              </span>
+            )}
+
+            {message.blocks.map((block, i) => {
+              const isLastBlock = i === message.blocks.length - 1;
+
+              if (block.type === "think") {
+                return <ThinkBlock key={i} content={block.content} />;
+              }
+              if (block.type === "tool") {
+                return <ToolBlock key={i} block={block} />;
+              }
+              if (block.type === "text") {
+                return (
+                  <TextBlock
+                    key={i}
+                    content={block.content}
+                    streaming={isStreaming && isLastBlock}
+                  />
+                );
+              }
+              return null;
+            })}
+          </>
         )}
-
-        {message.blocks.map((block, i) => {
-          const isLastBlock = i === message.blocks.length - 1;
-
-          if (block.type === "think") {
-            return <ThinkBlock key={i} content={block.content} />;
-          }
-          if (block.type === "tool") {
-            return <ToolBlock key={i} block={block} />;
-          }
-          if (block.type === "text") {
-            return (
-              <TextBlock
-                key={i}
-                content={block.content}
-                streaming={isStreaming && isLastBlock}
-              />
-            );
-          }
-          return null;
-        })}
       </div>
     </div>
   );

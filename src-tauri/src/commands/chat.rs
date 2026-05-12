@@ -18,6 +18,8 @@ pub async fn send_message(
     session_id: Option<String>,
     message: String,
 ) -> Result<(), String> {
+    // No -Q: non-quiet mode streams output token-by-token as the model generates.
+    // PYTHONUNBUFFERED=1 ensures Python flushes stdout on each write.
     let mut args: Vec<String> = vec!["chat".into(), "-q".into(), message.clone()];
     if let Some(ref id) = session_id {
         args.push("--resume".into());
@@ -26,6 +28,7 @@ pub async fn send_message(
 
     let mut child = Command::new("hermes")
         .args(&args)
+        .env("PYTHONUNBUFFERED", "1")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -35,43 +38,91 @@ pub async fn send_message(
     let reader = BufReader::new(stdout);
     let mut in_think = false;
     let mut in_footer = false;
+    let mut in_diff = false;
 
     for line_result in reader.lines() {
         let raw = line_result.map_err(|e| e.to_string())?;
         let clean = strip_ansi(&raw);
         let trimmed = clean.trim();
 
-        if trimmed.starts_with("Resume this session with:") { in_footer = true; }
+        emit(&app, "raw", &clean);
+
+        // ── Footer (session info after response) ──────────────────────────────
+        if trimmed.starts_with("Resume this session with:") {
+            in_footer = true;
+        }
         if in_footer {
             if trimmed.starts_with("Duration:") || trimmed.starts_with("Messages:") {
                 emit(&app, "session_stat", trimmed);
             }
             continue;
         }
+
+        // ── Status bar (context window indicator) ─────────────────────────────
         if (trimmed.contains('│') || trimmed.contains('|'))
             && (trimmed.contains("K/") || trimmed.contains("M/"))
         {
             emit(&app, "status", trimmed);
             continue;
         }
+
+        // ── Think block ───────────────────────────────────────────────────────
         if trimmed == "<think>" || trimmed.to_lowercase() == "[thinking]" || trimmed == "《思考》" {
-            in_think = true; emit(&app, "think_start", ""); continue;
-        }
-        if trimmed == "</think>" || trimmed.to_lowercase() == "[/thinking]" || trimmed == "《/思考》" {
-            in_think = false; emit(&app, "think_end", ""); continue;
-        }
-        if in_think {
-            if !trimmed.is_empty() { emit(&app, "think", &clean); }
+            in_think = true;
+            emit(&app, "think_start", "");
             continue;
         }
-        if is_decorative(trimmed) { continue; }
-        if !trimmed.is_empty() { emit(&app, "text", &clean); }
+        if trimmed == "</think>" || trimmed.to_lowercase() == "[/thinking]" || trimmed == "《/思考》" {
+            in_think = false;
+            emit(&app, "think_end", "");
+            continue;
+        }
+        if in_think {
+            if !trimmed.is_empty() {
+                emit(&app, "think", trimmed);
+            }
+            continue;
+        }
+
+        // ── Decorative / metadata lines ───────────────────────────────────────
+        if is_decorative(trimmed) {
+            continue;
+        }
+        // Session resume headers (Ↄ U+2183 or ↻ U+21BB)
+        let first_char = trimmed.chars().next().unwrap_or(' ');
+        if first_char == '\u{2183}' || first_char == '\u{21BB}' {
+            continue;
+        }
+        // Tool call summary lines: "| tool_name ... → result"
+        if trimmed.starts_with("| ") && trimmed.contains(" \u{2192} ") {
+            continue;
+        }
+
+        // ── Git-diff tool output ──────────────────────────────────────────────
+        if trimmed.starts_with("@@") && trimmed.contains("@@") {
+            in_diff = true;
+            continue;
+        }
+        if in_diff {
+            if trimmed.starts_with('+') || trimmed.starts_with('-') || trimmed.starts_with(' ') {
+                continue;
+            }
+            in_diff = false;
+        }
+
+        // Emit trimmed content so that the 4-space terminal box indent is removed.
+        // This lets markdown list items ("- foo"), headings ("# h"), and fences
+        // ("```") reach the renderer with correct syntax.
+        // Empty lines become "" → JS side produces the \n\n paragraph separator.
+        emit(&app, "text", trimmed);
     }
 
     let output = child.wait_with_output().map_err(|e| e.to_string())?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        if !stderr.trim().is_empty() { emit(&app, "error", &stderr); }
+        if !stderr.trim().is_empty() {
+            emit(&app, "error", &stderr);
+        }
     }
 
     if session_id.is_none() {
