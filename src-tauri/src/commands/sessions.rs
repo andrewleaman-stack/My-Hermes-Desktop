@@ -84,60 +84,61 @@ fn read_session_info(
 
 #[tauri::command]
 pub async fn list_sessions() -> Result<Vec<Session>, String> {
-    let output = Command::new("hermes").args(["sessions", "list", "--json"]).output();
-
-    if let Ok(out) = output {
-        if out.status.success() {
-            let text = String::from_utf8_lossy(&out.stdout);
-            if let Ok(sessions) = serde_json::from_str::<Vec<Session>>(&text) {
-                return Ok(sessions);
-            }
-        }
-    }
-
-    // Fallback: scan ~/.hermes/sessions/
     let sessions_dir = match hermes_home() {
         Some(h) => h.join("sessions"),
         None => return Ok(vec![]),
     };
 
-    let mut sessions = vec![];
+    // session files are named either `<id>.jsonl` or `session_<id>.json`
+    // files to skip: request_dump_*, sessions.json (platform metadata)
+    let mut by_id: std::collections::HashMap<String, Session> = std::collections::HashMap::new();
+
     if let Ok(entries) = std::fs::read_dir(&sessions_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
             let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
             if filename.starts_with("request_dump_") { continue; }
+            if filename == "sessions.json" { continue; }
 
-            if path.extension().map_or(false, |e| e == "json" || e == "jsonl") {
-                let meta = entry.metadata().ok();
-                let fs_updated = meta
-                    .and_then(|m| m.modified().ok())
-                    .and_then(|t| {
-                        t.duration_since(std::time::UNIX_EPOCH).ok().map(|d| {
-                            chrono::DateTime::<chrono::Utc>::from(
-                                std::time::UNIX_EPOCH
-                                    + std::time::Duration::from_secs(d.as_secs()),
-                            )
-                            .to_rfc3339()
-                        })
+            if !path.extension().map_or(false, |e| e == "json" || e == "jsonl") { continue; }
+
+            let meta = entry.metadata().ok();
+            let fs_updated = meta
+                .and_then(|m| m.modified().ok())
+                .and_then(|t| {
+                    t.duration_since(std::time::UNIX_EPOCH).ok().map(|d| {
+                        chrono::DateTime::<chrono::Utc>::from(
+                            std::time::UNIX_EPOCH
+                                + std::time::Duration::from_secs(d.as_secs()),
+                        )
+                        .to_rfc3339()
                     })
-                    .unwrap_or_default();
+                })
+                .unwrap_or_default();
 
-                let (id, title, count, updated, model) = read_session_info(&path, &fs_updated);
-                sessions.push(Session {
-                    id,
-                    title,
-                    created_at: updated.clone(),
-                    updated_at: updated,
-                    message_count: Some(count),
-                    cost: None,
-                    model,
-                });
-            }
+            let (id, title, count, updated, model) = read_session_info(&path, &fs_updated);
+            if id.is_empty() { continue; }
+
+            // Deduplicate: keep the entry with the higher message count
+            let entry_val = Session {
+                id: id.clone(),
+                title,
+                created_at: updated.clone(),
+                updated_at: updated,
+                message_count: Some(count),
+                cost: None,
+                model,
+            };
+            by_id.entry(id).and_modify(|existing| {
+                if count > existing.message_count.unwrap_or(0) {
+                    *existing = entry_val.clone();
+                }
+            }).or_insert(entry_val);
         }
     }
 
+    let mut sessions: Vec<Session> = by_id.into_values().collect();
     sessions.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
     Ok(sessions)
 }
@@ -185,9 +186,26 @@ pub async fn get_session_history(session_id: String) -> Result<serde_json::Value
 
 #[tauri::command]
 pub async fn delete_session(session_id: String) -> Result<(), String> {
-    Command::new("hermes")
-        .args(["sessions", "delete", &session_id])
+    let out = Command::new("hermes")
+        .args(["sessions", "delete", "--yes", &session_id])
         .output()
         .map_err(|e| e.to_string())?;
+
+    if !out.status.success() {
+        // CLI failed — fall back to removing the session files directly
+        if let Some(home) = hermes_home() {
+            let sessions_dir = home.join("sessions");
+            for name in [
+                format!("session_{}.json", session_id),
+                format!("{}.json", session_id),
+                format!("session_{}.jsonl", session_id),
+                format!("{}.jsonl", session_id),
+            ] {
+                let p = sessions_dir.join(&name);
+                if p.exists() { let _ = std::fs::remove_file(&p); }
+            }
+        }
+    }
+
     Ok(())
 }
