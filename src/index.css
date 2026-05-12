@@ -819,6 +819,150 @@ body {
   padding: 4px 8px 8px;
 }
 
+/* ── Context Bar (feat-003 / feat-004) ── */
+.context-bar-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.context-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+}
+
+.context-track {
+  width: 56px;
+  height: 5px;
+  background: var(--surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.context-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+.context-fill.blink {
+  animation: ctx-blink 1s step-end infinite;
+}
+
+@keyframes ctx-blink {
+  50% { opacity: 0.3; }
+}
+
+.context-pct {
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  min-width: 28px;
+}
+
+.compress-btn {
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.compress-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border-bright);
+}
+
+.compress-btn.highlight {
+  border-color: var(--amber-dim);
+  color: var(--amber);
+  background: var(--amber-glow);
+}
+
+.compress-btn.highlight:hover {
+  background: rgba(232, 160, 48, 0.2);
+}
+
+.compress-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+}
+
+.compress-popover-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-bright);
+  letter-spacing: 0.04em;
+}
+
+.compress-input {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text);
+  outline: none;
+  width: 100%;
+}
+
+.compress-input:focus { border-color: var(--amber-dim); }
+.compress-input::placeholder { color: var(--text-muted); }
+
+.compress-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn-cancel {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.btn-cancel:hover { color: var(--text); border-color: var(--border-bright); }
+
+.btn-confirm {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--amber-dim);
+  background: var(--amber-glow);
+  color: var(--amber);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-confirm:hover { background: rgba(232, 160, 48, 0.2); }
+
 /* xterm.js needs the viewport to fill its container */
 .terminal-panel-body .xterm,
 .terminal-panel-body .xterm-viewport,

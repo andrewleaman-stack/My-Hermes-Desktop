@@ -1,4 +1,5 @@
 import { HermesStatus } from "../../types";
+import ContextBar from "./ContextBar";
 
 interface Props {
   streaming: boolean;
@@ -9,7 +10,12 @@ interface Props {
   onSendMessage: (text: string) => void;
 }
 
-export default function TopBar({ streaming, status, hermesVersion, toolCallCount, onOpenTerminal }: Props) {
+export default function TopBar({ streaming, status, hermesVersion, toolCallCount, onOpenTerminal, onSendMessage }: Props) {
+  const handleCompress = (focus: string) => {
+    const cmd = focus ? `/compress ${focus}` : "/compress";
+    onSendMessage(cmd);
+  };
+
   return (
     <div className="topbar">
       {/* Logo */}
@@ -66,6 +72,11 @@ export default function TopBar({ streaming, status, hermesVersion, toolCallCount
           </div>
         </>
       )}
+
+      <div className="topbar-divider" />
+
+      {/* Context progress bar + compress trigger (feat-003/004) */}
+      <ContextBar status={status} onCompress={handleCompress} />
 
       <div className="topbar-spacer" />
 
