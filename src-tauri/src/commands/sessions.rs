@@ -186,24 +186,23 @@ pub async fn get_session_history(session_id: String) -> Result<serde_json::Value
 
 #[tauri::command]
 pub async fn delete_session(session_id: String) -> Result<(), String> {
-    let out = Command::new("hermes")
+    // Tell hermes to deregister the session from its internal state
+    let _ = Command::new("hermes")
         .args(["sessions", "delete", "--yes", &session_id])
-        .output()
-        .map_err(|e| e.to_string())?;
+        .output();
 
-    if !out.status.success() {
-        // CLI failed — fall back to removing the session files directly
-        if let Some(home) = hermes_home() {
-            let sessions_dir = home.join("sessions");
-            for name in [
-                format!("session_{}.json", session_id),
-                format!("{}.json", session_id),
-                format!("session_{}.jsonl", session_id),
-                format!("{}.jsonl", session_id),
-            ] {
-                let p = sessions_dir.join(&name);
-                if p.exists() { let _ = std::fs::remove_file(&p); }
-            }
+    // Always delete the session files — hermes CLI only removes its internal
+    // tracking record but leaves the .json/.jsonl files on disk
+    if let Some(home) = hermes_home() {
+        let sessions_dir = home.join("sessions");
+        for name in [
+            format!("session_{}.json", session_id),
+            format!("{}.json", session_id),
+            format!("session_{}.jsonl", session_id),
+            format!("{}.jsonl", session_id),
+        ] {
+            let p = sessions_dir.join(&name);
+            if p.exists() { let _ = std::fs::remove_file(&p); }
         }
     }
 
