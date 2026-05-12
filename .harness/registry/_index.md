@@ -15,6 +15,10 @@
 
 <!-- 新条目追加到这里（上方） -->
 
+[2026-05-12 20:00] DONE 新增 Warp 设计风格第三套皮肤（暖深色画布 + off-white + Inter/DM Mono），主题循环改为 3 档 → commit 9b3d023
+
+[2026-05-12 18:00] DECISION Phase 1 规划完成，10 个功能（feat-101～110）分 2 Sprint 录入 features.json → current-sprint.md
+
 [2026-05-12 16:04] FIX 重新生成 Hermes Desktop 应用图标
 
 [2026-05-12 10:00] DECISION 项目 harness 初始化完成，Phase 0 四个功能录入 features.json → decisions/init.md
