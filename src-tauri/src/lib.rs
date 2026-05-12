@@ -61,6 +61,8 @@ pub fn run() {
             commands::sessions::delete_session,
             commands::chat::send_message,
             commands::chat::get_hermes_info,
+            commands::memory::read_memory,
+            commands::memory::save_memory,
             commands::terminal::pty_open,
             commands::terminal::pty_write,
             commands::terminal::pty_resize,

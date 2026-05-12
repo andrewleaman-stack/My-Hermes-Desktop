@@ -9,7 +9,7 @@
       "description": "路由 + NavBar 基础改造 — 安装 react-router-dom，新建左侧图标导航栏（对话/记忆/管理），将 App.tsx 拆成 ChatPage / MemoryPage / DashboardPage，搭好空页面占位",
       "acceptance": "点击左侧导航图标可在对话、记忆、管理三个页面间切换，URL 路由正确变化，ChatPage 保持现有对话功能不回归",
       "depends_on": [],
-      "passes": false
+      "passes": true
     },
     {
       "id": "feat-001",
@@ -30,14 +30,14 @@
       "description": "状态栏完善 — TopBar 新增四色 Context 窗口进度条（绿→黄→橙→红，阈值 70/85/95%）、费用统计、Tool Call 步数计数",
       "acceptance": "TopBar 实时显示 Context 使用率进度条（四色过渡正确）、本次对话累计费用、tool call 调用次数",
       "depends_on": [],
-      "passes": false
+      "passes": true
     },
     {
       "id": "feat-004",
       "description": "上下文压缩触发器 — Context 进度条旁显示"压缩"按钮，>70% 时高亮；点击弹出焦点输入框，确认后发送 /compress [focus] 命令",
       "acceptance": "Context >70% 时"压缩"按钮高亮；点击弹出 Popover，可选填压缩焦点；确认后发送 /compress 命令，对话流中出现"✓ 上下文已压缩"系统消息",
       "depends_on": ["feat-003"],
-      "passes": false
+      "passes": true
     }
   ]
 }
