@@ -8,9 +8,10 @@ const NAV_ITEMS = [
   { path: "/dashboard", icon: "dashboard", label: "管理" },
 ] as const;
 
-const THEME_META: Record<Theme, { icon: "command" | "spark"; title: string }> = {
-  claude: { icon: "spark", title: "切换到 Apple 风格" },
-  apple:  { icon: "command", title: "切换到 Claude 风格" },
+const THEME_META: Record<Theme, { icon: "command" | "spark" | "terminal"; title: string }> = {
+  claude: { icon: "spark",    title: "切换到 Apple 风格" },
+  apple:  { icon: "terminal", title: "切换到 Warp 风格" },
+  warp:   { icon: "command",  title: "切换到 Claude 风格" },
 };
 
 export default function NavBar() {

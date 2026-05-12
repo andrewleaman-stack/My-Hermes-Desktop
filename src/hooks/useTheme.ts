@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 
-export type Theme = "claude" | "apple";
+export type Theme = "claude" | "apple" | "warp";
 
 const STORAGE_KEY = "hermes-theme";
+const CYCLE: Theme[] = ["claude", "apple", "warp"];
 
 function applyTheme(theme: Theme) {
-  if (theme === "apple") {
-    document.documentElement.setAttribute("data-theme", "apple");
+  if (theme === "apple" || theme === "warp") {
+    document.documentElement.setAttribute("data-theme", theme);
   } else {
     document.documentElement.removeAttribute("data-theme");
   }
@@ -15,9 +16,8 @@ function applyTheme(theme: Theme) {
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
     try {
-      return (localStorage.getItem(STORAGE_KEY) as Theme) === "apple"
-        ? "apple"
-        : "claude";
+      const saved = localStorage.getItem(STORAGE_KEY) as Theme;
+      return CYCLE.includes(saved) ? saved : "claude";
     } catch {
       return "claude";
     }
@@ -30,7 +30,8 @@ export function useTheme() {
     } catch {}
   }, [theme]);
 
-  const toggle = () => setTheme((t) => (t === "claude" ? "apple" : "claude"));
+  const toggle = () =>
+    setTheme((t) => CYCLE[(CYCLE.indexOf(t) + 1) % CYCLE.length]);
 
   return { theme, toggle };
 }

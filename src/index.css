@@ -124,6 +124,84 @@
   /* Think / Tool inherit dark tokens — just dark surface changes */
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Warp Theme Override — warm dark canvas, off-white ink, Inter + DM Mono
+   ───────────────────────────────────────────────────────────────────────────── */
+[data-theme="warp"] {
+  --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --font-sans:    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:    'DM Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* Surface — warm dark canvas everywhere */
+  --canvas:                #2b2622;
+  --surface-soft:          #302c28;
+  --surface-card:          #383330;
+  --surface-cream-strong:  #403c38;
+  --surface-dark:          #1e1b18;
+  --surface-dark-elevated: #242120;
+  --surface-dark-soft:     #201e1b;
+
+  /* Text — light on dark */
+  --ink:          #f7f5f0;
+  --body-strong:  #dad2c1;
+  --body:         #c9c0ad;
+  --muted:        #aea69c;
+  --muted-soft:   #9a9088;
+  --on-dark:      #f7f5f0;
+  --on-dark-soft: #c9c0ad;
+
+  /* Brand — off-white is the only accent; no chromatic color */
+  --primary:          #f7f5f0;
+  --primary-active:   #e0ddd6;
+  --primary-disabled: #4a4642;
+  --primary-glow:     rgba(247, 245, 240, 0.08);
+
+  /* Borders */
+  --hairline:      #3f3a36;
+  --hairline-soft: #38342f;
+  --hairline-dark: #2d2a26;
+
+  /* Accent — keep warm tones */
+  --accent-teal:  #5db8a6;
+  --accent-amber: #e8a55a;
+
+  /* Shadows — stronger on dark surfaces */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.40);
+
+  /* Tighter radii per Warp brand language */
+  --radius-xs: 2px;
+  --radius:    4px;
+  --radius-lg: 6px;
+  --radius-xl: 12px;
+}
+
+/* Warp: primary fill is off-white — button labels must be dark */
+[data-theme="warp"] .btn-send     { color: #2b2622; }
+[data-theme="warp"] .btn-confirm  { color: #2b2622; }
+[data-theme="warp"] .mem-btn-save.dirty { color: #2b2622; }
+[data-theme="warp"] .guide-retry-btn   { color: #2b2622; }
+
+/* Warp: brand mark uses subtle warm highlight instead of gradient */
+[data-theme="warp"] .brand-mark {
+  background: rgba(247, 245, 240, 0.12);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.30);
+}
+
+/* Warp: compress highlight hover */
+[data-theme="warp"] .compress-btn.highlight:hover {
+  background: rgba(247, 245, 240, 0.12);
+}
+
+/* Warp: Instrument Serif for display titles, weight stays 400 */
+[data-theme="warp"] .page-placeholder-title { font-weight: 400; letter-spacing: -0.02em; }
+[data-theme="warp"] .chat-empty-title        { font-weight: 400; font-size: 28px; letter-spacing: -0.3px; }
+[data-theme="warp"] .dashboard-guide-title   { font-weight: 400; letter-spacing: -0.02em; }
+[data-theme="warp"] .memory-page-title       { font-weight: 400; letter-spacing: -0.01em; }
+[data-theme="warp"] .md-content h1,
+[data-theme="warp"] .md-content h2,
+[data-theme="warp"] .md-content h3           { font-weight: 400; }
+
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
