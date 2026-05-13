@@ -15,6 +15,10 @@
 
 <!-- 新条目追加到这里（上方） -->
 
+[2026-05-13 12:30] FIX feat-103 修复重试/撤销气泡污染 — 重试用 hideUserMessage 静默发送，撤销 fire-and-forget /undo 不产生 UI 气泡
+
+[2026-05-13 11:52] DONE feat-103 消息快捷操作 — 最后一条 assistant 消息 hover 提供重试/撤销按钮 → sessions/2026-05-13-1152.md
+
 [2026-05-13 11:45] FIX 标题重命名改用 hermes sessions rename，避免 /title 污染对话历史
 
 [2026-05-13 11:35] FIX 会话标题编辑入口从侧边栏移到 TopBar，避免切换会话误触重命名
