@@ -44,7 +44,7 @@
       "description": "模型选择器 — TopBar 常驻模型下拉，发送 /model（无参）加载已配置模型列表，选择后发送 /model <provider:model>，按 provider 分组展示，支持搜索",
       "acceptance": "TopBar 显示当前 provider·model；点击展开可搜索的下拉列表，按 provider 分组；选择后切换成功并更新显示",
       "depends_on": [],
-      "passes": false
+      "passes": true
     },
     {
       "id": "feat-102",
