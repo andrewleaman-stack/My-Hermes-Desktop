@@ -7,6 +7,9 @@ interface Props {
   messages: Message[];
   streaming: boolean;
   onSend: (text: string) => void;
+  onQueue: (text: string) => void;
+  onCancelQueue: () => void;
+  queuedText: string | null;
   onRetryLastMessage: () => void;
   error: string | null;
   hasSession: boolean;
@@ -16,6 +19,9 @@ export default function ChatView({
   messages,
   streaming,
   onSend,
+  onQueue,
+  onCancelQueue,
+  queuedText,
   onRetryLastMessage,
   error,
   hasSession,
@@ -42,8 +48,12 @@ export default function ChatView({
 
   const submit = () => {
     const text = textareaRef.current?.value.trim();
-    if (!text || streaming) return;
-    onSend(text);
+    if (!text) return;
+    if (streaming) {
+      onQueue(text);
+    } else {
+      onSend(text);
+    }
     if (textareaRef.current) textareaRef.current.value = "";
   };
 
@@ -121,10 +131,11 @@ export default function ChatView({
             className="chat-textarea"
             placeholder={
               streaming
-                ? "Hermes is thinking..."
+                ? queuedText
+                  ? "Queue another message... (Enter to queue)"
+                  : "Queue a message for next turn... (Enter to queue)"
                 : "Message Hermes... (Enter to send, Shift+Enter for newline)"
             }
-            disabled={streaming}
             onKeyDown={handleKeyDown}
             onInput={handleInput}
             rows={1}
@@ -132,11 +143,10 @@ export default function ChatView({
           <button
             className="btn-send ui-font"
             onClick={submit}
-            disabled={streaming}
           >
             {streaming ? (
               <>
-                <span className="loading-dots" style={{ color: "var(--primary)" }} />
+                排队 ⏸
               </>
             ) : (
               <>
@@ -146,9 +156,20 @@ export default function ChatView({
             )}
           </button>
         </div>
+
+        {queuedText && (
+          <div className="queue-indicator">
+            <span className="queue-label">排队中：</span>
+            <span className="queue-text">{queuedText}</span>
+            <button className="queue-cancel" onClick={onCancelQueue} title="取消排队">
+              <Icon name="close" size={12} />
+            </button>
+          </div>
+        )}
+
         <div className="input-hints ui-font">
           <span>
-            <kbd>Enter</kbd> to send
+            <kbd>Enter</kbd> to {streaming ? "queue" : "send"}
           </span>
           <span>
             <kbd>Shift+Enter</kbd> for newline

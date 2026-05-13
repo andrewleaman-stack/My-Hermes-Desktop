@@ -1176,6 +1176,47 @@ body {
 /* Apple: pill button */
 [data-theme="apple"] .btn-send { border-radius: 9999px; }
 
+/* ── Queue Indicator ── */
+.queue-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--primary-glow);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+.queue-label {
+  color: var(--primary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.queue-text {
+  flex: 1;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.queue-cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #ffffff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.queue-cancel:hover {
+  background: var(--primary-active);
+}
+
 .input-hints {
   display: flex;
   gap: 12px;

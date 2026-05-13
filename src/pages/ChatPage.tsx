@@ -93,6 +93,7 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null);
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [toolCallCount, setToolCallCount] = useState(0);
+  const [queuedText, setQueuedText] = useState<string | null>(null);
 
   const unlistenRef = useRef<(() => void) | null>(null);
   const justFinishedRef = useRef(false);
@@ -143,6 +144,7 @@ export default function ChatPage() {
     setMessages([]);
     setError(null);
     setToolCallCount(0);
+    setQueuedText(null);
     const session = sessions.find((s) => s.id === id);
     if (session?.model) {
       setStatus((s) => ({ ...(s ?? {} as HermesStatus), model: session.model! }));
@@ -160,6 +162,7 @@ export default function ChatPage() {
     setMessages([]);
     setError(null);
     setToolCallCount(0);
+    setQueuedText(null);
     setStatus(null);
   }, []);
 
@@ -201,6 +204,14 @@ export default function ChatPage() {
     },
     [activeSessionId, loadSessions]
   );
+
+  const handleQueueMessage = useCallback((text: string) => {
+    if (text.trim()) setQueuedText(text.trim());
+  }, []);
+
+  const handleCancelQueue = useCallback(() => {
+    setQueuedText(null);
+  }, []);
 
   const handleSlashCommand = useCallback((text: string): boolean => {
     const cmd = text.trim().toLowerCase();
@@ -380,6 +391,14 @@ export default function ChatPage() {
     [streaming, activeSessionId, loadSessions, handleSlashCommand]
   );
 
+  useEffect(() => {
+    if (!streaming && queuedText) {
+      const text = queuedText;
+      setQueuedText(null);
+      handleSendMessage(text);
+    }
+  }, [streaming, queuedText, handleSendMessage]);
+
   const handleRetryLastMessage = useCallback(() => {
     if (streaming) return;
     const lastUserText = getLastUserText(messages);
@@ -426,6 +445,9 @@ export default function ChatPage() {
           messages={messages}
           streaming={streaming}
           onSend={handleSendMessage}
+          onQueue={handleQueueMessage}
+          onCancelQueue={handleCancelQueue}
+          queuedText={queuedText}
           onRetryLastMessage={handleRetryLastMessage}
           error={error}
           hasSession={activeSessionId !== null || messages.length > 0}
