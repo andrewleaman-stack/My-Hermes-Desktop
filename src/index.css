@@ -277,8 +277,8 @@ body {
 }
 
 .onboarding-page {
-  min-height: 100vh;
-  width: 100vw;
+  min-height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -615,6 +615,11 @@ body {
   background: var(--surface-cream-strong);
   color: var(--primary);
   border-color: var(--primary);
+}
+.navbar-theme-btn.active {
+  background: var(--primary-glow);
+  color: var(--primary);
+  border-color: var(--primary-disabled);
 }
 .navbar-theme-btn .theme-dot {
   width: 6px;

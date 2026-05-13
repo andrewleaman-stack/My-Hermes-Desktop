@@ -45,9 +45,10 @@ interface Props {
   setup: HermesSetupStatus | null;
   checking: boolean;
   onRetry: () => void;
+  onContinue?: () => void;
 }
 
-export default function OnboardingPage({ setup, checking, onRetry }: Props) {
+export default function OnboardingPage({ setup, checking, onRetry, onContinue }: Props) {
   const [copied, setCopied] = useState(false);
   const [terminalError, setTerminalError] = useState("");
 
@@ -139,8 +140,12 @@ export default function OnboardingPage({ setup, checking, onRetry }: Props) {
       </section>
 
       <div className="onboarding-actions">
-        <button className="guide-retry-btn ui-font" onClick={onRetry} disabled={checking}>
-          {checking ? "检测中..." : "我已完成，重新检测"}
+        <button
+          className="guide-retry-btn ui-font"
+          onClick={setup?.installed && onContinue ? onContinue : onRetry}
+          disabled={checking}
+        >
+          {checking ? "检测中..." : setup?.installed && onContinue ? "进入对话" : "我已完成，重新检测"}
         </button>
       </div>
     </div>

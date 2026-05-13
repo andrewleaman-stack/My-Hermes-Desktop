@@ -36,6 +36,14 @@ export default function NavBar() {
       <div className="navbar-spacer" />
 
       <button
+        className={`navbar-theme-btn${location.pathname === "/onboarding" ? " active" : ""}`}
+        onClick={() => navigate("/onboarding")}
+        title="打开使用引导"
+      >
+        <Icon name="package" size={17} />
+      </button>
+
+      <button
         className="navbar-theme-btn"
         onClick={toggle}
         title={THEME_META[theme].title}

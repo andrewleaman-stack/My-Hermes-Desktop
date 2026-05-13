@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { HashRouter, Routes, Route, useLocation } from "react-router-dom";
+import { HashRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import NavBar from "./components/NavBar";
 import ChatPage from "./pages/ChatPage";
 import MemoryPage from "./pages/MemoryPage";
@@ -21,6 +21,7 @@ function setupErrorMessage(error: unknown) {
 // consume them. Keep ChatPage permanently mounted; toggle visibility via CSS.
 function AppShell() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isChat = location.pathname === "/";
   const [checkingSetup, setCheckingSetup] = useState(true);
   const [setup, setSetup] = useState<HermesSetupStatus | null>(null);
@@ -81,6 +82,17 @@ function AppShell() {
           <Routes>
             <Route path="/memory" element={<MemoryPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route
+              path="/onboarding"
+              element={
+                <OnboardingPage
+                  setup={setup}
+                  checking={checkingSetup}
+                  onRetry={checkSetup}
+                  onContinue={() => navigate("/")}
+                />
+              }
+            />
           </Routes>
         )}
       </div>
