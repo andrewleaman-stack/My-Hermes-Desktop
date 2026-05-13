@@ -13,6 +13,16 @@ fn emit(app: &AppHandle, session_id: &str, kind: &str, content: &str) {
     .ok();
 }
 
+fn extract_resume_session_id(line: &str) -> Option<String> {
+    let mut parts = line.split_whitespace();
+    while let Some(part) = parts.next() {
+        if part == "--resume" || part == "-r" {
+            return parts.next().map(|value| value.trim().to_string()).filter(|value| !value.is_empty());
+        }
+    }
+    None
+}
+
 #[tauri::command]
 pub async fn send_message(
     app: AppHandle,
@@ -28,6 +38,9 @@ pub async fn send_message(
         args.push(id.clone());
     }
 
+    // Use pipe (not PTY) so hermes detects non-TTY stdout and runs in line-buffered
+    // non-interactive mode. PTY would put hermes into TUI mode where it uses ANSI
+    // redraws + \r in place of \n, which BufReader::lines() cannot consume.
     let mut child = Command::new("hermes")
         .args(&args)
         .env("PYTHONUNBUFFERED", "1")
@@ -41,7 +54,7 @@ pub async fn send_message(
     let mut in_think = false;
     let mut in_footer = false;
     let mut in_diff = false;
-    let mut in_query_echo = false;
+    let mut discovered_session_id: Option<String> = None;
 
     for line_result in reader.lines() {
         let raw = line_result.map_err(|e| e.to_string())?;
@@ -50,25 +63,9 @@ pub async fn send_message(
 
         emit(&app, &session_tag, "raw", &clean);
 
-        // Hermes prints the submitted query before the actual response. That is
-        // useful in raw logs, but it should not be rendered as assistant text.
-        if trimmed.starts_with("Query:") {
-            in_query_echo = true;
-            continue;
-        }
-        if in_query_echo {
-            if trimmed.starts_with("Initializing ")
-                || trimmed.starts_with('\u{2183}')
-                || trimmed.starts_with('\u{21BB}')
-            {
-                in_query_echo = false;
-            } else {
-                continue;
-            }
-        }
-
         // ── Footer (session info after response) ──────────────────────────────
         if trimmed.starts_with("Resume this session with:") {
+            discovered_session_id = extract_resume_session_id(trimmed);
             in_footer = true;
         }
         if in_footer {
@@ -137,23 +134,25 @@ pub async fn send_message(
         emit(&app, &session_tag, "text", trimmed);
     }
 
-    let output = child.wait_with_output().map_err(|e| e.to_string())?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        if !stderr.trim().is_empty() {
-            emit(&app, &session_tag, "error", &stderr);
-        }
+    let output = child.wait().map_err(|e| e.to_string())?;
+    if !output.success() {
+        emit(&app, &session_tag, "error", &format!("Hermes exited with status: {output}"));
     }
 
+    let mut done_session_tag = session_tag.clone();
     if session_id.is_none() {
-        if let Ok(sessions) = super::sessions::list_sessions().await {
+        if let Some(real_id) = discovered_session_id {
+            emit(&app, &session_tag, "new_session_id", &real_id);
+            done_session_tag = real_id;
+        } else if let Ok(sessions) = super::sessions::list_sessions().await {
             if let Some(first) = sessions.first() {
                 emit(&app, &session_tag, "new_session_id", &first.id);
+                done_session_tag = first.id.clone();
             }
         }
     }
 
-    emit(&app, &session_tag, "done", "");
+    emit(&app, &done_session_tag, "done", "");
     Ok(())
 }
 

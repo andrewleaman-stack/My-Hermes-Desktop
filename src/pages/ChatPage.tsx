@@ -310,6 +310,26 @@ export default function ChatPage() {
 
       if (!realSessionId) {
         setActiveSessionId(sessionTag);
+        // Insert a placeholder session entry so the new chat appears in the
+        // sidebar immediately. It will be migrated to the real id when the
+        // "new_session_id" chunk arrives, then replaced by loadSessions().
+        const placeholderTitle = text.trim().slice(0, 60);
+        const nowIso = new Date().toISOString();
+        setSessions((prev) =>
+          prev.some((s) => s.id === sessionTag)
+            ? prev
+            : [
+                {
+                  id: sessionTag,
+                  title: placeholderTitle,
+                  created_at: nowIso,
+                  updated_at: nowIso,
+                  message_count: 1,
+                },
+                ...prev,
+              ]
+        );
+        setSessionBadges((prev) => ({ ...prev, [sessionTag]: "running" }));
       }
 
       const userMsg: Message = {
@@ -557,21 +577,65 @@ export default function ChatPage() {
             if (msg.status !== "error") {
               msg.status = "done";
             }
-            justFinishedRef.current[sessionId] = true;
-            setStreamingSessions((sPrev) => {
-              const next = new Set(sPrev);
-              next.delete(sessionId);
-              return next;
-            });
-            setSessionBadges((bPrev) => {
-              if (activeSessionIdRef.current === sessionId) return bPrev;
-              return { ...bPrev, [sessionId]: "done" };
-            });
           }
 
           msgs[idx] = { ...msg, blocks };
           return { ...prev, [sessionId]: msgs };
         });
+
+        // Done cleanup runs unconditionally — must not be inside setSessionMessages
+        // because an early-return (lastAssistantIdx < 0) would skip these operations,
+        // leaving the session permanently stuck in "streaming" state.
+        if (chunk.kind === "done") {
+          justFinishedRef.current[sessionId] = true;
+          setStreamingSessions((sPrev) => {
+            const next = new Set(sPrev);
+            next.delete(sessionId);
+            return next;
+          });
+          setSessionBadges((bPrev) => {
+            if (activeSessionIdRef.current === sessionId) return bPrev;
+            return { ...bPrev, [sessionId]: "done" };
+          });
+
+          // Streaming accumulates text by line-trim + chunk-stitch, which loses
+          // code-block indentation and splits markdown across blocks when tool
+          // calls interleave. The hermes-saved JSON is the canonical source —
+          // reload it to render with full fidelity (same path as session switch).
+          // Small delay lets hermes flush its final write to disk.
+          setTimeout(async () => {
+            try {
+              const raw = await invoke<unknown>("get_session_history", {
+                sessionId,
+              });
+              const reloaded = parseHistoryMessages(raw);
+              if (reloaded.length === 0) return;
+              setSessionMessages((prev) => {
+                const current = prev[sessionId] ?? [];
+                // Preserve any messages already started for the next queued turn
+                // (a fresh user+streaming-assistant pair appended after this done).
+                // Find the earliest still-streaming assistant; everything from the
+                // user before it onward belongs to the next round.
+                const streamingIdx = current.findIndex(
+                  (m) => m.role === "assistant" && m.status === "streaming"
+                );
+                if (streamingIdx < 0) {
+                  return { ...prev, [sessionId]: reloaded };
+                }
+                const splitIdx =
+                  streamingIdx > 0 && current[streamingIdx - 1].role === "user"
+                    ? streamingIdx - 1
+                    : streamingIdx;
+                return {
+                  ...prev,
+                  [sessionId]: [...reloaded, ...current.slice(splitIdx)],
+                };
+              });
+            } catch {
+              // ignore — keep streamed blocks as fallback
+            }
+          }, 300);
+        }
 
         if (chunk.kind === "status") {
           const parsed = parseStatusLine(chunk.content);
@@ -662,6 +726,15 @@ export default function ChatPage() {
             const next = { ...prev };
             delete next[sessionId];
             next[realId] = b;
+            return next;
+          });
+          setSessions((prev) => {
+            // Migrate the placeholder sidebar entry to the real id. The
+            // subsequent loadSessions() call will then refresh full metadata.
+            const idx = prev.findIndex((s) => s.id === sessionId);
+            if (idx < 0) return prev;
+            const next = [...prev];
+            next[idx] = { ...next[idx], id: realId };
             return next;
           });
           setActiveSessionId((current) => (current === sessionId ? realId : current));

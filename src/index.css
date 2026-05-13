@@ -258,6 +258,11 @@ body {
   min-width: 0;
 }
 
+.chat-page-host {
+  flex: 1;
+  min-height: 0;
+}
+
 /* ── NavBar ── */
 .navbar {
   width: var(--navbar-w);

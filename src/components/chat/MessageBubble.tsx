@@ -192,7 +192,9 @@ export default function MessageBubble({ message, isLastAssistant, streaming, onR
   }
 
   const hasContent = message.blocks.length > 0;
-  const showTerminal = !isUser && message.status === "error";
+  const showTerminal =
+    !isUser &&
+    ((isStreaming && message.rawOutput !== undefined) || message.status === "error");
 
   return (
     <div className="message-group fade-in">
@@ -231,6 +233,20 @@ export default function MessageBubble({ message, isLastAssistant, streaming, onR
                 Thinking<span className="loading-dots" />
               </span>
             )}
+
+            {!hasContent && !isStreaming && message.rawOutput && (() => {
+              const NOISE = /^(Query:|Resume this session with:|Session:\s|Duration:\s|Messages:\s|Goodbye!|Welcome to Hermes|╭|╰|┊)/;
+              const cleaned = message.rawOutput
+                .split("\n")
+                .filter((l) => !NOISE.test(l.trimStart()) && l.trim() !== "")
+                .join("\n")
+                .trim();
+              return cleaned ? (
+                <pre style={{ margin: 0, fontSize: 12, whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "inherit", color: "var(--muted)" }}>
+                  {cleaned}
+                </pre>
+              ) : null;
+            })()}
 
             {message.blocks.map((block, i) => {
               const isLastBlock = i === message.blocks.length - 1;
