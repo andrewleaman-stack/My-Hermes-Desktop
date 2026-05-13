@@ -111,15 +111,52 @@ function TextBlock({ content, streaming }: { content: string; streaming: boolean
   );
 }
 
+type TerminalLineTone =
+  | "command"
+  | "success"
+  | "error"
+  | "warning"
+  | "agent"
+  | "border"
+  | "muted"
+  | "output";
+
+function getTerminalLineTone(line: string): TerminalLineTone {
+  const trimmed = line.trim();
+  if (!trimmed) return "muted";
+  if (/[$❯]\s+\S/.test(line) || /^[┊│]\s*[$❯]/.test(trimmed)) return "command";
+  if (/[✔✓]\s|success|completed|done/i.test(trimmed)) return "success";
+  if (/[✖✗]\s|error|failed|panic|denied/i.test(trimmed)) return "error";
+  if (/[!?]\s|warning|warn|preparing|clarify/i.test(trimmed)) return "warning";
+  if (/Hermes|HERMES|assistant|responding/i.test(trimmed)) return "agent";
+  if (/^[╭╰╮╯┌└┐┘├┤┬┴┼─│┊\s]+$/.test(trimmed) || /^[╭╰┌└]/.test(trimmed)) return "border";
+  if (/^\d+(\.\d+)?s$/.test(trimmed) || /^[:│┊]+$/.test(trimmed)) return "muted";
+  return "output";
+}
+
+function renderTerminalContent(content: string, error: boolean) {
+  const text = content || "Starting Hermes...";
+  return text.split("\n").map((line, index, lines) => (
+    <span
+      key={`${index}-${line.slice(0, 16)}`}
+      className={`terminal-line tone-${error ? "error" : getTerminalLineTone(line)}`}
+    >
+      {line || " "}
+      {index < lines.length - 1 ? "\n" : ""}
+    </span>
+  ));
+}
+
 function TerminalOutput({ content, error }: { content: string; error: boolean }) {
   return (
     <div className={`stream-terminal selectable ${error ? "error" : ""}`}>
       <div className="stream-terminal-header ui-font">
         <span className="stream-terminal-dot" />
         <span>{error ? "Hermes exited with an error" : "Hermes is responding"}</span>
+        {!error && <span className="stream-terminal-live">live</span>}
       </div>
       <pre className="stream-terminal-body">
-        {content || "Starting Hermes..."}
+        {renderTerminalContent(content, error)}
         {!error && <span className="cursor-blink" />}
       </pre>
     </div>

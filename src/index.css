@@ -1279,13 +1279,20 @@ body {
 /* ── Streaming terminal preview ── */
 .stream-terminal {
   border: 1px solid var(--hairline-dark);
-  background: var(--surface-dark);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0) 74px),
+    radial-gradient(circle at 18px 18px, rgba(93, 184, 166, 0.13), transparent 120px),
+    var(--surface-dark);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 18px 48px rgba(20, 20, 19, 0.16), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
 }
 .stream-terminal.error {
   border-color: rgba(198, 69, 69, 0.55);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 74px),
+    radial-gradient(circle at 18px 18px, rgba(198, 69, 69, 0.14), transparent 120px),
+    var(--surface-dark);
 }
 .stream-terminal-header {
   height: 34px;
@@ -1312,10 +1319,19 @@ body {
   background: var(--error);
   box-shadow: 0 0 8px rgba(198, 69, 69, 0.55);
 }
+.stream-terminal-live {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(93, 184, 114, 0.12);
+  color: #8ee0a0;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
 .stream-terminal-body {
   max-height: min(42vh, 420px);
   margin: 0;
-  padding: 14px 16px;
+  padding: 16px 18px;
   overflow: auto;
   color: var(--on-dark);
   font-family: var(--font-mono);
@@ -1323,6 +1339,44 @@ body {
   line-height: 1.65;
   white-space: pre-wrap;
   word-break: break-word;
+}
+.terminal-line {
+  color: var(--on-dark);
+}
+.terminal-line.tone-command {
+  color: #f1d48f;
+  text-shadow: 0 0 14px rgba(232, 165, 90, 0.18);
+}
+.terminal-line.tone-success {
+  color: #8ee0a0;
+}
+.terminal-line.tone-error {
+  color: #ff8b83;
+}
+.terminal-line.tone-warning {
+  color: #ffbc66;
+}
+.terminal-line.tone-agent {
+  color: var(--accent-teal);
+  font-weight: 600;
+}
+.terminal-line.tone-border {
+  color: rgba(250, 249, 245, 0.72);
+}
+.terminal-line.tone-muted {
+  color: var(--on-dark-soft);
+}
+.terminal-line.tone-output {
+  color: rgba(250, 249, 245, 0.92);
+}
+[data-theme="apple"] .terminal-line.tone-command {
+  color: #ffd166;
+}
+[data-theme="apple"] .terminal-line.tone-agent {
+  color: #64d2ff;
+}
+[data-theme="warp"] .stream-terminal {
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
 }
 
 /* ── Think Block (dark surface) ── */
