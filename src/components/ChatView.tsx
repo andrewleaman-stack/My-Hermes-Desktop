@@ -8,8 +8,9 @@ interface Props {
   streaming: boolean;
   onSend: (text: string) => void;
   onQueue: (text: string) => void;
-  onCancelQueue: () => void;
-  queuedText: string | null;
+  onCancelQueue: (index: number) => void;
+  onClearQueue: () => void;
+  queue: string[];
   onRetryLastMessage: () => void;
   error: string | null;
   hasSession: boolean;
@@ -21,7 +22,8 @@ export default function ChatView({
   onSend,
   onQueue,
   onCancelQueue,
-  queuedText,
+  onClearQueue,
+  queue,
   onRetryLastMessage,
   error,
   hasSession,
@@ -131,8 +133,8 @@ export default function ChatView({
             className="chat-textarea"
             placeholder={
               streaming
-                ? queuedText
-                  ? "Queue another message... (Enter to queue)"
+                ? queue.length > 0
+                  ? `Queue message ${queue.length + 1}... (Enter to queue)`
                   : "Queue a message for next turn... (Enter to queue)"
                 : "Message Hermes... (Enter to send, Shift+Enter for newline)"
             }
@@ -157,13 +159,27 @@ export default function ChatView({
           </button>
         </div>
 
-        {queuedText && (
-          <div className="queue-indicator">
-            <span className="queue-label">排队中：</span>
-            <span className="queue-text">{queuedText}</span>
-            <button className="queue-cancel" onClick={onCancelQueue} title="取消排队">
-              <Icon name="close" size={12} />
-            </button>
+        {queue.length > 0 && (
+          <div className="queue-list">
+            <div className="queue-header">
+              <span className="queue-label">排队中（{queue.length} 条）：</span>
+              <button className="queue-clear" onClick={onClearQueue} title="全部取消">
+                全部取消
+              </button>
+            </div>
+            {queue.map((text, index) => (
+              <div key={index} className="queue-item">
+                <span className="queue-index">{index + 1}.</span>
+                <span className="queue-text">{text}</span>
+                <button
+                  className="queue-cancel"
+                  onClick={() => onCancelQueue(index)}
+                  title="移除此条"
+                >
+                  <Icon name="close" size={12} />
+                </button>
+              </div>
+            ))}
           </div>
         )}
 

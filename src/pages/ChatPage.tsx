@@ -93,7 +93,7 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null);
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [toolCallCount, setToolCallCount] = useState(0);
-  const [queuedText, setQueuedText] = useState<string | null>(null);
+  const [queue, setQueue] = useState<string[]>([]);
 
   const unlistenRef = useRef<(() => void) | null>(null);
   const justFinishedRef = useRef(false);
@@ -144,7 +144,7 @@ export default function ChatPage() {
     setMessages([]);
     setError(null);
     setToolCallCount(0);
-    setQueuedText(null);
+    setQueue([]);
     const session = sessions.find((s) => s.id === id);
     if (session?.model) {
       setStatus((s) => ({ ...(s ?? {} as HermesStatus), model: session.model! }));
@@ -162,7 +162,7 @@ export default function ChatPage() {
     setMessages([]);
     setError(null);
     setToolCallCount(0);
-    setQueuedText(null);
+    setQueue([]);
     setStatus(null);
   }, []);
 
@@ -206,11 +206,15 @@ export default function ChatPage() {
   );
 
   const handleQueueMessage = useCallback((text: string) => {
-    if (text.trim()) setQueuedText(text.trim());
+    if (text.trim()) setQueue((prev) => [...prev, text.trim()]);
   }, []);
 
-  const handleCancelQueue = useCallback(() => {
-    setQueuedText(null);
+  const handleCancelQueue = useCallback((index: number) => {
+    setQueue((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleClearQueue = useCallback(() => {
+    setQueue([]);
   }, []);
 
   const handleSlashCommand = useCallback((text: string): boolean => {
@@ -392,12 +396,12 @@ export default function ChatPage() {
   );
 
   useEffect(() => {
-    if (!streaming && queuedText) {
-      const text = queuedText;
-      setQueuedText(null);
+    if (!streaming && queue.length > 0) {
+      const text = queue[0];
+      setQueue((prev) => prev.slice(1));
       handleSendMessage(text);
     }
-  }, [streaming, queuedText, handleSendMessage]);
+  }, [streaming, queue, handleSendMessage]);
 
   const handleRetryLastMessage = useCallback(() => {
     if (streaming) return;
@@ -447,7 +451,8 @@ export default function ChatPage() {
           onSend={handleSendMessage}
           onQueue={handleQueueMessage}
           onCancelQueue={handleCancelQueue}
-          queuedText={queuedText}
+          onClearQueue={handleClearQueue}
+          queue={queue}
           onRetryLastMessage={handleRetryLastMessage}
           error={error}
           hasSession={activeSessionId !== null || messages.length > 0}
