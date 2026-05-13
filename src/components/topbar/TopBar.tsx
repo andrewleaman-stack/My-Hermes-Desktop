@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { HermesStatus } from "../../types";
 import Icon from "../Icon";
 import ContextBar from "./ContextBar";
@@ -8,16 +9,67 @@ interface Props {
   status: HermesStatus | null;
   hermesVersion: string;
   toolCallCount: number;
+  sessionTitle: string | null;
   onOpenTerminal: () => void;
   onSendMessage: (text: string) => void;
   onNewSession: () => void;
+  onRenameSession: (title: string) => Promise<boolean>;
 }
 
-export default function TopBar({ streaming, status, hermesVersion, toolCallCount, onOpenTerminal, onSendMessage, onNewSession }: Props) {
+export default function TopBar({
+  streaming,
+  status,
+  hermesVersion,
+  toolCallCount,
+  sessionTitle,
+  onOpenTerminal,
+  onSendMessage,
+  onNewSession,
+  onRenameSession,
+}: Props) {
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [savingTitle, setSavingTitle] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const cancelTitleEditRef = useRef(false);
+  const displayTitle = sessionTitle?.trim() || "New session";
+  const canEditTitle = Boolean(sessionTitle);
+
   const handleCompress = (focus: string) => {
     const cmd = focus ? `/compress ${focus}` : "/compress";
     onSendMessage(cmd);
   };
+
+  const startTitleEdit = () => {
+    if (!canEditTitle) return;
+    cancelTitleEditRef.current = false;
+    setDraftTitle(displayTitle);
+    setEditingTitle(true);
+  };
+
+  const finishTitleEdit = async () => {
+    if (!editingTitle) return;
+    if (cancelTitleEditRef.current) {
+      cancelTitleEditRef.current = false;
+      setEditingTitle(false);
+      return;
+    }
+
+    const nextTitle = draftTitle.trim();
+    setEditingTitle(false);
+    if (!nextTitle || nextTitle === displayTitle) return;
+
+    setSavingTitle(true);
+    await onRenameSession(nextTitle);
+    setSavingTitle(false);
+  };
+
+  useEffect(() => {
+    if (editingTitle) {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    }
+  }, [editingTitle]);
 
   return (
     <div className="topbar">
@@ -28,6 +80,48 @@ export default function TopBar({ streaming, status, hermesVersion, toolCallCount
         </span>
         <span className="topbar-logo-name">Hermes</span>
         <span className="topbar-logo-sub">Desktop</span>
+      </div>
+
+      <div className="topbar-divider" />
+
+      {/* Current session title */}
+      <div className={`topbar-session-title ${savingTitle ? "saving" : ""}`}>
+        {editingTitle ? (
+          <input
+            ref={titleInputRef}
+            className="topbar-session-title-input"
+            value={draftTitle}
+            maxLength={120}
+            onChange={(e) => setDraftTitle(e.target.value)}
+            onBlur={() => { void finishTitleEdit(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.currentTarget.blur();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                cancelTitleEditRef.current = true;
+                setEditingTitle(false);
+              }
+            }}
+            aria-label="Edit current session title"
+          />
+        ) : (
+          <>
+            <span className={canEditTitle ? "topbar-session-title-text" : "topbar-session-title-text muted"}>
+              {displayTitle}
+            </span>
+            {canEditTitle && (
+              <button
+                className="topbar-title-edit-btn"
+                onClick={startTitleEdit}
+                title="编辑当前会话标题"
+              >
+                <Icon name="edit" size={12} />
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       <div className="topbar-divider" />

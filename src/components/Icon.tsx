@@ -8,6 +8,7 @@ type IconName =
   | "close"
   | "command"
   | "dashboard"
+  | "edit"
   | "keyboard"
   | "message"
   | "package"
@@ -62,6 +63,12 @@ const paths: Record<IconName, JSX.Element> = {
       <rect x="13" y="4" width="7" height="7" rx="1.5" />
       <rect x="4" y="13" width="7" height="7" rx="1.5" />
       <rect x="13" y="13" width="7" height="7" rx="1.5" />
+    </>
+  ),
+  edit: (
+    <>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
     </>
   ),
   keyboard: (

@@ -88,6 +88,7 @@ export default function ChatPage() {
 
   const unlistenRef = useRef<(() => void) | null>(null);
   const justFinishedRef = useRef(false);
+  const activeSession = activeSessionId ? sessions.find((s) => s.id === activeSessionId) : null;
 
   const loadSessions = useCallback(async () => {
     try {
@@ -168,19 +169,20 @@ export default function ChatPage() {
   );
 
   const handleRenameSession = useCallback(
-    async (id: string, title: string): Promise<boolean> => {
+    async (title: string): Promise<boolean> => {
+      if (!activeSessionId) return false;
       const nextTitle = title.trim();
       if (!nextTitle) return false;
 
       setError(null);
       setSessions((prev) =>
         prev.map((session) =>
-          session.id === id ? { ...session, title: nextTitle } : session
+          session.id === activeSessionId ? { ...session, title: nextTitle } : session
         )
       );
 
       try {
-        await invoke("rename_session", { sessionId: id, title: nextTitle });
+        await invoke("rename_session", { sessionId: activeSessionId, title: nextTitle });
         await loadSessions();
         return true;
       } catch (e) {
@@ -189,7 +191,7 @@ export default function ChatPage() {
         return false;
       }
     },
-    [loadSessions]
+    [activeSessionId, loadSessions]
   );
 
   const handleSlashCommand = useCallback((text: string): boolean => {
@@ -375,9 +377,11 @@ export default function ChatPage() {
         status={status}
         hermesVersion={hermesVersion}
         toolCallCount={toolCallCount}
+        sessionTitle={activeSession?.title ?? null}
         onOpenTerminal={() => setTerminalOpen(true)}
         onSendMessage={handleSendMessage}
         onNewSession={handleNewSession}
+        onRenameSession={handleRenameSession}
       />
       <Sidebar
         sessions={sessions}
@@ -385,7 +389,6 @@ export default function ChatPage() {
         onSelect={handleSelectSession}
         onNew={handleNewSession}
         onDelete={handleDeleteSession}
-        onRename={handleRenameSession}
       />
       <div className="content-area">
         {terminalOpen && (

@@ -467,11 +467,6 @@ body {
   background: var(--surface-card);
   border-left-color: var(--primary);
 }
-.session-item.saving .session-item-title,
-.session-item.saving .session-title-input {
-  opacity: 0.65;
-}
-
 .session-item-title {
   font-size: 13px;
   color: var(--body);
@@ -483,22 +478,6 @@ body {
 .session-item.active .session-item-title {
   color: var(--ink);
   font-weight: 500;
-}
-
-.session-title-input {
-  width: calc(100% - 30px);
-  height: 22px;
-  border: 1px solid var(--primary-disabled);
-  border-radius: var(--radius-xs);
-  background: var(--canvas);
-  color: var(--ink);
-  font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 20px;
-  padding: 0 6px;
-  outline: none;
-  box-shadow: 0 0 0 2px var(--primary-glow);
-  user-select: text;
 }
 
 .session-item-meta {
@@ -608,6 +587,65 @@ body {
   width: 1px;
   height: 16px;
   background: var(--hairline);
+}
+
+.topbar-session-title {
+  min-width: 0;
+  max-width: 260px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--body);
+  font-family: var(--font-sans);
+  font-size: 12px;
+}
+.topbar-session-title.saving { opacity: 0.65; }
+.topbar-session-title-text {
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--body);
+  font-weight: 500;
+}
+.topbar-session-title-text.muted {
+  color: var(--muted-soft);
+  font-weight: 400;
+}
+.topbar-title-edit-btn {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--muted-soft);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.topbar-title-edit-btn:hover {
+  background: var(--surface-soft);
+  color: var(--primary);
+}
+.topbar-session-title-input {
+  width: min(240px, 28vw);
+  height: 24px;
+  border: 1px solid var(--primary-disabled);
+  border-radius: var(--radius-xs);
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 22px;
+  padding: 0 7px;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-glow);
+  user-select: text;
 }
 
 .status-pill {
