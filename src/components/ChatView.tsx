@@ -7,11 +7,21 @@ interface Props {
   messages: Message[];
   streaming: boolean;
   onSend: (text: string) => void;
+  onRetryLastMessage: () => void;
+  onUndoLastTurn: () => void;
   error: string | null;
   hasSession: boolean;
 }
 
-export default function ChatView({ messages, streaming, onSend, error, hasSession }: Props) {
+export default function ChatView({
+  messages,
+  streaming,
+  onSend,
+  onRetryLastMessage,
+  onUndoLastTurn,
+  error,
+  hasSession,
+}: Props) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -84,6 +94,8 @@ export default function ChatView({ messages, streaming, onSend, error, hasSessio
               message={msg}
               isLastAssistant={msg.id === lastAssistantId}
               streaming={streaming}
+              onRetry={onRetryLastMessage}
+              onUndo={onUndoLastTurn}
             />
           ))}
           {error && (

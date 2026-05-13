@@ -885,6 +885,45 @@ body {
 .message-role.user      { color: var(--primary); }
 .message-role.assistant { color: var(--muted); }
 .message-time { font-size: 11px; color: var(--muted-soft); }
+.message-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+.message-group:hover .message-actions,
+.message-actions:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+.message-action-btn {
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--surface-card);
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.message-action-btn:hover {
+  color: var(--body);
+  border-color: var(--primary-disabled);
+  background: var(--surface-cream-strong);
+}
+.message-action-btn.danger:hover {
+  color: var(--error);
+  border-color: rgba(198, 69, 69, 0.35);
+  background: rgba(198, 69, 69, 0.08);
+}
 
 .message-bubble {
   padding: 10px 14px;

@@ -132,6 +132,8 @@ interface Props {
   message: Message;
   isLastAssistant: boolean;
   streaming: boolean;
+  onRetry: () => void;
+  onUndo: () => void;
 }
 
 function formatTime(iso: string): string {
@@ -145,9 +147,10 @@ function formatTime(iso: string): string {
   }
 }
 
-export default function MessageBubble({ message, isLastAssistant, streaming }: Props) {
+export default function MessageBubble({ message, isLastAssistant, streaming, onRetry, onUndo }: Props) {
   const isUser = message.role === "user";
   const isStreaming = streaming && isLastAssistant && message.status === "streaming";
+  const showActions = isLastAssistant && !streaming && message.status === "done";
 
   if (isUser) {
     const text = message.blocks
@@ -182,6 +185,17 @@ export default function MessageBubble({ message, isLastAssistant, streaming }: P
         <span className="message-time">{formatTime(message.timestamp)}</span>
         {message.status === "error" && (
           <span style={{ fontSize: 10, color: "var(--error)" }}>error</span>
+        )}
+        {showActions && (
+          <div className="message-actions">
+            <button className="message-action-btn" onClick={onRetry} title="重试这一轮">
+              <Icon name="refresh" size={12} />
+              重试
+            </button>
+            <button className="message-action-btn danger" onClick={onUndo} title="撤销这一轮">
+              撤销这轮
+            </button>
+          </div>
         )}
       </div>
       <div className="message-bubble assistant">

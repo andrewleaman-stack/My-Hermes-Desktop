@@ -6,6 +6,7 @@ import Sidebar from "../components/Sidebar";
 import TopBar from "../components/topbar/TopBar";
 import ChatView from "../components/ChatView";
 import TerminalPanel from "../components/TerminalPanel";
+import { removeLastTurn } from "../utils/messageActions";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -205,7 +206,7 @@ export default function ChatPage() {
   }, [handleNewSession]);
 
   const handleSendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, options?: { hideUserMessage?: boolean }) => {
       if (!text.trim() || streaming) return;
       setError(null);
 
@@ -228,7 +229,9 @@ export default function ChatPage() {
         status: "streaming",
       };
 
-      setMessages((prev) => [...prev, userMsg, assistantMsg]);
+      setMessages((prev) =>
+        options?.hideUserMessage ? [...prev, assistantMsg] : [...prev, userMsg, assistantMsg]
+      );
       setStreaming(true);
 
       if (unlistenRef.current) {
@@ -370,6 +373,26 @@ export default function ChatPage() {
     [streaming, activeSessionId, loadSessions, handleSlashCommand]
   );
 
+  const handleRetryLastMessage = useCallback(() => {
+    if (streaming) return;
+    // Remove the last assistant bubble so the retry response replaces it cleanly
+    setMessages((prev) => {
+      const lastAssistantIdx = [...prev].reverse().findIndex((m) => m.role === "assistant");
+      if (lastAssistantIdx < 0) return prev;
+      return prev.slice(0, prev.length - 1 - lastAssistantIdx);
+    });
+    handleSendMessage("/retry", { hideUserMessage: true });
+  }, [streaming, handleSendMessage]);
+
+  const handleUndoLastTurn = useCallback(() => {
+    if (streaming) return;
+    setMessages((prev) => removeLastTurn(prev));
+    // Fire /undo silently to sync hermes session state — no UI bubble needed
+    if (activeSessionId) {
+      invoke("send_message", { sessionId: activeSessionId, message: "/undo" }).catch(() => {});
+    }
+  }, [streaming, activeSessionId]);
+
   return (
     <div className="app-layout">
       <TopBar
@@ -398,6 +421,8 @@ export default function ChatPage() {
           messages={messages}
           streaming={streaming}
           onSend={handleSendMessage}
+          onRetryLastMessage={handleRetryLastMessage}
+          onUndoLastTurn={handleUndoLastTurn}
           error={error}
           hasSession={activeSessionId !== null || messages.length > 0}
         />
