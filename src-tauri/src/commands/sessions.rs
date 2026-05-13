@@ -213,14 +213,7 @@ pub async fn rename_session(session_id: String, title: String) -> Result<(), Str
     }
 
     let out = Command::new("hermes")
-        .args([
-            "chat",
-            "-q",
-            &format!("/title {}", clean_title),
-            "--resume",
-            &session_id,
-        ])
-        .env("PYTHONUNBUFFERED", "1")
+        .args(["sessions", "rename", &session_id, clean_title])
         .output()
         .map_err(|e| format!("Failed to start hermes: {e}. Is hermes installed and in PATH?"))?;
 
