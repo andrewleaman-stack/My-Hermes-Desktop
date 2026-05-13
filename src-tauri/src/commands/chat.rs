@@ -206,10 +206,29 @@ pub async fn get_hermes_model_config() -> Result<serde_json::Value, String> {
         configured.insert(0, current_provider.clone());
     }
 
+    // Read models_dev_cache.json and extract model IDs per configured provider
+    let cache_text = std::fs::read_to_string(home.join("models_dev_cache.json")).unwrap_or_default();
+    let cache: serde_json::Value = serde_json::from_str(&cache_text).unwrap_or(serde_json::Value::Null);
+
+    let mut model_groups: Vec<serde_json::Value> = Vec::new();
+    for prov in &configured {
+        if let Some(entry) = cache.get(prov) {
+            if let Some(models_map) = entry.get("models").and_then(|m| m.as_object()) {
+                let mut ids: Vec<String> = models_map.keys().cloned().collect();
+                ids.sort();
+                model_groups.push(serde_json::json!({
+                    "provider": prov,
+                    "models": ids,
+                }));
+            }
+        }
+    }
+
     Ok(serde_json::json!({
-        "current_provider": current_provider,
-        "current_model":    current_model,
+        "current_provider":     current_provider,
+        "current_model":        current_model,
         "configured_providers": configured,
+        "model_groups":         model_groups,
     }))
 }
 

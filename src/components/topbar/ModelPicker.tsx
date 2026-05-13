@@ -1,41 +1,23 @@
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
-const ALL_MODEL_GROUPS = [
-  {
-    provider: "opencode-go",
-    models: ["deepseek-v4-flash", "deepseek-v4", "deepseek-r1", "qwen3-235b", "qwen3-30b"],
-  },
-  {
-    provider: "anthropic",
-    models: ["claude-opus-4", "claude-sonnet-4", "claude-haiku-4-5"],
-  },
-  {
-    provider: "openai",
-    models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "o3", "o4-mini"],
-  },
-  {
-    provider: "openrouter",
-    models: [
-      "google/gemini-2.5-pro",
-      "deepseek/deepseek-r1",
-      "meta-llama/llama-3.3-70b-instruct",
-    ],
-  },
-  {
-    provider: "gemini",
-    models: ["gemini-2.5-pro", "gemini-2.0-flash", "gemini-1.5-pro"],
-  },
-  {
-    provider: "nous",
-    models: ["hermes-3-llama-3.1-70b", "hermes-3-llama-3.1-405b"],
-  },
+// Fallback if models_dev_cache.json is missing or provider not in cache
+const FALLBACK_GROUPS = [
+  { provider: "anthropic",  models: ["claude-opus-4", "claude-sonnet-4", "claude-haiku-4-5"] },
+  { provider: "openai",     models: ["gpt-4o", "gpt-4o-mini", "o3", "o4-mini"] },
+  { provider: "openrouter", models: ["google/gemini-2.5-pro", "deepseek/deepseek-r1"] },
 ];
+
+interface ModelGroup {
+  provider: string;
+  models: string[];
+}
 
 interface ModelConfig {
   current_provider: string;
   current_model: string;
   configured_providers: string[];
+  model_groups: ModelGroup[];
 }
 
 interface Props {
@@ -81,26 +63,16 @@ export default function ModelPicker({ currentModel, onSendMessage }: Props) {
     setCustom("");
   };
 
-  // Only show groups for configured providers; fall back to all if config not loaded yet
-  const visibleGroups =
-    config && config.configured_providers.length > 0
-      ? ALL_MODEL_GROUPS.filter((g) =>
-          config.configured_providers.includes(g.provider)
-        )
-      : ALL_MODEL_GROUPS;
-
-  // If current model's provider isn't represented, add it as a fallback group
-  const extraGroup: { provider: string; models: string[] } | null = (() => {
-    if (!config?.current_provider || !config?.current_model) return null;
-    const inVisible = visibleGroups.some((g) => g.provider === config.current_provider);
-    if (inVisible) return null;
-    return { provider: config.current_provider, models: [config.current_model] };
-  })();
-
-  const allGroups = extraGroup ? [extraGroup, ...visibleGroups] : visibleGroups;
+  // Use dynamic groups from cache; fall back to hardcoded list if empty
+  const groups: ModelGroup[] =
+    config?.model_groups?.length
+      ? config.model_groups
+      : FALLBACK_GROUPS.filter((g) =>
+          config?.configured_providers?.includes(g.provider) ?? true
+        );
 
   const q = search.toLowerCase();
-  const filtered = allGroups
+  const filtered = groups
     .map((g) => ({
       ...g,
       models: g.models.filter(
@@ -109,6 +81,8 @@ export default function ModelPicker({ currentModel, onSendMessage }: Props) {
     }))
     .filter((g) => g.models.length > 0);
 
+  const displayModel = currentModel || config?.current_model || "—";
+
   return (
     <div className="model-picker" ref={ref}>
       <button
@@ -116,7 +90,7 @@ export default function ModelPicker({ currentModel, onSendMessage }: Props) {
         onClick={() => setOpen((o) => !o)}
         title="切换模型"
       >
-        <span className="model-picker-label">{currentModel || config?.current_model || "—"}</span>
+        <span className="model-picker-label">{displayModel}</span>
         <svg
           className="model-picker-chevron"
           width="10"
