@@ -1,6 +1,7 @@
 import { HermesStatus } from "../../types";
 import Icon from "../Icon";
 import ContextBar from "./ContextBar";
+import ModelPicker from "./ModelPicker";
 
 interface Props {
   streaming: boolean;
@@ -41,11 +42,8 @@ export default function TopBar({ streaming, status, hermesVersion, toolCallCount
 
       <div className="topbar-divider" />
 
-      {/* Model */}
-      <div className="status-pill">
-        <span className="label">Model</span>
-        <span className="value topbar-model">{status?.model || "—"}</span>
-      </div>
+      {/* Model picker */}
+      <ModelPicker currentModel={status?.model} onSendMessage={onSendMessage} />
 
       <div className="topbar-divider" />
 
