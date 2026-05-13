@@ -137,6 +137,49 @@ pub async fn send_message(
     Ok(())
 }
 
+// ─── set_hermes_model: directly edit config.yaml ────────────────────────────
+
+fn rewrite_model_section(yaml: &str, new_provider: &str, new_model: &str) -> String {
+    let mut lines: Vec<String> = Vec::new();
+    let mut in_model = false;
+
+    for line in yaml.lines() {
+        if line == "model:" {
+            in_model = true;
+            lines.push(line.to_string());
+            continue;
+        }
+        if in_model {
+            if !line.starts_with(' ') && !line.is_empty() {
+                in_model = false;
+            } else {
+                let t = line.trim();
+                if t.starts_with("provider:") {
+                    lines.push(format!("  provider: {}", new_provider));
+                    continue;
+                } else if t.starts_with("default:") {
+                    lines.push(format!("  default: {}", new_model));
+                    continue;
+                }
+            }
+        }
+        lines.push(line.to_string());
+    }
+    lines.join("\n")
+}
+
+#[tauri::command]
+pub async fn set_hermes_model(provider: String, model: String) -> Result<(), String> {
+    let home = crate::commands::sessions::hermes_home()
+        .ok_or_else(|| "Cannot locate hermes home".to_string())?;
+    let path = home.join("config.yaml");
+    let text = std::fs::read_to_string(&path)
+        .map_err(|e| format!("Cannot read config.yaml: {e}"))?;
+    let updated = rewrite_model_section(&text, &provider, &model);
+    std::fs::write(&path, updated)
+        .map_err(|e| format!("Cannot write config.yaml: {e}"))
+}
+
 // ─── Helpers for get_hermes_model_config ─────────────────────────────────────
 
 fn parse_model_section(yaml: &str) -> (String, String) {

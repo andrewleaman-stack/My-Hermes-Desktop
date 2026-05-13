@@ -79,6 +79,7 @@ pub fn run() {
             commands::chat::send_message,
             commands::chat::get_hermes_info,
             commands::chat::get_hermes_model_config,
+            commands::chat::set_hermes_model,
             commands::memory::read_memory,
             commands::memory::save_memory,
             commands::dashboard::dashboard_start,

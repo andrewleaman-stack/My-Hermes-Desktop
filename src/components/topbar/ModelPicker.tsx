@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
-// Fallback if models_dev_cache.json is missing or provider not in cache
 const FALLBACK_GROUPS = [
   { provider: "anthropic",  models: ["claude-opus-4", "claude-sonnet-4", "claude-haiku-4-5"] },
   { provider: "openai",     models: ["gpt-4o", "gpt-4o-mini", "o3", "o4-mini"] },
@@ -22,21 +21,31 @@ interface ModelConfig {
 
 interface Props {
   currentModel: string | undefined;
-  onSendMessage: (text: string) => void;
 }
 
-export default function ModelPicker({ currentModel, onSendMessage }: Props) {
+export default function ModelPicker({ currentModel }: Props) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [custom, setCustom] = useState("");
   const [config, setConfig] = useState<ModelConfig | null>(null);
+  // Optimistic display: immediately reflect selection before next hermes status line
+  const [pendingModel, setPendingModel] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const loadConfig = useCallback(() => {
     invoke<ModelConfig>("get_hermes_model_config")
       .then(setConfig)
       .catch(() => null);
   }, []);
+
+  useEffect(() => { loadConfig(); }, [loadConfig]);
+
+  // Clear pending once the parent's currentModel catches up
+  useEffect(() => {
+    if (pendingModel && currentModel && currentModel.includes(pendingModel.split(":")[1] ?? "")) {
+      setPendingModel(null);
+    }
+  }, [currentModel, pendingModel]);
 
   useEffect(() => {
     if (!open) return;
@@ -49,21 +58,38 @@ export default function ModelPicker({ currentModel, onSendMessage }: Props) {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  const handleSelect = (provider: string, model: string) => {
-    onSendMessage(`/model ${provider}:${model}`);
+  const applyModel = useCallback(async (provider: string, model: string) => {
+    // Optimistic update immediately
+    setPendingModel(`${provider}:${model}`);
     setOpen(false);
     setSearch("");
+    try {
+      await invoke("set_hermes_model", { provider, model });
+      // Reload config so "current" marker is accurate next open
+      loadConfig();
+    } catch {
+      // Revert on failure
+      setPendingModel(null);
+    }
+  }, [loadConfig]);
+
+  const handleSelect = (provider: string, model: string) => {
+    applyModel(provider, model);
   };
 
   const handleCustom = () => {
     const val = custom.trim();
     if (!val) return;
-    onSendMessage(`/model ${val}`);
-    setOpen(false);
     setCustom("");
+    const parts = val.split(":");
+    if (parts.length >= 2) {
+      applyModel(parts[0], parts.slice(1).join(":"));
+    } else {
+      // Use current provider if only model name given
+      applyModel(config?.current_provider ?? "opencode-go", val);
+    }
   };
 
-  // Use dynamic groups from cache; fall back to hardcoded list if empty
   const groups: ModelGroup[] =
     config?.model_groups?.length
       ? config.model_groups
@@ -81,30 +107,18 @@ export default function ModelPicker({ currentModel, onSendMessage }: Props) {
     }))
     .filter((g) => g.models.length > 0);
 
-  const displayModel = currentModel || config?.current_model || "—";
+  const displayModel = pendingModel ?? currentModel ?? config?.current_model ?? "—";
 
   return (
     <div className="model-picker" ref={ref}>
       <button
         className="model-picker-btn"
         onClick={() => setOpen((o) => !o)}
-        title="切换模型"
+        title="切换模型（直接写入配置，下次会话生效）"
       >
         <span className="model-picker-label">{displayModel}</span>
-        <svg
-          className="model-picker-chevron"
-          width="10"
-          height="10"
-          viewBox="0 0 10 10"
-          fill="none"
-        >
-          <path
-            d="M2 3.5L5 6.5L8 3.5"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+        <svg className="model-picker-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none">
+          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
@@ -127,10 +141,11 @@ export default function ModelPicker({ currentModel, onSendMessage }: Props) {
               <div key={group.provider} className="model-picker-group">
                 <div className="model-picker-group-label">{group.provider}</div>
                 {group.models.map((model) => {
+                  const fullName = `${group.provider}:${model}`;
                   const isCurrent =
-                    currentModel === `${group.provider}:${model}` ||
-                    currentModel?.endsWith(model) ||
-                    config?.current_model === model;
+                    (pendingModel ?? currentModel) === fullName ||
+                    (pendingModel ?? currentModel)?.endsWith(model) ||
+                    (!pendingModel && !currentModel && config?.current_model === model);
                   return (
                     <button
                       key={model}
@@ -165,6 +180,10 @@ export default function ModelPicker({ currentModel, onSendMessage }: Props) {
             >
               切换
             </button>
+          </div>
+
+          <div className="model-picker-hint">
+            切换后下次对话自动生效；当前对话发 /reset 立即生效
           </div>
         </div>
       )}

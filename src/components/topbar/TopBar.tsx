@@ -43,7 +43,7 @@ export default function TopBar({ streaming, status, hermesVersion, toolCallCount
       <div className="topbar-divider" />
 
       {/* Model picker */}
-      <ModelPicker currentModel={status?.model} onSendMessage={onSendMessage} />
+      <ModelPicker currentModel={status?.model} />
 
       <div className="topbar-divider" />
 

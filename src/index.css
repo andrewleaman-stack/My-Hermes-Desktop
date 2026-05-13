@@ -727,8 +727,15 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px 8px;
+  padding: 4px 8px 6px;
   border-top: 1px solid var(--hairline-soft);
+}
+.model-picker-hint {
+  padding: 5px 12px 8px;
+  font-size: 10px;
+  color: var(--muted-soft);
+  font-family: var(--font-sans);
+  line-height: 1.4;
 }
 
 .hermes-indicator {
