@@ -102,6 +102,8 @@ export default function ChatPage() {
   // Refs
   const justFinishedRef = useRef<Record<string, boolean>>({});
   const prevStreamingRef = useRef<Set<string>>(new Set());
+  const activeSessionIdRef = useRef(activeSessionId);
+  const prevStreamingForQueueRef = useRef<Set<string>>(new Set());
 
   // Derived values for current active session
   const activeSession = activeSessionId ? sessions.find((s) => s.id === activeSessionId) : null;
@@ -111,6 +113,8 @@ export default function ChatPage() {
   const status = activeSessionId ? (sessionStatus[activeSessionId] ?? null) : null;
   const error = activeSessionId ? (sessionErrors[activeSessionId] ?? null) : null;
   const toolCallCount = activeSessionId ? (sessionToolCallCounts[activeSessionId] ?? 0) : 0;
+
+  activeSessionIdRef.current = activeSessionId;
 
   const loadSessions = useCallback(async () => {
     try {
@@ -151,29 +155,6 @@ export default function ChatPage() {
 
     prevStreamingRef.current = new Set(current);
   }, [streamingSessions, loadSessions]);
-
-  // Auto-send queued messages when a session finishes
-  useEffect(() => {
-    const prev = prevStreamingRef.current;
-    const current = streamingSessions;
-
-    prev.forEach((sessionId) => {
-      if (!current.has(sessionId)) {
-        const queue = sessionQueues[sessionId];
-        if (queue && queue.length > 0) {
-          const text = queue[0];
-          setSessionQueues((prevQs) => ({
-            ...prevQs,
-            [sessionId]: prevQs[sessionId]?.slice(1) ?? [],
-          }));
-          setTimeout(() => {
-            sendToSession(text, sessionId);
-          }, 100);
-        }
-      }
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streamingSessions, sessionQueues]);
 
   const handleSelectSession = useCallback(async (id: string) => {
     setActiveSessionId(id);
@@ -393,6 +374,30 @@ export default function ChatPage() {
     [streamingSessions, handleSlashCommand]
   );
 
+  // Auto-send queued messages when a session finishes
+  useEffect(() => {
+    const prev = prevStreamingForQueueRef.current;
+    const current = streamingSessions;
+
+    prev.forEach((sessionId) => {
+      if (!current.has(sessionId)) {
+        const queue = sessionQueues[sessionId];
+        if (queue && queue.length > 0) {
+          const text = queue[0];
+          setSessionQueues((prevQs) => ({
+            ...prevQs,
+            [sessionId]: prevQs[sessionId]?.slice(1) ?? [],
+          }));
+          setTimeout(() => {
+            sendToSession(text, sessionId);
+          }, 100);
+        }
+      }
+    });
+
+    prevStreamingForQueueRef.current = new Set(current);
+  }, [streamingSessions, sessionQueues, sendToSession]);
+
   const handleSendMessage = useCallback(
     async (text: string, options?: { hideUserMessage?: boolean }) => {
       if (!activeSessionId && !text.trim().startsWith("/")) {
@@ -553,7 +558,7 @@ export default function ChatPage() {
               return next;
             });
             setSessionBadges((bPrev) => {
-              if (activeSessionId === sessionId) return bPrev;
+              if (activeSessionIdRef.current === sessionId) return bPrev;
               return { ...bPrev, [sessionId]: "done" };
             });
           }
@@ -665,8 +670,7 @@ export default function ChatPage() {
     return () => {
       if (unlistenFn) unlistenFn();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSessionId]);
+  }, []);
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
