@@ -8,6 +8,7 @@ interface Props {
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  badges: Record<string, "running" | "queued" | "done">;
 }
 
 function formatDate(iso: string): string {
@@ -25,7 +26,7 @@ function formatDate(iso: string): string {
   }
 }
 
-export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete }: Props) {
+export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete, badges }: Props) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -77,6 +78,19 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete 
               {s.message_count !== undefined && <span>{s.message_count} msgs</span>}
               {s.cost !== undefined && s.cost > 0 && <span>${s.cost.toFixed(3)}</span>}
             </div>
+
+            {badges[s.id] && (
+              <div className={`session-badge session-badge--${badges[s.id]}`}>
+                {badges[s.id] === "running" && (
+                  <>
+                    <span className="session-badge-dot" />
+                    执行中
+                  </>
+                )}
+                {badges[s.id] === "queued" && <>排队中</>}
+                {badges[s.id] === "done" && <>执行完成</>}
+              </div>
+            )}
 
             {pendingId === s.id ? (
               <div className="session-delete-confirm" onClick={(e) => e.stopPropagation()}>

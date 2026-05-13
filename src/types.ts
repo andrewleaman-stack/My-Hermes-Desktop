@@ -62,6 +62,7 @@ export interface StreamChunk {
     | "new_session_id"
     | "raw";
   content: string;
+  session_id: string;
 }
 
 // ─── App State ────────────────────────────────────────────────────────────────

@@ -23,6 +23,7 @@ pub struct StreamChunk {
     /// "status" | "session_stat" | "new_session_id" | "done" | "error"
     pub kind: String,
     pub content: String,
+    pub session_id: String,
 }
 
 #[derive(Serialize, Clone, Debug)]

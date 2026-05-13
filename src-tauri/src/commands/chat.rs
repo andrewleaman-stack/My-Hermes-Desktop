@@ -4,10 +4,11 @@ use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
 use tauri::{AppHandle, Emitter};
 
-fn emit(app: &AppHandle, kind: &str, content: &str) {
+fn emit(app: &AppHandle, session_id: &str, kind: &str, content: &str) {
     app.emit("hermes:chunk", StreamChunk {
         kind: kind.to_string(),
         content: content.to_string(),
+        session_id: session_id.to_string(),
     })
     .ok();
 }
@@ -17,6 +18,7 @@ pub async fn send_message(
     app: AppHandle,
     session_id: Option<String>,
     message: String,
+    session_tag: String,
 ) -> Result<(), String> {
     // No -Q: non-quiet mode streams output token-by-token as the model generates.
     // PYTHONUNBUFFERED=1 ensures Python flushes stdout on each write.
@@ -45,7 +47,7 @@ pub async fn send_message(
         let clean = strip_ansi(&raw);
         let trimmed = clean.trim();
 
-        emit(&app, "raw", &clean);
+        emit(&app, &session_tag, "raw", &clean);
 
         // ── Footer (session info after response) ──────────────────────────────
         if trimmed.starts_with("Resume this session with:") {
@@ -53,7 +55,7 @@ pub async fn send_message(
         }
         if in_footer {
             if trimmed.starts_with("Duration:") || trimmed.starts_with("Messages:") {
-                emit(&app, "session_stat", trimmed);
+                emit(&app, &session_tag, "session_stat", trimmed);
             }
             continue;
         }
@@ -62,24 +64,24 @@ pub async fn send_message(
         if (trimmed.contains('│') || trimmed.contains('|'))
             && (trimmed.contains("K/") || trimmed.contains("M/"))
         {
-            emit(&app, "status", trimmed);
+            emit(&app, &session_tag, "status", trimmed);
             continue;
         }
 
         // ── Think block ───────────────────────────────────────────────────────
         if trimmed == "<think>" || trimmed.to_lowercase() == "[thinking]" || trimmed == "《思考》" {
             in_think = true;
-            emit(&app, "think_start", "");
+            emit(&app, &session_tag, "think_start", "");
             continue;
         }
         if trimmed == "</think>" || trimmed.to_lowercase() == "[/thinking]" || trimmed == "《/思考》" {
             in_think = false;
-            emit(&app, "think_end", "");
+            emit(&app, &session_tag, "think_end", "");
             continue;
         }
         if in_think {
             if !trimmed.is_empty() {
-                emit(&app, "think", trimmed);
+                emit(&app, &session_tag, "think", trimmed);
             }
             continue;
         }
@@ -114,26 +116,26 @@ pub async fn send_message(
         // This lets markdown list items ("- foo"), headings ("# h"), and fences
         // ("```") reach the renderer with correct syntax.
         // Empty lines become "" → JS side produces the \n\n paragraph separator.
-        emit(&app, "text", trimmed);
+        emit(&app, &session_tag, "text", trimmed);
     }
 
     let output = child.wait_with_output().map_err(|e| e.to_string())?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         if !stderr.trim().is_empty() {
-            emit(&app, "error", &stderr);
+            emit(&app, &session_tag, "error", &stderr);
         }
     }
 
     if session_id.is_none() {
         if let Ok(sessions) = super::sessions::list_sessions().await {
             if let Some(first) = sessions.first() {
-                emit(&app, "new_session_id", &first.id);
+                emit(&app, &session_tag, "new_session_id", &first.id);
             }
         }
     }
 
-    emit(&app, "done", "");
+    emit(&app, &session_tag, "done", "");
     Ok(())
 }
 
