@@ -12,14 +12,34 @@ interface Props {
   onSend: (text: string) => void;
 }
 
+const STORAGE_KEY = "hermes-goal-state";
+
+function loadGoal(): GoalState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function GoalBar({ streaming, onSend }: Props) {
-  const [goal, setGoal] = useState<GoalState | null>(null);
+  const [goal, setGoal] = useState<GoalState | null>(loadGoal);
   const [collapsed, setCollapsed] = useState(false);
   const [inputting, setInputting] = useState(false);
   const [inputText, setInputText] = useState("");
   const prevStreamingRef = useRef(streaming);
 
-  // Count rounds: each streaming true → false transition while active = 1 round
+  // Persist goal to localStorage on every change
+  useEffect(() => {
+    if (goal) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(goal));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [goal]);
+
+  // Count rounds: streaming true → false while active = 1 round
   useEffect(() => {
     if (!streaming && prevStreamingRef.current) {
       setGoal((g) =>

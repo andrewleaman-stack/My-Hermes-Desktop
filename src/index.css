@@ -3345,13 +3345,12 @@ body {
   color: #fff;
   border: none;
   border-radius: var(--radius-xs);
-  padding: 6px 12px;
+  padding: 5px 12px;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
-  flex: 1;
-  justify-content: center;
+  align-self: flex-start;
 }
 .snapshot-save-btn:hover { background: var(--primary-active); }
 [data-theme="warp"] .snapshot-save-btn { color: #2b2622; }
