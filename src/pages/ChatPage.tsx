@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Session, Message, StreamChunk, HermesStatus } from "../types";
@@ -365,8 +366,44 @@ export default function ChatPage() {
     }
     exitConfirmedRef.current = true;
     const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    getCurrentWindow().close();
+    await getCurrentWindow().destroy();
   }, []);
+
+  const exitConfirmModal =
+    bgExitConfirm !== null && typeof document !== "undefined"
+      ? createPortal(
+          <div className="modal-overlay" onClick={() => setBgExitConfirm(null)}>
+            <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-title ui-font">还有后台任务在运行</div>
+              <div className="modal-body ui-font">
+                当前有 {bgRunningCount} 个后台任务尚未结束。关闭应用前要怎么处理？
+              </div>
+              <div className="modal-actions">
+                <button
+                  className="modal-btn ui-font"
+                  onClick={() => setBgExitConfirm(null)}
+                >
+                  取消
+                </button>
+                <button
+                  className="modal-btn ui-font"
+                  onClick={() => handleExitConfirm("keep")}
+                  title="后台进程继续运行，但应用关闭后无法再追踪"
+                >
+                  保留运行并关闭
+                </button>
+                <button
+                  className="modal-btn modal-btn-danger ui-font"
+                  onClick={() => handleExitConfirm("kill")}
+                >
+                  全部终止并关闭
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
   const handleSlashCommand = useCallback((text: string): boolean => {
     const cmd = text.trim().toLowerCase();
@@ -887,37 +924,7 @@ export default function ChatPage() {
             onBgCountChange={setBgRunningCount}
           />
         )}
-        {bgExitConfirm !== null && (
-          <div className="modal-overlay" onClick={() => setBgExitConfirm(null)}>
-            <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-title ui-font">还有后台任务在运行</div>
-              <div className="modal-body ui-font">
-                当前有 {bgRunningCount} 个后台任务尚未结束。关闭应用前要怎么处理？
-              </div>
-              <div className="modal-actions">
-                <button
-                  className="modal-btn ui-font"
-                  onClick={() => setBgExitConfirm(null)}
-                >
-                  取消
-                </button>
-                <button
-                  className="modal-btn ui-font"
-                  onClick={() => handleExitConfirm("keep")}
-                  title="后台进程继续运行，但应用关闭后无法再追踪"
-                >
-                  保留运行并关闭
-                </button>
-                <button
-                  className="modal-btn modal-btn-danger ui-font"
-                  onClick={() => handleExitConfirm("kill")}
-                >
-                  全部终止并关闭
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {exitConfirmModal}
         <ChatView
           messages={messages}
           streaming={streaming}
