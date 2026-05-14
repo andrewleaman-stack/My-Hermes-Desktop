@@ -69,3 +69,4 @@
 （格式：`[YYYY-MM-DD] 描述 — 原因`）
 
 - [2026-05-13] `hermes chat -q <slash>` 不会经过交互式 CLI 的 slash command handler，`/undo`、`/title` 等会被当作普通消息发给模型 — 一次性进程模式绕过了交互式 CLI 前端循环
+- [2026-05-14] 上述约束派生准则：**前端虚构的 slash 命令（/personality、/goal 等 hermes CLI 不存在的命令）发给模型时行为不稳定** — 模型可能照做也可能回答"没这个命令"。处理方式：feat-107 已改用自然语言提示词；其它 `/goal`、`/snapshot` 等若发现失效，按同样思路（前端状态 + 自然语言指令）改造，不要依赖 slash 字面被模型识别
