@@ -1113,12 +1113,40 @@ body {
   font-family: var(--font-sans);
 }
 .model-picker-custom {
+  padding: 6px 8px 6px;
+  border-top: 1px solid var(--hairline);
+  background: var(--surface-soft);
+}
+.model-picker-custom-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: var(--font-sans);
+  padding: 0 2px 4px;
+}
+.model-picker-custom-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px 6px;
-  border-top: 1px solid var(--hairline-soft);
 }
+.model-picker-custom-input {
+  flex: 1;
+  padding: 5px 8px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--ink);
+  outline: none;
+}
+.model-picker-custom-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+.model-picker-custom-input::placeholder { color: var(--muted-soft); }
 .model-picker-hint {
   padding: 5px 12px 8px;
   font-size: 10px;

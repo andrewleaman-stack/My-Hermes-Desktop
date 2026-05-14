@@ -269,10 +269,30 @@ pub async fn get_hermes_model_config() -> Result<serde_json::Value, String> {
     let (current_provider, current_model) = parse_model_section(&config_text);
     let mut configured = configured_providers_from_env(&env_text);
 
+    // Also detect OAuth-authenticated providers from auth.json credential_pool
+    let auth_text = std::fs::read_to_string(home.join("auth.json")).unwrap_or_default();
+    if let Ok(auth) = serde_json::from_str::<serde_json::Value>(&auth_text) {
+        if let Some(pool) = auth["credential_pool"].as_object() {
+            for (prov, creds) in pool {
+                if let Some(arr) = creds.as_array() {
+                    if !arr.is_empty() && !configured.contains(prov) {
+                        configured.push(prov.clone());
+                    }
+                }
+            }
+        }
+    }
+
     // Always include the active provider even if its key isn't in .env
     if !current_provider.is_empty() && !configured.contains(&current_provider) {
         configured.insert(0, current_provider.clone());
     }
+
+    // Hardcoded model fallbacks for providers not covered by models_dev_cache.json
+    const PROVIDER_MODEL_FALLBACKS: &[(&str, &[&str])] = &[
+        ("openai-codex", &["gpt-5.5", "gpt-5.4-mini", "gpt-5.4", "gpt-5.3-codex", "gpt-5.2-codex", "gpt-5.1-codex-max", "gpt-5.1-codex-mini"]),
+        ("nous", &["hermes-3-llama-3.1-405b", "hermes-3-llama-3.1-70b"]),
+    ];
 
     // Read models_dev_cache.json and extract model IDs per configured provider
     let cache_text = std::fs::read_to_string(home.join("models_dev_cache.json")).unwrap_or_default();
@@ -288,6 +308,17 @@ pub async fn get_hermes_model_config() -> Result<serde_json::Value, String> {
                     "provider": prov,
                     "models": ids,
                 }));
+                continue;
+            }
+        }
+        // Provider not in cache — use hardcoded fallback if available
+        for (fb_prov, fb_models) in PROVIDER_MODEL_FALLBACKS {
+            if prov == fb_prov {
+                model_groups.push(serde_json::json!({
+                    "provider": prov,
+                    "models": fb_models,
+                }));
+                break;
             }
         }
     }

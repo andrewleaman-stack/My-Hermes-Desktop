@@ -169,24 +169,27 @@ export default function ModelPicker({ currentModel, onNewSession }: Props) {
           </div>
 
           <div className="model-picker-custom">
-            <input
-              className="model-picker-search"
-              placeholder="自定义: provider:model"
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleCustom();
-                if (e.key === "Escape") setOpen(false);
-              }}
-            />
-            <button
-              className="btn-confirm ui-font"
-              onClick={handleCustom}
-              disabled={!custom.trim()}
-              style={{ height: 28, padding: "0 12px", fontSize: 12 }}
-            >
-              切换
-            </button>
+            <div className="model-picker-custom-label">自定义模型</div>
+            <div className="model-picker-custom-row">
+              <input
+                className="model-picker-custom-input"
+                placeholder="provider:model"
+                value={custom}
+                onChange={(e) => setCustom(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCustom();
+                  if (e.key === "Escape") setOpen(false);
+                }}
+              />
+              <button
+                className="btn-confirm ui-font"
+                onClick={handleCustom}
+                disabled={!custom.trim() || !custom.includes(":")}
+                style={{ height: 28, padding: "0 12px", fontSize: 12 }}
+              >
+                切换
+              </button>
+            </div>
           </div>
 
           <div className="model-picker-hint">
