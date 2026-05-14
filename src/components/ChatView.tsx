@@ -4,6 +4,7 @@ import Icon from "./Icon";
 import GuideBot from "./chat/GuideBot";
 import MessageBubble from "./chat/MessageBubble";
 import GoalBar from "./chat/GoalBar";
+import PersonalityPicker from "./chat/PersonalityPicker";
 
 interface Props {
   messages: Message[];
@@ -173,6 +174,7 @@ export default function ChatView({
         />
 
         <div className="input-row">
+          <PersonalityPicker onSend={onSend} />
           <textarea
             ref={textareaRef}
             className="chat-textarea"

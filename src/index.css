@@ -3663,3 +3663,169 @@ body {
   flex-shrink: 0;
   margin-left: auto;
 }
+
+/* ── Personality Picker ── */
+.personality-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.personality-trigger {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.personality-trigger:hover {
+  border-color: var(--primary);
+  background: var(--surface-soft);
+  transform: translateY(-1px);
+}
+.personality-trigger-emoji {
+  display: inline-block;
+  line-height: 1;
+  filter: saturate(1.1);
+}
+
+.personality-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: 360px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  z-index: 240;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.personality-popover-header {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 2px 4px;
+}
+
+.personality-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.personality-card {
+  background: var(--surface-soft);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 10px 10px 8px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.personality-card:hover {
+  border-color: var(--primary);
+  background: var(--canvas);
+  transform: translateY(-1px);
+}
+.personality-card.active {
+  border-color: var(--primary);
+  background: var(--primary-glow);
+}
+
+.personality-card-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.personality-card-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.personality-card-desc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.personality-popover-hint {
+  padding: 4px 4px 2px;
+  font-size: 10.5px;
+  color: var(--muted-soft);
+  font-family: var(--font-sans);
+  border-top: 1px solid var(--hairline-soft);
+  padding-top: 6px;
+}
+.personality-popover-hint code {
+  background: var(--surface-soft);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-xs);
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--body);
+}
+
+.personality-current-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px 3px 8px;
+  background: var(--primary-glow);
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  border-radius: 9999px;
+  font-size: 11px;
+  color: var(--primary);
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+.personality-current-emoji {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.personality-current-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personality-current-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--primary);
+  padding: 0;
+  transition: background 0.15s;
+}
+.personality-current-clear:hover {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+}

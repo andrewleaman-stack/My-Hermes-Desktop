@@ -93,7 +93,7 @@
       "description": "人格选择器 — 输入框左侧图标触发弹层，展示内置人格卡片网格（含中文描述），选中后发送 /personality <name>；输入框底部显示当前人格标签和 × 清除按钮",
       "acceptance": "点击图标弹出人格选择网格；选择后发送 /personality 命令；输入框底部显示当前人格标签；点击 × 重置为默认（发 /personality helpful）",
       "depends_on": [],
-      "passes": false
+      "passes": true
     },
     {
       "id": "feat-108",
