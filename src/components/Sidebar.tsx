@@ -17,14 +17,20 @@ function formatDate(iso: string): string {
     const d = new Date(iso);
     const now = new Date();
     const diff = now.getTime() - d.getTime();
-    if (diff < 60_000) return "just now";
-    if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`;
-    if (diff < 86400_000) return `${Math.floor(diff / 3600_000)}h ago`;
-    return `${Math.floor(diff / 86400_000)}d ago`;
+    if (diff < 60_000) return "0m";
+    if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m`;
+    if (diff < 86400_000) return `${Math.floor(diff / 3600_000)}h`;
+    return `${Math.floor(diff / 86400_000)}d`;
   } catch {
     return "";
   }
 }
+
+const badgeMeta: Record<Props["badges"][string], { icon: "spark" | "timer" | "check"; label: string }> = {
+  running: { icon: "spark", label: "执行中" },
+  queued: { icon: "timer", label: "排队中" },
+  done: { icon: "check", label: "执行完成" },
+};
 
 export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete, badges }: Props) {
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -63,64 +69,76 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete,
           </div>
         )}
 
-        {sessions.map((s) => (
-          <div
-            key={s.id}
-            className={`session-item ${activeId === s.id ? "active" : ""}`}
-            onClick={() => {
-              if (pendingId === s.id) cancelDelete();
-              else onSelect(s.id);
-            }}
-          >
-            <div className="session-item-title">{s.title || "Untitled"}</div>
-            <div className="session-item-meta">
-              <span>{formatDate(s.updated_at)}</span>
-              {s.message_count !== undefined && <span>{s.message_count} msgs</span>}
-              {s.cost !== undefined && s.cost > 0 && <span>${s.cost.toFixed(3)}</span>}
-            </div>
+        {sessions.map((s) => {
+          const badge = badges[s.id];
+          const meta = badge ? badgeMeta[badge] : null;
 
-            {badges[s.id] && (
-              <div className={`session-badge session-badge--${badges[s.id]}`}>
-                {badges[s.id] === "running" && (
-                  <>
-                    <span className="session-badge-dot" />
-                    执行中
-                  </>
+          return (
+            <div
+              key={s.id}
+              className={`session-item ${activeId === s.id ? "active" : ""}`}
+              onClick={() => {
+                if (pendingId === s.id) cancelDelete();
+                else onSelect(s.id);
+              }}
+            >
+              <div className="session-item-title-row">
+                <div className="session-item-title">{s.title || "Untitled"}</div>
+                {meta && (
+                  <div
+                    className={`session-badge session-badge--${badge}`}
+                    title={meta.label}
+                    aria-label={meta.label}
+                  >
+                    {badge === "running" && <span className="session-badge-dot" />}
+                    <Icon name={meta.icon} size={11} />
+                  </div>
                 )}
-                {badges[s.id] === "queued" && <>排队中</>}
-                {badges[s.id] === "done" && <>执行完成</>}
               </div>
-            )}
+              <div className="session-item-meta">
+                <span className="session-meta-chip" title="更新时间">
+                  <Icon name="timer" size={11} />
+                  {formatDate(s.updated_at)}
+                </span>
+                {s.message_count !== undefined && (
+                  <span className="session-meta-chip" title="消息数">
+                    <Icon name="message" size={11} />
+                    {s.message_count}
+                  </span>
+                )}
+                {s.cost !== undefined && s.cost > 0 && <span>${s.cost.toFixed(3)}</span>}
+              </div>
 
-            {pendingId === s.id ? (
-              <div className="session-delete-confirm" onClick={(e) => e.stopPropagation()}>
-                <span className="session-delete-label">删除?</span>
+              {pendingId === s.id ? (
+                <div className="session-delete-confirm" onClick={(e) => e.stopPropagation()}>
+                  <span className="session-delete-label">删除?</span>
+                  <button
+                    className="session-delete-yes"
+                    onClick={() => confirmDelete(s.id)}
+                    title="确认删除"
+                  >
+                    <Icon name="check" size={11} />
+                  </button>
+                  <button
+                    className="session-delete-no"
+                    onClick={cancelDelete}
+                    title="取消"
+                  >
+                    <Icon name="close" size={11} />
+                  </button>
+                </div>
+              ) : (
                 <button
-                  className="session-delete-yes"
-                  onClick={() => confirmDelete(s.id)}
-                  title="确认删除"
+                  className="session-delete"
+                  onClick={(e) => { e.stopPropagation(); requestDelete(s.id); }}
+                  title="删除会话"
                 >
-                  <Icon name="check" size={11} />
+                  <Icon name="close" size={12} />
                 </button>
-                <button
-                  className="session-delete-no"
-                  onClick={cancelDelete}
-                  title="取消"
-                >
-                  <Icon name="close" size={11} />
-                </button>
-              </div>
-            ) : (
-              <button
-                className="session-delete"
-                onClick={(e) => { e.stopPropagation(); requestDelete(s.id); }}
-                title="删除会话"
-              >
-                <Icon name="close" size={12} />
-              </button>
-            )}
-          </div>
-        ))}
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div style={{
