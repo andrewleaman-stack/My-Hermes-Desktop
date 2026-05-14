@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Session, Message, StreamChunk, HermesStatus } from "../types";
@@ -95,7 +94,6 @@ export default function ChatPage() {
   const [snapshotCreateCount, setSnapshotCreateCount] = useState(0);
   const [snapshotPanelTab, setSnapshotPanelTab] = useState<"snapshot" | "background">("snapshot");
   const [bgRunningCount, setBgRunningCount] = useState(0);
-  const [bgExitConfirm, setBgExitConfirm] = useState<"keep" | "kill" | null>(null);
 
   // Per-session states
   const [sessionMessages, setSessionMessages] = useState<Record<string, Message[]>>({});
@@ -111,8 +109,6 @@ export default function ChatPage() {
   const prevStreamingRef = useRef<Set<string>>(new Set());
   const activeSessionIdRef = useRef(activeSessionId);
   const prevStreamingForQueueRef = useRef<Set<string>>(new Set());
-  const exitConfirmedRef = useRef(false);
-  const bgRunningCountRef = useRef(0);
 
   // Derived values for current active session
   const activeSession = activeSessionId ? sessions.find((s) => s.id === activeSessionId) : null;
@@ -309,10 +305,7 @@ export default function ChatPage() {
     const tick = async () => {
       try {
         const n = await invoke<number>("bg_running_count");
-        if (!cancelled) {
-          setBgRunningCount(n);
-          bgRunningCountRef.current = n;
-        }
+        if (!cancelled) setBgRunningCount(n);
       } catch {
         /* ignore */
       }
@@ -325,85 +318,6 @@ export default function ChatPage() {
     };
   }, []);
 
-  // Confirm before window close if background tasks are running.
-  // Handler must be synchronous — async handlers in Tauri 2 block the close
-  // event until the promise resolves, making the close button unresponsive if
-  // any invoke hangs. We read bgRunningCountRef (kept current by the poller
-  // above) instead of invoking bg_running_count here.
-  useEffect(() => {
-    let unlisten: (() => void) | null = null;
-    let cancelled = false;
-    (async () => {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      const win = getCurrentWindow();
-      const fn = await win.onCloseRequested((event) => {
-        if (exitConfirmedRef.current) return;
-        if (bgRunningCountRef.current > 0) {
-          event.preventDefault();
-          setBgExitConfirm("keep");
-        }
-      });
-      if (cancelled) {
-        fn();
-        return;
-      }
-      unlisten = fn;
-    })();
-    return () => {
-      cancelled = true;
-      if (unlisten) unlisten();
-    };
-  }, []);
-
-  const handleExitConfirm = useCallback(async (action: "keep" | "kill") => {
-    setBgExitConfirm(null);
-    if (action === "kill") {
-      try {
-        await invoke<number>("bg_stop_all");
-      } catch {
-        /* ignore */
-      }
-    }
-    exitConfirmedRef.current = true;
-    const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    await getCurrentWindow().destroy();
-  }, []);
-
-  const exitConfirmModal =
-    bgExitConfirm !== null && typeof document !== "undefined"
-      ? createPortal(
-          <div className="modal-overlay" onClick={() => setBgExitConfirm(null)}>
-            <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-title ui-font">还有后台任务在运行</div>
-              <div className="modal-body ui-font">
-                当前有 {bgRunningCount} 个后台任务尚未结束。关闭应用前要怎么处理？
-              </div>
-              <div className="modal-actions">
-                <button
-                  className="modal-btn ui-font"
-                  onClick={() => setBgExitConfirm(null)}
-                >
-                  取消
-                </button>
-                <button
-                  className="modal-btn ui-font"
-                  onClick={() => handleExitConfirm("keep")}
-                  title="后台进程继续运行，但应用关闭后无法再追踪"
-                >
-                  保留运行并关闭
-                </button>
-                <button
-                  className="modal-btn modal-btn-danger ui-font"
-                  onClick={() => handleExitConfirm("kill")}
-                >
-                  全部终止并关闭
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )
-      : null;
 
   const handleSlashCommand = useCallback((text: string): boolean => {
     const cmd = text.trim().toLowerCase();
@@ -924,7 +838,6 @@ export default function ChatPage() {
             onBgCountChange={setBgRunningCount}
           />
         )}
-        {exitConfirmModal}
         <ChatView
           messages={messages}
           streaming={streaming}
