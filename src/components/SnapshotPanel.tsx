@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Icon from "./Icon";
 
 interface SnapshotFile {
@@ -18,6 +18,7 @@ interface Snapshot {
 interface Props {
   onSend: (text: string) => void;
   onClose: () => void;
+  externalCreateCount?: number;
 }
 
 let snapshotCounter = 0;
@@ -36,23 +37,42 @@ function formatDate(iso: string) {
   return d.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
 }
 
-export default function SnapshotPanel({ onSend, onClose }: Props) {
+export default function SnapshotPanel({ onSend, onClose, externalCreateCount = 0 }: Props) {
   const [tab, setTab] = useState<"snapshot" | "background">("snapshot");
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [rollbackFiles, setRollbackFiles] = useState<SnapshotFile[] | null>(null);
+  const [prevExternal, setPrevExternal] = useState(externalCreateCount);
+
+  // Sync snapshots created outside the panel (e.g. typed /snapshot create in chat)
+  useEffect(() => {
+    if (externalCreateCount > prevExternal) {
+      const delta = externalCreateCount - prevExternal;
+      setSnapshots((prev) => {
+        let next = prev;
+        for (let i = 0; i < delta; i++) {
+          const id = makeId();
+          next = [
+            { id, label: `快照 ${next.length + 1}`, createdAt: new Date().toISOString(), files: [], expanded: false },
+            ...next,
+          ];
+        }
+        return next;
+      });
+    }
+    setPrevExternal(externalCreateCount);
+  }, [externalCreateCount]);
+
+  const addEntry = () => {
+    const id = makeId();
+    setSnapshots((prev) => [
+      { id, label: `快照 ${prev.length + 1}`, createdAt: new Date().toISOString(), files: [], expanded: false },
+      ...prev,
+    ]);
+  };
 
   const handleSave = () => {
-    const id = makeId();
-    const now = new Date().toISOString();
-    const newSnap: Snapshot = {
-      id,
-      label: `快照 ${snapshots.length + 1}`,
-      createdAt: now,
-      files: [],
-      expanded: false,
-    };
-    setSnapshots((prev) => [newSnap, ...prev]);
+    addEntry();
     onSend("/snapshot create");
   };
 

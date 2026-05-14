@@ -91,6 +91,7 @@ export default function ChatPage() {
   const [hermesVersion, setHermesVersion] = useState<string>("");
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [snapshotPanelOpen, setSnapshotPanelOpen] = useState(false);
+  const [snapshotCreateCount, setSnapshotCreateCount] = useState(0);
 
   // Per-session states
   const [sessionMessages, setSessionMessages] = useState<Record<string, Message[]>>({});
@@ -309,6 +310,11 @@ export default function ChatPage() {
       }
 
       if (handleSlashCommand(text)) return;
+
+      // Track /snapshot create to keep SnapshotPanel in sync
+      if (text.trim() === "/snapshot create") {
+        setSnapshotCreateCount((c) => c + 1);
+      }
 
       if (!realSessionId) {
         setActiveSessionId(sessionTag);
@@ -790,6 +796,7 @@ export default function ChatPage() {
           <SnapshotPanel
             onSend={handleSendMessage}
             onClose={() => setSnapshotPanelOpen(false)}
+            externalCreateCount={snapshotCreateCount}
           />
         )}
         <ChatView
