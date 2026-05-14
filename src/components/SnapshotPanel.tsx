@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import Icon from "./Icon";
 
 interface Snapshot {
@@ -9,11 +10,25 @@ interface Snapshot {
   expanded: boolean;
 }
 
+interface BackgroundTaskSummary {
+  id: string;
+  prompt: string;
+  started_at: string;
+  finished_at: string | null;
+  status: "running" | "done" | "failed";
+  pid: number | null;
+  exit_code: number | null;
+  session_id: string | null;
+  tail: string;
+}
+
 interface Props {
   onSend: (text: string) => void;
   onClose: () => void;
   sessionTitle?: string;
   externalCreateCount?: number;
+  initialTab?: "snapshot" | "background";
+  onBgCountChange?: (running: number) => void;
 }
 
 const STORAGE_KEY = "hermes-snapshot-log";
@@ -42,19 +57,40 @@ function formatDateTime(iso: string) {
   });
 }
 
+function formatDuration(startIso: string, endIso: string | null) {
+  const start = new Date(startIso).getTime();
+  const end = endIso ? new Date(endIso).getTime() : Date.now();
+  const sec = Math.max(0, Math.floor((end - start) / 1000));
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m < 60) return `${m}m ${s}s`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
+}
+
 export default function SnapshotPanel({
   onSend,
   onClose,
   sessionTitle = "未命名会话",
   externalCreateCount = 0,
+  initialTab = "snapshot",
+  onBgCountChange,
 }: Props) {
-  const [tab, setTab] = useState<"snapshot" | "background">("snapshot");
+  const [tab, setTab] = useState<"snapshot" | "background">(initialTab);
   const [snapshots, setSnapshots] = useState<Snapshot[]>(loadFromStorage);
   const [confirmRestoreId, setConfirmRestoreId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [prevExternal, setPrevExternal] = useState(externalCreateCount);
 
-  // Persist to localStorage on every change
+  // Background tasks state
+  const [bgTasks, setBgTasks] = useState<BackgroundTaskSummary[]>([]);
+  const [bgExpanded, setBgExpanded] = useState<Record<string, boolean>>({});
+  const [bgFullOutput, setBgFullOutput] = useState<Record<string, string>>({});
+  const [bgConfirmStopAll, setBgConfirmStopAll] = useState(false);
+  const tickRef = useRef(0);
+
+  // Persist snapshots to localStorage on every change
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshots));
   }, [snapshots]);
@@ -73,6 +109,32 @@ export default function SnapshotPanel({
     }
     setPrevExternal(externalCreateCount);
   }, [externalCreateCount]);
+
+  // Switch tab when initialTab changes (e.g. user clicks "后台运行" → auto-open background)
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
+
+  // Poll background tasks every 5s while panel is open; faster (1s) when running tasks exist
+  const refreshBgTasks = async () => {
+    try {
+      const tasks = await invoke<BackgroundTaskSummary[]>("bg_list");
+      setBgTasks(tasks);
+      const running = tasks.filter((t) => t.status === "running").length;
+      onBgCountChange?.(running);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  useEffect(() => {
+    refreshBgTasks();
+    const id = setInterval(() => {
+      tickRef.current += 1;
+      refreshBgTasks();
+    }, 5000);
+    return () => clearInterval(id);
+  }, []);
 
   function makeEntry(index: number, title: string): Snapshot {
     return {
@@ -120,6 +182,55 @@ export default function SnapshotPanel({
     setConfirmDeleteId(null);
   };
 
+  // Background tasks handlers
+  const toggleBgExpand = async (id: string) => {
+    const next = !bgExpanded[id];
+    setBgExpanded((prev) => ({ ...prev, [id]: next }));
+    if (next && !bgFullOutput[id]) {
+      try {
+        const out = await invoke<string>("bg_get_output", { taskId: id });
+        setBgFullOutput((prev) => ({ ...prev, [id]: out }));
+      } catch (e) {
+        setBgFullOutput((prev) => ({ ...prev, [id]: `读取失败: ${e}` }));
+      }
+    }
+  };
+
+  const handleStopOne = async (id: string) => {
+    try {
+      await invoke("bg_stop", { taskId: id });
+      setTimeout(refreshBgTasks, 500);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const handleStopAll = async () => {
+    if (!bgConfirmStopAll) {
+      setBgConfirmStopAll(true);
+      setTimeout(() => setBgConfirmStopAll(false), 3000);
+      return;
+    }
+    setBgConfirmStopAll(false);
+    try {
+      await invoke<number>("bg_stop_all");
+      setTimeout(refreshBgTasks, 500);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const handleClearFinished = async () => {
+    try {
+      await invoke<number>("bg_clear_finished");
+      refreshBgTasks();
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const runningCount = bgTasks.filter((t) => t.status === "running").length;
+
   return (
     <div className="right-panel">
       {/* Header */}
@@ -136,6 +247,9 @@ export default function SnapshotPanel({
             onClick={() => setTab("background")}
           >
             后台任务
+            {runningCount > 0 && (
+              <span className="right-panel-tab-badge">{runningCount}</span>
+            )}
           </button>
         </div>
         <button className="right-panel-close" onClick={onClose}>
@@ -222,10 +336,123 @@ export default function SnapshotPanel({
         </div>
       )}
 
-      {/* Background tab placeholder */}
+      {/* Background tasks tab */}
       {tab === "background" && (
         <div className="right-panel-body">
-          <div className="snapshot-empty ui-font">后台任务功能即将推出</div>
+          <div className="bg-toolbar">
+            <button
+              className="bg-toolbar-btn ui-font"
+              onClick={refreshBgTasks}
+              title="立即刷新"
+            >
+              <Icon name="refresh" size={12} />
+              刷新
+            </button>
+            <button
+              className="bg-toolbar-btn ui-font"
+              onClick={handleClearFinished}
+              title="移除已完成/失败的记录"
+              disabled={bgTasks.every((t) => t.status === "running")}
+            >
+              清理已完成
+            </button>
+            <button
+              className={`bg-toolbar-btn ui-font${bgConfirmStopAll ? " bg-toolbar-btn-danger" : ""}`}
+              onClick={handleStopAll}
+              disabled={runningCount === 0}
+            >
+              {bgConfirmStopAll ? "确认停止全部" : "停止全部"}
+            </button>
+          </div>
+
+          <div className="snapshot-notice ui-font">
+            后台任务通过独立 hermes 进程运行（--source tool），不会出现在主会话列表
+          </div>
+
+          {bgTasks.length === 0 ? (
+            <div className="snapshot-empty ui-font">
+              暂无后台任务<br />
+              <span style={{ fontSize: 11, opacity: 0.7 }}>
+                在输入框点击"后台运行"按钮发起任务
+              </span>
+            </div>
+          ) : (
+            <div className="snapshot-list">
+              {bgTasks.map((task) => {
+                const expanded = bgExpanded[task.id] ?? false;
+                const dotClass =
+                  task.status === "running"
+                    ? "bg-dot-running"
+                    : task.status === "done"
+                    ? "bg-dot-done"
+                    : "bg-dot-failed";
+                const statusLabel =
+                  task.status === "running"
+                    ? "运行中"
+                    : task.status === "done"
+                    ? "已完成"
+                    : `失败(${task.exit_code ?? "?"})`;
+                return (
+                  <div key={task.id} className="snapshot-item">
+                    <div
+                      className="snapshot-item-header"
+                      onClick={() => toggleBgExpand(task.id)}
+                    >
+                      <Icon
+                        name="chevronRight"
+                        size={11}
+                        style={{
+                          transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
+                          transition: "transform 0.15s",
+                          flexShrink: 0,
+                          color: "var(--muted-soft)",
+                        }}
+                      />
+                      <span className={`bg-status-dot ${dotClass}`} title={statusLabel} />
+                      <div className="snapshot-item-meta">
+                        <span className="snapshot-item-label ui-font" title={task.prompt}>
+                          {task.prompt.slice(0, 40)}
+                          {task.prompt.length > 40 ? "…" : ""}
+                        </span>
+                        <span className="snapshot-item-session ui-font">
+                          {statusLabel} · {formatDuration(task.started_at, task.finished_at)}
+                        </span>
+                      </div>
+                      <span className="snapshot-item-time ui-font">
+                        {formatDateTime(task.started_at)}
+                      </span>
+                    </div>
+
+                    {expanded && (
+                      <div className="snapshot-item-body">
+                        {task.tail && (
+                          <pre className="bg-tail">{task.tail}</pre>
+                        )}
+                        <div className="snapshot-item-actions">
+                          {task.status === "running" && (
+                            <button
+                              className="snapshot-action-btn snapshot-action-danger ui-font"
+                              onClick={() => handleStopOne(task.id)}
+                            >
+                              停止
+                            </button>
+                          )}
+                        </div>
+                        {bgFullOutput[task.id] !== undefined && (
+                          <details className="bg-full-details">
+                            <summary className="ui-font">完整输出</summary>
+                            <pre className="bg-full-output">
+                              {bgFullOutput[task.id] || "(空)"}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -92,6 +92,9 @@ export default function ChatPage() {
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [snapshotPanelOpen, setSnapshotPanelOpen] = useState(false);
   const [snapshotCreateCount, setSnapshotCreateCount] = useState(0);
+  const [snapshotPanelTab, setSnapshotPanelTab] = useState<"snapshot" | "background">("snapshot");
+  const [bgRunningCount, setBgRunningCount] = useState(0);
+  const [bgExitConfirm, setBgExitConfirm] = useState<"keep" | "kill" | null>(null);
 
   // Per-session states
   const [sessionMessages, setSessionMessages] = useState<Record<string, Message[]>>({});
@@ -107,6 +110,7 @@ export default function ChatPage() {
   const prevStreamingRef = useRef<Set<string>>(new Set());
   const activeSessionIdRef = useRef(activeSessionId);
   const prevStreamingForQueueRef = useRef<Set<string>>(new Set());
+  const exitConfirmedRef = useRef(false);
 
   // Derived values for current active session
   const activeSession = activeSessionId ? sessions.find((s) => s.id === activeSessionId) : null;
@@ -282,6 +286,84 @@ export default function ChatPage() {
     },
     [activeSessionId, loadSessions]
   );
+
+  // ─── Background tasks ────────────────────────────────────────────────────────
+
+  const handleRunBackground = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    try {
+      await invoke<string>("bg_start", { prompt: trimmed });
+      setSnapshotPanelTab("background");
+      setSnapshotPanelOpen(true);
+    } catch (e) {
+      setSessionErrors((prev) => ({ ...prev, global: `后台任务启动失败: ${e}` }));
+    }
+  }, []);
+
+  // Poll bg running count even when panel is closed (for input badge)
+  useEffect(() => {
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const n = await invoke<number>("bg_running_count");
+        if (!cancelled) setBgRunningCount(n);
+      } catch {
+        /* ignore */
+      }
+    };
+    tick();
+    const id = setInterval(tick, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
+  // Confirm before window close if background tasks are running
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    let cancelled = false;
+    (async () => {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      const win = getCurrentWindow();
+      const fn = await win.onCloseRequested(async (event) => {
+        if (exitConfirmedRef.current) return;
+        try {
+          const n = await invoke<number>("bg_running_count");
+          if (n > 0 && bgExitConfirm === null) {
+            event.preventDefault();
+            setBgExitConfirm("keep");
+          }
+        } catch {
+          /* ignore */
+        }
+      });
+      if (cancelled) {
+        fn();
+        return;
+      }
+      unlisten = fn;
+    })();
+    return () => {
+      cancelled = true;
+      if (unlisten) unlisten();
+    };
+  }, [bgExitConfirm]);
+
+  const handleExitConfirm = useCallback(async (action: "keep" | "kill") => {
+    setBgExitConfirm(null);
+    if (action === "kill") {
+      try {
+        await invoke<number>("bg_stop_all");
+      } catch {
+        /* ignore */
+      }
+    }
+    exitConfirmedRef.current = true;
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    getCurrentWindow().close();
+  }, []);
 
   const handleSlashCommand = useCallback((text: string): boolean => {
     const cmd = text.trim().toLowerCase();
@@ -798,7 +880,40 @@ export default function ChatPage() {
             onClose={() => setSnapshotPanelOpen(false)}
             externalCreateCount={snapshotCreateCount}
             sessionTitle={activeSession?.title ?? "未命名会话"}
+            initialTab={snapshotPanelTab}
+            onBgCountChange={setBgRunningCount}
           />
+        )}
+        {bgExitConfirm !== null && (
+          <div className="modal-overlay" onClick={() => setBgExitConfirm(null)}>
+            <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-title ui-font">还有后台任务在运行</div>
+              <div className="modal-body ui-font">
+                当前有 {bgRunningCount} 个后台任务尚未结束。关闭应用前要怎么处理？
+              </div>
+              <div className="modal-actions">
+                <button
+                  className="modal-btn ui-font"
+                  onClick={() => setBgExitConfirm(null)}
+                >
+                  取消
+                </button>
+                <button
+                  className="modal-btn ui-font"
+                  onClick={() => handleExitConfirm("keep")}
+                  title="后台进程继续运行，但应用关闭后无法再追踪"
+                >
+                  保留运行并关闭
+                </button>
+                <button
+                  className="modal-btn modal-btn-danger ui-font"
+                  onClick={() => handleExitConfirm("kill")}
+                >
+                  全部终止并关闭
+                </button>
+              </div>
+            </div>
+          </div>
         )}
         <ChatView
           messages={messages}
@@ -845,6 +960,8 @@ export default function ChatPage() {
           onRetryLastMessage={handleRetryLastMessage}
           error={error}
           hasSession={activeSessionId !== null || messages.length > 0}
+          onRunBackground={handleRunBackground}
+          bgRunningCount={bgRunningCount}
         />
       </div>
     </div>

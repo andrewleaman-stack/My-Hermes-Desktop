@@ -100,7 +100,7 @@
       "description": "后台任务面板 — 输入框旁”后台运行”按钮发送 /background <prompt>；右侧滑出面板 5s 轮询 hermes sessions list，展示任务状态灯/用时/最新输出摘要；支持展开完整输出；”停止全部”发 /stop",
       "acceptance": "可通过 UI 发起后台任务；任务面板每 5s 更新状态；展示任务名/状态灯/已用时/最新摘要；可展开完整输出；”停止全部”按钮发送 /stop",
       "depends_on": [],
-      "passes": false
+      "passes": true
     },
     {
       "id": "feat-109",

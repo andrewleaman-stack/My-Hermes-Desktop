@@ -19,6 +19,8 @@ interface Props {
   hasSession: boolean;
   contextPct?: number;
   onCompress?: () => void;
+  onRunBackground?: (text: string) => void;
+  bgRunningCount?: number;
 }
 
 export default function ChatView({
@@ -34,6 +36,8 @@ export default function ChatView({
   hasSession,
   contextPct,
   onCompress,
+  onRunBackground,
+  bgRunningCount = 0,
 }: Props) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -81,6 +85,17 @@ export default function ChatView({
       onSend(text);
     }
     if (textareaRef.current) textareaRef.current.value = "";
+    setIsTyping(false);
+  };
+
+  const submitBackground = () => {
+    const text = textareaRef.current?.value.trim();
+    if (!text || !onRunBackground) return;
+    onRunBackground(text);
+    if (textareaRef.current) {
+      textareaRef.current.value = "";
+      textareaRef.current.style.height = "auto";
+    }
     setIsTyping(false);
   };
 
@@ -232,6 +247,21 @@ export default function ChatView({
         <div className="input-hints ui-font">
           <div className="input-shortcuts">
             <PersonalityPicker onSend={onSend} />
+            {onRunBackground && (
+              <button
+                type="button"
+                className="bg-run-btn ui-font"
+                onClick={submitBackground}
+                disabled={!isTyping}
+                title="把当前输入作为独立任务在后台运行（不影响当前会话）"
+              >
+                <Icon name="bot" size={13} />
+                后台运行
+                {bgRunningCount > 0 && (
+                  <span className="bg-run-badge">{bgRunningCount}</span>
+                )}
+              </button>
+            )}
           </div>
           <div className="input-key-hints">
             <span>

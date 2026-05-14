@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
+use std::sync::{Arc, Mutex};
 
-mod stream;
+pub mod stream;
 pub mod commands;
 
 // ─── Shared Data Types ────────────────────────────────────────────────────────
@@ -48,6 +49,9 @@ pub struct AppState {
         std::collections::HashMap<String, Box<dyn portable_pty::Child + Send + Sync>>,
     >,
     pub dashboard_child: std::sync::Mutex<Option<std::process::Child>>,
+    pub background_tasks: Arc<
+        Mutex<std::collections::HashMap<String, commands::background::BackgroundTask>>,
+    >,
 }
 
 impl AppState {
@@ -57,6 +61,7 @@ impl AppState {
             pty_masters: std::sync::Mutex::new(std::collections::HashMap::new()),
             pty_children: std::sync::Mutex::new(std::collections::HashMap::new()),
             dashboard_child: std::sync::Mutex::new(None),
+            background_tasks: Arc::new(Mutex::new(std::collections::HashMap::new())),
         }
     }
 }
@@ -103,6 +108,13 @@ pub fn run() {
             commands::terminal::pty_write,
             commands::terminal::pty_resize,
             commands::terminal::pty_close,
+            commands::background::bg_start,
+            commands::background::bg_list,
+            commands::background::bg_get_output,
+            commands::background::bg_stop,
+            commands::background::bg_stop_all,
+            commands::background::bg_clear_finished,
+            commands::background::bg_running_count,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
