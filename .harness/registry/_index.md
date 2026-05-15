@@ -4,6 +4,8 @@
 > - Session 开始时：只读最近 5 条，了解近况
 > - Session 结束时：在最前面追加新条目（不是末尾）
 
+[2026-05-15 12:30] DESIGN ACP SDK 调研 — 官方 TS SDK `@agentclientprotocol/sdk`、Rust crate `agent-client-protocol` v0.11.1 均存在；推荐方案：Rust crate 直接对接，天然解决双通道问题
+
 [2026-05-15 12:00] DESIGN ACP 协议深度解析 — 接口全表、prompt/notification 双通道原理、Python SDK 位置、Rust 重做方案（含 Python proxy 选项）
 
 [2026-05-15 11:30] RETRO Phase 2 ACP 方案回滚 — dispatcher 设计缺陷（合成事件 + 历史未迁移），搁置 ACP 迁移，feat-111 跟随暂缓，继续 one-shot 模型
