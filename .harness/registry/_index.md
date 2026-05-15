@@ -4,6 +4,8 @@
 > - Session 开始时：只读最近 5 条，了解近况
 > - Session 结束时：在最前面追加新条目（不是末尾）
 
+[2026-05-15 12:00] DESIGN ACP 协议深度解析 — 接口全表、prompt/notification 双通道原理、Python SDK 位置、Rust 重做方案（含 Python proxy 选项）
+
 [2026-05-15 11:30] RETRO Phase 2 ACP 方案回滚 — dispatcher 设计缺陷（合成事件 + 历史未迁移），搁置 ACP 迁移，feat-111 跟随暂缓，继续 one-shot 模型
 
 [2026-05-14 11:00] DONE feat-106 快照时间线 — 右侧滑出面板（快照/后台 Tab），保存/恢复/回滚，恢复前内联确认 → commit b97881b
