@@ -1,5 +1,97 @@
 use crate::Session;
+use base64::Engine;
+use regex::Regex;
 use std::process::Command;
+use std::sync::OnceLock;
+
+static IMAGE_MARKER_RE: OnceLock<Regex> = OnceLock::new();
+
+fn image_marker_re() -> &'static Regex {
+    IMAGE_MARKER_RE.get_or_init(|| Regex::new(r"\[Image attached at:\s*([^\]]+)\]").unwrap())
+}
+
+fn mime_for_path(path: &str) -> Option<&'static str> {
+    let lower = path.to_ascii_lowercase();
+    if lower.ends_with(".png") { Some("image/png") }
+    else if lower.ends_with(".jpg") || lower.ends_with(".jpeg") { Some("image/jpeg") }
+    else if lower.ends_with(".gif") { Some("image/gif") }
+    else if lower.ends_with(".webp") { Some("image/webp") }
+    else if lower.ends_with(".bmp") { Some("image/bmp") }
+    else { None }
+}
+
+fn read_image_as_data_url(path: &str) -> Option<String> {
+    let mime = mime_for_path(path)?;
+    let bytes = std::fs::read(path).ok()?;
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    Some(format!("data:{mime};base64,{b64}"))
+}
+
+// Walk a message JSON value, collect & strip "[Image attached at: <path>]" markers
+// from text content. Returns the list of data URLs that should be attached as
+// image blocks on the client side.
+fn extract_image_attachments(msg: &mut serde_json::Value) -> Vec<String> {
+    let re = image_marker_re();
+    let mut paths: Vec<String> = Vec::new();
+
+    let strip = |text: &str, paths: &mut Vec<String>| -> String {
+        for cap in re.captures_iter(text) {
+            if let Some(p) = cap.get(1) {
+                paths.push(p.as_str().trim().to_string());
+            }
+        }
+        re.replace_all(text, "").trim().to_string()
+    };
+
+    if let Some(content) = msg.get_mut("content") {
+        match content {
+            serde_json::Value::String(s) => {
+                let cleaned = strip(s, &mut paths);
+                *s = cleaned;
+            }
+            serde_json::Value::Array(arr) => {
+                for block in arr.iter_mut() {
+                    if block.get("type").and_then(|v| v.as_str()) == Some("text") {
+                        if let Some(text_val) = block.get_mut("text") {
+                            if let Some(s) = text_val.as_str() {
+                                let cleaned = strip(s, &mut paths);
+                                *text_val = serde_json::Value::String(cleaned);
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    paths.into_iter()
+        .filter_map(|p| read_image_as_data_url(&p))
+        .collect()
+}
+
+fn enrich_history_with_images(value: &mut serde_json::Value) {
+    let messages: Option<&mut Vec<serde_json::Value>> = match value {
+        serde_json::Value::Array(arr) => Some(arr),
+        serde_json::Value::Object(obj) => obj.get_mut("messages").and_then(|m| m.as_array_mut()),
+        _ => None,
+    };
+    if let Some(messages) = messages {
+        for msg in messages.iter_mut() {
+            let urls = extract_image_attachments(msg);
+            if !urls.is_empty() {
+                if let serde_json::Value::Object(map) = msg {
+                    map.insert(
+                        "image_attachments".into(),
+                        serde_json::Value::Array(
+                            urls.into_iter().map(serde_json::Value::String).collect(),
+                        ),
+                    );
+                }
+            }
+        }
+    }
+}
 
 pub fn hermes_home() -> Option<std::path::PathBuf> {
     dirs::home_dir().map(|h| h.join(".hermes"))
@@ -307,7 +399,8 @@ pub async fn get_session_history(session_id: String) -> Result<serde_json::Value
     if let Ok(o) = out {
         if o.status.success() {
             let text = String::from_utf8_lossy(&o.stdout).to_string();
-            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&text) {
+            if let Ok(mut v) = serde_json::from_str::<serde_json::Value>(&text) {
+                enrich_history_with_images(&mut v);
                 return Ok(v);
             }
             let exported: Vec<serde_json::Value> = text
@@ -316,10 +409,14 @@ pub async fn get_session_history(session_id: String) -> Result<serde_json::Value
                 .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
                 .collect();
             if exported.len() == 1 {
-                return Ok(exported.into_iter().next().unwrap());
+                let mut v = exported.into_iter().next().unwrap();
+                enrich_history_with_images(&mut v);
+                return Ok(v);
             }
             if !exported.is_empty() {
-                return Ok(serde_json::Value::Array(exported));
+                let mut v = serde_json::Value::Array(exported);
+                enrich_history_with_images(&mut v);
+                return Ok(v);
             }
         }
     }
@@ -333,9 +430,14 @@ pub async fn get_session_history(session_id: String) -> Result<serde_json::Value
                     .lines()
                     .filter_map(|l| serde_json::from_str(l).ok())
                     .collect();
-                return Ok(serde_json::Value::Array(msgs));
+                let mut v = serde_json::Value::Array(msgs);
+                enrich_history_with_images(&mut v);
+                return Ok(v);
             } else {
-                return serde_json::from_str(&content).map_err(|e| e.to_string());
+                let mut v: serde_json::Value =
+                    serde_json::from_str(&content).map_err(|e| e.to_string())?;
+                enrich_history_with_images(&mut v);
+                return Ok(v);
             }
         }
     }

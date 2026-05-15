@@ -1,8 +1,56 @@
 use crate::StreamChunk;
 use crate::stream::{is_decorative, strip_ansi};
-use std::io::{BufRead, BufReader};
+use base64::Engine;
+use std::io::{BufRead, BufReader, Write};
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter};
+
+fn decode_image_data_url(data_url: &str) -> Result<(Vec<u8>, &'static str), String> {
+    let body = data_url.strip_prefix("data:").ok_or("image is not a data URL")?;
+    let (header, payload) = body.split_once(',').ok_or("image data URL missing comma")?;
+    let (mime, encoding) = header.split_once(';').unwrap_or((header, ""));
+    if !encoding.eq_ignore_ascii_case("base64") {
+        return Err("image data URL must be base64-encoded".into());
+    }
+    let ext = match mime.to_ascii_lowercase().as_str() {
+        "image/png"  => "png",
+        "image/jpeg" => "jpg",
+        "image/jpg"  => "jpg",
+        "image/gif"  => "gif",
+        "image/webp" => "webp",
+        "image/bmp"  => "bmp",
+        other => return Err(format!("unsupported image mime: {other}")),
+    };
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(payload.trim())
+        .map_err(|e| format!("base64 decode failed: {e}"))?;
+    Ok((bytes, ext))
+}
+
+// Persistent storage for attached images so that reloading a session can still
+// recover them. macOS: ~/Library/Caches/hermes-desktop/images/
+pub fn image_store_dir() -> Option<PathBuf> {
+    let mut dir = dirs::cache_dir()?;
+    dir.push("hermes-desktop");
+    dir.push("images");
+    Some(dir)
+}
+
+fn write_image_persistent(data_url: &str) -> Result<PathBuf, String> {
+    let (bytes, ext) = decode_image_data_url(data_url)?;
+    let dir = image_store_dir().ok_or("cannot locate cache dir")?;
+    std::fs::create_dir_all(&dir).map_err(|e| format!("cannot create image dir: {e}"))?;
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let path = dir.join(format!("img-{nanos}-{:x}.{ext}", std::process::id()));
+    let mut f = std::fs::File::create(&path).map_err(|e| format!("cannot create image file: {e}"))?;
+    f.write_all(&bytes).map_err(|e| format!("cannot write image file: {e}"))?;
+    Ok(path)
+}
 
 fn emit(app: &AppHandle, session_id: &str, kind: &str, content: &str) {
     app.emit("hermes:chunk", StreamChunk {
@@ -29,6 +77,7 @@ pub async fn send_message(
     session_id: Option<String>,
     message: String,
     session_tag: String,
+    image: Option<String>,
 ) -> Result<(), String> {
     // No -Q: non-quiet mode streams output token-by-token as the model generates.
     // PYTHONUNBUFFERED=1 ensures Python flushes stdout on each write.
@@ -36,6 +85,15 @@ pub async fn send_message(
     if let Some(ref id) = session_id {
         args.push("--resume".into());
         args.push(id.clone());
+    }
+
+    // Image attachment: decode data URL into a persistent cache file and pass via --image.
+    // Kept on disk so reloading the session later can still surface the image
+    // from the [Image attached at: <path>] marker hermes writes into the transcript.
+    if let Some(ref data_url) = image {
+        let path = write_image_persistent(data_url)?;
+        args.push("--image".into());
+        args.push(path.to_string_lossy().to_string());
     }
 
     // Use pipe (not PTY) so hermes detects non-TTY stdout and runs in line-buffered

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, KeyboardEvent } from "react";
+import { useEffect, useRef, useState, KeyboardEvent, ClipboardEvent, DragEvent } from "react";
 import { Message } from "../types";
 import Icon from "./Icon";
 import GuideBot from "./chat/GuideBot";
@@ -6,10 +6,18 @@ import MessageBubble from "./chat/MessageBubble";
 import GoalBar from "./chat/GoalBar";
 import PersonalityPicker from "./chat/PersonalityPicker";
 
+interface AttachedImage {
+  dataUrl: string;
+  filename?: string;
+}
+
 interface Props {
   messages: Message[];
   streaming: boolean;
-  onSend: (text: string) => void;
+  onSend: (
+    text: string,
+    options?: { image?: string; imageFilename?: string }
+  ) => void;
   onQueue: (text: string) => void;
   onCancelQueue: (index: number) => void;
   onClearQueue: () => void;
@@ -21,6 +29,17 @@ interface Props {
   onCompress?: () => void;
   onRunBackground?: (text: string) => void;
   bgRunningCount?: number;
+}
+
+const SUPPORTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp"];
+
+function readFileAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error ?? new Error("read failed"));
+    reader.readAsDataURL(file);
+  });
 }
 
 export default function ChatView({
@@ -44,6 +63,53 @@ export default function ChatView({
 
   // isTyping: user is actively typing in the textarea
   const [isTyping, setIsTyping] = useState(false);
+
+  const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const attachImageFile = async (file: File) => {
+    if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) return false;
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      setAttachedImage({ dataUrl, filename: file.name || undefined });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          attachImageFile(file);
+          return;
+        }
+      }
+    }
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    if (Array.from(e.dataTransfer.types).includes("Files")) {
+      e.preventDefault();
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    if (e.currentTarget === e.target) setIsDragging(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) attachImageFile(file);
+  };
 
   // justFinished: briefly true when streaming transitions from true → false
   const [justFinished, setJustFinished] = useState(false);
@@ -78,14 +144,22 @@ export default function ChatView({
 
   const submit = () => {
     const text = textareaRef.current?.value.trim();
-    if (!text) return;
+    if (!text && !attachedImage) return;
+    const payload = text ?? "";
     if (streaming) {
-      onQueue(text);
+      // Queued sends do not yet carry images (image lives on the next live turn).
+      onQueue(payload);
+    } else if (attachedImage) {
+      onSend(payload, { image: attachedImage.dataUrl, imageFilename: attachedImage.filename });
     } else {
-      onSend(text);
+      onSend(payload);
     }
-    if (textareaRef.current) textareaRef.current.value = "";
+    if (textareaRef.current) {
+      textareaRef.current.value = "";
+      textareaRef.current.style.height = "auto";
+    }
     setIsTyping(false);
+    setAttachedImage(null);
   };
 
   const submitBackground = () => {
@@ -172,7 +246,18 @@ export default function ChatView({
       )}
 
       {/* Input */}
-      <div className="chat-input-area">
+      <div
+        className={`chat-input-area${isDragging ? " is-dragging" : ""}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {isDragging && (
+          <div className="image-drop-overlay">
+            <Icon name="spark" size={20} />
+            <span>松开以附加图片</span>
+          </div>
+        )}
         <GuideBot
           messages={messages}
           streaming={streaming}
@@ -188,6 +273,25 @@ export default function ChatView({
           onCompress={onCompress}
         />
 
+        {attachedImage && (
+          <div className="image-attachment-row">
+            <div className="image-attachment">
+              <img src={attachedImage.dataUrl} alt={attachedImage.filename ?? "attached"} />
+              <button
+                type="button"
+                className="image-attachment-remove"
+                onClick={() => setAttachedImage(null)}
+                title="移除图片"
+              >
+                <Icon name="close" size={12} />
+              </button>
+            </div>
+            <span className="image-attachment-name">
+              {attachedImage.filename ?? "粘贴的图片"}
+            </span>
+          </div>
+        )}
+
         <div className="input-row">
           <textarea
             ref={textareaRef}
@@ -201,6 +305,7 @@ export default function ChatView({
             }
             onKeyDown={handleKeyDown}
             onInput={handleInput}
+            onPaste={handlePaste}
             rows={1}
           />
           <button

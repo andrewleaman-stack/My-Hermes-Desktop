@@ -215,6 +215,7 @@ export default function MessageBubble({ message, isLastAssistant, streaming, onR
       .filter((b) => b.type === "text")
       .map((b) => b.content)
       .join("\n");
+    const images = message.blocks.filter((b) => b.type === "image");
     return (
       <div className="message-group" style={{ alignItems: "flex-end" }}>
         <div className="message-header" style={{ justifyContent: "flex-end" }}>
@@ -222,7 +223,19 @@ export default function MessageBubble({ message, isLastAssistant, streaming, onR
           <span className="message-role user ui-font">You</span>
         </div>
         <div className="message-bubble user selectable">
-          <div style={{ whiteSpace: "pre-wrap" }}>{text}</div>
+          {images.length > 0 && (
+            <div className="message-images">
+              {images.map((img, i) => (
+                <img
+                  key={i}
+                  src={img.dataUrl}
+                  alt={img.filename ?? `image-${i}`}
+                  className="message-image"
+                />
+              ))}
+            </div>
+          )}
+          {text && <div style={{ whiteSpace: "pre-wrap" }}>{text}</div>}
         </div>
       </div>
     );

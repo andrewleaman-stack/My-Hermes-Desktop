@@ -42,7 +42,18 @@ function parseHistoryMessages(raw: unknown): Message[] {
         .join("\n")
         .trim();
     }
-    if (!text) continue;
+
+    const imageAttachments = Array.isArray(item.image_attachments)
+      ? (item.image_attachments as unknown[]).filter((u): u is string => typeof u === "string")
+      : [];
+
+    if (!text && imageAttachments.length === 0) continue;
+
+    const blocks: Message["blocks"] = [];
+    if (text) blocks.push({ type: "text", content: text });
+    for (const dataUrl of imageAttachments) {
+      blocks.push({ type: "image", dataUrl });
+    }
 
     const timestamp =
       item.timestamp ??
@@ -54,7 +65,7 @@ function parseHistoryMessages(raw: unknown): Message[] {
     messages.push({
       id: uid(),
       role: role as "user" | "assistant",
-      blocks: [{ type: "text", content: text }],
+      blocks,
       timestamp: typeof timestamp === "string" ? timestamp : "",
       status: "done",
     });
@@ -330,7 +341,11 @@ export default function ChatPage() {
   }, [handleNewSession]);
 
   const sendToSession = useCallback(
-    async (text: string, targetSessionId: string | null, options?: { hideUserMessage?: boolean }) => {
+    async (
+      text: string,
+      targetSessionId: string | null,
+      options?: { hideUserMessage?: boolean; image?: string; imageFilename?: string }
+    ) => {
       if (!text.trim()) return;
 
       const realSessionId = targetSessionId?.trim() || null;
@@ -376,10 +391,14 @@ export default function ChatPage() {
         setSessionBadges((prev) => ({ ...prev, [sessionTag]: "running" }));
       }
 
+      const userBlocks: Message["blocks"] = [{ type: "text", content: text.trim() }];
+      if (options?.image) {
+        userBlocks.push({ type: "image", dataUrl: options.image, filename: options.imageFilename });
+      }
       const userMsg: Message = {
         id: uid(),
         role: "user",
-        blocks: [{ type: "text", content: text.trim() }],
+        blocks: userBlocks,
         timestamp: new Date().toISOString(),
         status: "done",
       };
@@ -416,6 +435,7 @@ export default function ChatPage() {
           sessionId: realSessionId,
           message: text.trim(),
           sessionTag,
+          image: options?.image ?? null,
         });
       } catch (e) {
         const message = String(e);
@@ -468,7 +488,10 @@ export default function ChatPage() {
   }, [streamingSessions, sessionQueues, sendToSession]);
 
   const handleSendMessage = useCallback(
-    async (text: string, options?: { hideUserMessage?: boolean }) => {
+    async (
+      text: string,
+      options?: { hideUserMessage?: boolean; image?: string; imageFilename?: string }
+    ) => {
       if (!activeSessionId && !text.trim().startsWith("/")) {
         await sendToSession(text, null, options);
         return;

@@ -30,7 +30,13 @@ export interface ToolCallBlock {
   outputDone: boolean;
 }
 
-export type MessageBlock = TextBlock | ThinkBlock | ToolCallBlock;
+export interface ImageBlock {
+  type: "image";
+  dataUrl: string;
+  filename?: string;
+}
+
+export type MessageBlock = TextBlock | ThinkBlock | ToolCallBlock | ImageBlock;
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
 
