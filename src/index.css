@@ -1298,6 +1298,9 @@ body {
   width: 100%;
 }
 .daily-prompt-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
   padding: 10px 14px;
   border: 1px solid var(--hairline);
   border-radius: 10px;
@@ -1313,6 +1316,12 @@ body {
   color: var(--body);
   border-color: var(--primary-disabled);
   background: var(--surface-cream-strong);
+}
+.daily-prompt-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--primary);
+  opacity: 0.7;
 }
 
 /* ── Message Bubbles ── */
