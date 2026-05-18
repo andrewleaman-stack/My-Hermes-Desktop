@@ -120,9 +120,9 @@ pub async fn open_with_editor(path: String, editor: String) -> Result<(), String
 pub async fn speak_text(text: String) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
-        let truncated = if text.len() > 1000 { &text[..1000] } else { &text };
-        std::process::Command::new("say")
-            .args(["-v", "Tingting", truncated])
+        let truncated: String = text.chars().take(500).collect();
+        std::process::Command::new("/usr/bin/say")
+            .args(["-v", "Tingting", &truncated])
             .spawn()
             .map_err(|e| format!("say failed: {e}"))?;
     }

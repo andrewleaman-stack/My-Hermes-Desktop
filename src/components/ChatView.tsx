@@ -125,7 +125,10 @@ export default function ChatView({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const w = window as any;
     const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-    if (!SR) return;
+    if (!SR) {
+      alert("当前环境不支持语音识别。请在系统设置 → 隐私与安全性 → 麦克风 中为本应用授权后重启。");
+      return;
+    }
     const recognition = new SR();
     recognition.lang = "zh-CN";
     recognition.continuous = false;

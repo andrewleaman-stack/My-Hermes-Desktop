@@ -219,6 +219,8 @@ export default function MessageBubble({ message, isLastAssistant, streaming, onR
     setSpeaking(true);
     try {
       await invoke("speak_text", { text });
+    } catch (e) {
+      console.error("speak_text failed:", e);
     } finally {
       window.setTimeout(() => setSpeaking(false), 1500);
     }
