@@ -24,6 +24,7 @@ interface Props {
   onClearQueue: () => void;
   queue: string[];
   onRetryLastMessage: () => void;
+  onStop?: () => void;
   error: string | null;
   hasSession: boolean;
   contextPct?: number;
@@ -31,6 +32,7 @@ interface Props {
   onRunBackground?: (text: string) => void;
   bgRunningCount?: number;
   onPtyWrite?: (data: string) => void;
+  pendingInputAppend?: { id: number; text: string } | null;
 }
 
 const SUPPORTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp"];
@@ -92,6 +94,7 @@ export default function ChatView({
   onClearQueue,
   queue,
   onRetryLastMessage,
+  onStop,
   error,
   hasSession,
   contextPct,
@@ -99,6 +102,7 @@ export default function ChatView({
   onRunBackground,
   bgRunningCount = 0,
   onPtyWrite,
+  pendingInputAppend,
 }: Props) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -218,6 +222,21 @@ export default function ChatView({
   useEffect(() => {
     textareaRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (!pendingInputAppend) return;
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const current = ta.value;
+    const separator = current.trim().length > 0 ? "\n\n" : "";
+    const next = `${current}${separator}${pendingInputAppend.text}`;
+    ta.value = next;
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
+    ta.focus();
+    ta.setSelectionRange(next.length, next.length);
+    setIsTyping(next.length > 0);
+  }, [pendingInputAppend]);
 
   const filteredSlashCmds = slashOpen
     ? SLASH_COMMANDS.filter((cmd) =>
@@ -570,6 +589,17 @@ export default function ChatView({
         <div className="input-hints ui-font">
           <div className="input-shortcuts">
             <PersonalityPicker onSend={onSend} />
+            {streaming && onStop && (
+              <button
+                type="button"
+                className="bg-run-btn stop-btn ui-font"
+                onClick={onStop}
+                title="中断当前 Agent 执行"
+              >
+                <Icon name="close" size={12} />
+                停止
+              </button>
+            )}
             <button
               type="button"
               className={`bg-run-btn ui-font${isRecording ? " mic-recording" : ""}`}

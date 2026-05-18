@@ -1,7 +1,58 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import fileSvg from "material-icon-theme/icons/file.svg?url";
+import folderSvg from "material-icon-theme/icons/folder.svg?url";
+import folderOpenSvg from "material-icon-theme/icons/folder-open.svg?url";
+import folderConfigSvg from "material-icon-theme/icons/folder-config.svg?url";
+import folderConfigOpenSvg from "material-icon-theme/icons/folder-config-open.svg?url";
+import folderDistSvg from "material-icon-theme/icons/folder-dist.svg?url";
+import folderDistOpenSvg from "material-icon-theme/icons/folder-dist-open.svg?url";
+import folderDocsSvg from "material-icon-theme/icons/folder-docs.svg?url";
+import folderDocsOpenSvg from "material-icon-theme/icons/folder-docs-open.svg?url";
+import folderGithubSvg from "material-icon-theme/icons/folder-github.svg?url";
+import folderGithubOpenSvg from "material-icon-theme/icons/folder-github-open.svg?url";
+import folderNodeSvg from "material-icon-theme/icons/folder-node.svg?url";
+import folderNodeOpenSvg from "material-icon-theme/icons/folder-node-open.svg?url";
+import folderPublicSvg from "material-icon-theme/icons/folder-public.svg?url";
+import folderPublicOpenSvg from "material-icon-theme/icons/folder-public-open.svg?url";
+import folderScriptsSvg from "material-icon-theme/icons/folder-scripts.svg?url";
+import folderScriptsOpenSvg from "material-icon-theme/icons/folder-scripts-open.svg?url";
+import folderSrcTauriSvg from "material-icon-theme/icons/folder-src-tauri.svg?url";
+import folderSrcTauriOpenSvg from "material-icon-theme/icons/folder-src-tauri-open.svg?url";
+import folderTargetSvg from "material-icon-theme/icons/folder-target.svg?url";
+import folderTargetOpenSvg from "material-icon-theme/icons/folder-target-open.svg?url";
+import folderTestSvg from "material-icon-theme/icons/folder-test.svg?url";
+import folderTestOpenSvg from "material-icon-theme/icons/folder-test-open.svg?url";
+import folderUiSvg from "material-icon-theme/icons/folder-ui.svg?url";
+import folderUiOpenSvg from "material-icon-theme/icons/folder-ui-open.svg?url";
+import folderVscodeSvg from "material-icon-theme/icons/folder-vscode.svg?url";
+import folderVscodeOpenSvg from "material-icon-theme/icons/folder-vscode-open.svg?url";
+import bashSvg from "material-icon-theme/icons/console.svg?url";
+import cssSvg from "material-icon-theme/icons/css.svg?url";
+import gitSvg from "material-icon-theme/icons/git.svg?url";
+import htmlSvg from "material-icon-theme/icons/html.svg?url";
+import imageSvg from "material-icon-theme/icons/image.svg?url";
+import jsSvg from "material-icon-theme/icons/javascript.svg?url";
+import jsonSvg from "material-icon-theme/icons/json.svg?url";
+import licenseSvg from "material-icon-theme/icons/license.svg?url";
+import lockSvg from "material-icon-theme/icons/lock.svg?url";
+import markdownSvg from "material-icon-theme/icons/markdown.svg?url";
+import npmSvg from "material-icon-theme/icons/npm.svg?url";
+import pdfSvg from "material-icon-theme/icons/pdf.svg?url";
+import pnpmSvg from "material-icon-theme/icons/pnpm.svg?url";
+import pythonSvg from "material-icon-theme/icons/python.svg?url";
+import reactSvg from "material-icon-theme/icons/react.svg?url";
+import reactTsSvg from "material-icon-theme/icons/react_ts.svg?url";
+import rustSvg from "material-icon-theme/icons/rust.svg?url";
+import sassSvg from "material-icon-theme/icons/sass.svg?url";
+import tauriSvg from "material-icon-theme/icons/tauri.svg?url";
+import tomlSvg from "material-icon-theme/icons/toml.svg?url";
+import tsSvg from "material-icon-theme/icons/typescript.svg?url";
+import xmlSvg from "material-icon-theme/icons/xml.svg?url";
+import yamlSvg from "material-icon-theme/icons/yaml.svg?url";
+import zipSvg from "material-icon-theme/icons/zip.svg?url";
 
 import ts from "react-syntax-highlighter/dist/esm/languages/prism/typescript";
 import tsx from "react-syntax-highlighter/dist/esm/languages/prism/tsx";
@@ -46,6 +97,7 @@ interface TreeNode extends FileEntry {
 interface Props {
   initialPath: string;
   onClose: () => void;
+  onAddToChat?: (text: string) => void;
 }
 
 // ── Language / text detection ─────────────────────────────────────────────────
@@ -134,7 +186,7 @@ function collapseNode(nodes: TreeNode[], targetPath: string): TreeNode[] {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function FileTreePanel({ initialPath, onClose }: Props) {
+export default function FileTreePanel({ initialPath, onClose, onAddToChat }: Props) {
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [nodes, setNodes] = useState<TreeNode[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -282,6 +334,7 @@ export default function FileTreePanel({ initialPath, onClose }: Props) {
               path={selectedFile!}
               content={fileContent}
               onOpenSystem={() => openWithSystem(selectedFile!)}
+              onAddToChat={onAddToChat}
             />
           )}
         </div>
@@ -347,11 +400,10 @@ function TreeRow({
         )}
 
         {/* Folder / file icon */}
-        <span style={{ marginRight: "5px", fontSize: "13px", flexShrink: 0, lineHeight: 1 }}>
-          {node.is_dir
-            ? (isExpanded ? "📂" : "📁")
-            : fileIcon(node.name)}
-        </span>
+        <FileTypeIcon
+          src={node.is_dir ? getFolderIcon(node.name, isExpanded) : getFileIcon(node.name)}
+          label={node.is_dir ? "folder" : "file"}
+        />
 
         {/* Name — click to navigate (dir) or select (file) */}
         <button
@@ -443,8 +495,28 @@ function CopyPathButton({ path, variant = "inline" }: { path: string; variant?: 
 
 // ── EditWithEditorButton ──────────────────────────────────────────────────────
 
+const EDITOR_ALIASES: Record<string, string> = {
+  vscode: "code", "vs code": "code", "vs-code": "code", visual: "code",
+  zed: "zed", nvim: "nvim", neovim: "nvim",
+};
+const EDITOR_PRESETS = [
+  { label: "VS Code", cmd: "code" },
+  { label: "Cursor", cmd: "cursor" },
+  { label: "Zed", cmd: "zed" },
+  { label: "Vim", cmd: "vim" },
+];
+
+function normalizeEditor(raw: string): string {
+  const trimmed = raw.trim().toLowerCase();
+  return EDITOR_ALIASES[trimmed] ?? (raw.trim() || "code");
+}
+
+function loadEditor(): string {
+  return normalizeEditor(localStorage.getItem("hermes_editor") ?? "code");
+}
+
 function EditWithEditorButton({ path }: { path: string }) {
-  const [editor, setEditor] = useState(() => localStorage.getItem("hermes_editor") ?? "code");
+  const [editor, setEditor] = useState(loadEditor);
   const [configuring, setConfiguring] = useState(false);
   const [input, setInput] = useState(editor);
   const [error, setError] = useState("");
@@ -459,37 +531,62 @@ function EditWithEditorButton({ path }: { path: string }) {
     }
   }
 
-  function saveEditor() {
-    const val = input.trim() || "code";
-    setEditor(val);
-    localStorage.setItem("hermes_editor", val);
+  function saveEditor(val?: string) {
+    const cmd = normalizeEditor(val ?? input);
+    setEditor(cmd);
+    setInput(cmd);
+    localStorage.setItem("hermes_editor", cmd);
     setConfiguring(false);
     setError("");
   }
 
   if (configuring) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") saveEditor(); if (e.key === "Escape") setConfiguring(false); }}
-          placeholder="code / cursor / vim"
-          title={error || "编辑器命令"}
-          autoFocus
-          style={{
-            width: "90px",
-            background: "var(--bg-input, rgba(0,0,0,0.2))",
-            border: `1px solid ${error ? "var(--error,#e06c6c)" : "var(--accent,#c07a5a)"}`,
-            borderRadius: "4px",
-            color: "var(--text-primary, #eee)",
-            fontSize: "11px",
-            padding: "2px 5px",
-            outline: "none",
-          }}
-        />
-        <button onClick={saveEditor} style={{ ...iconBtn, opacity: 0.8, fontSize: "12px" }}>✓</button>
-        <button onClick={() => { setConfiguring(false); setError(""); }} style={{ ...iconBtn, opacity: 0.5, fontSize: "12px" }}>✕</button>
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px", flexShrink: 0, alignItems: "flex-start" }}>
+        <div style={{ display: "flex", gap: "4px" }}>
+          {EDITOR_PRESETS.map((p) => (
+            <button
+              key={p.cmd}
+              onClick={() => saveEditor(p.cmd)}
+              title={p.cmd}
+              style={{
+                background: editor === p.cmd ? "var(--accent,#c07a5a)" : "var(--bg-secondary, rgba(255,255,255,0.08))",
+                border: "1px solid var(--border)",
+                borderRadius: "4px",
+                color: editor === p.cmd ? "#fff" : "var(--text-secondary, #aaa)",
+                fontSize: "10px",
+                padding: "2px 6px",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") saveEditor(); if (e.key === "Escape") setConfiguring(false); }}
+            placeholder="自定义命令，如 code、cursor"
+            title={error || "编辑器 CLI 命令"}
+            autoFocus
+            style={{
+              width: "140px",
+              background: "var(--bg-input, rgba(0,0,0,0.2))",
+              border: `1px solid ${error ? "var(--error,#e06c6c)" : "var(--accent,#c07a5a)"}`,
+              borderRadius: "4px",
+              color: "var(--text-primary, #eee)",
+              fontSize: "11px",
+              padding: "2px 5px",
+              outline: "none",
+            }}
+          />
+          <button onClick={() => saveEditor()} style={{ ...iconBtn, opacity: 0.8, fontSize: "12px" }}>✓</button>
+          <button onClick={() => { setConfiguring(false); setError(""); }} style={{ ...iconBtn, opacity: 0.5, fontSize: "12px" }}>✕</button>
+        </div>
+        {error && <span style={{ fontSize: "10px", color: "var(--error,#e06c6c)", maxWidth: "200px" }}>{error}</span>}
       </div>
     );
   }
@@ -535,13 +632,79 @@ function EditWithEditorButton({ path }: { path: string }) {
 
 // ── FilePreview ───────────────────────────────────────────────────────────────
 
-function FilePreview({ path, content, onOpenSystem }: {
+function FilePreview({ path, content, onOpenSystem, onAddToChat }: {
   path: string;
   content: string;
   onOpenSystem: () => void;
+  onAddToChat?: (text: string) => void;
 }) {
   const name = lastName(path);
   const lang = getLang(name);
+  const contentLines = content.split("\n");
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [wordWrap, setWordWrap] = useState(() => localStorage.getItem("hermes_file_preview_word_wrap") === "true");
+  const [selectionAction, setSelectionAction] = useState<{
+    startLine: number;
+    endLine: number;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  function toggleWordWrap() {
+    setWordWrap((prev) => {
+      const next = !prev;
+      localStorage.setItem("hermes_file_preview_word_wrap", String(next));
+      return next;
+    });
+  }
+
+  function updateSelectionAction() {
+    if (!onAddToChat) return;
+    const root = previewRef.current;
+    const selection = window.getSelection();
+    if (!root || !selection || selection.rangeCount === 0 || selection.isCollapsed) {
+      setSelectionAction(null);
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (!root.contains(range.commonAncestorContainer)) {
+      setSelectionAction(null);
+      return;
+    }
+
+    const text = selection.toString().trim();
+    if (!text) {
+      setSelectionAction(null);
+      return;
+    }
+
+    const lines = getSelectedLineNumbers(root, range);
+    if (!lines) {
+      setSelectionAction(null);
+      return;
+    }
+
+    const rect = range.getBoundingClientRect();
+    const rootRect = root.getBoundingClientRect();
+    setSelectionAction({
+      startLine: lines.startLine,
+      endLine: lines.endLine,
+      x: root.scrollLeft + Math.min(Math.max(rect.left - rootRect.left, 8), Math.max(rootRect.width - 150, 8)),
+      y: Math.max(rect.top - rootRect.top - 34 + root.scrollTop, 8),
+    });
+  }
+
+  function addSelectionToChat() {
+    if (!selectionAction || !onAddToChat) return;
+    const lineRange = selectionAction.startLine === selectionAction.endLine
+      ? `${selectionAction.startLine}`
+      : `${selectionAction.startLine}-${selectionAction.endLine}`;
+    const selectedText = getSelectedSourceText(contentLines, selectionAction.startLine, selectionAction.endLine);
+    onAddToChat(`@${path},${lineRange}\n“${selectedText}”`);
+    window.getSelection()?.removeAllRanges();
+    setSelectionAction(null);
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
@@ -556,6 +719,19 @@ function FilePreview({ path, content, onOpenSystem }: {
         <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {name}
         </span>
+        <button
+          onClick={toggleWordWrap}
+          title={wordWrap ? "关闭自动换行" : "开启自动换行"}
+          aria-pressed={wordWrap}
+          style={{
+            ...previewIconBtn,
+            background: wordWrap ? "rgba(192,122,90,0.18)" : "var(--bg-secondary, rgba(255,255,255,0.06))",
+            color: wordWrap ? "var(--accent, #c07a5a)" : "var(--text-secondary, #777)",
+            borderColor: wordWrap ? "rgba(192,122,90,0.45)" : "var(--border)",
+          }}
+        >
+          <WrapTextIcon size={13} />
+        </button>
         <span style={{
           background: "var(--bg-secondary, rgba(255,255,255,0.06))",
           borderRadius: "3px",
@@ -571,11 +747,75 @@ function FilePreview({ path, content, onOpenSystem }: {
         <button onClick={onOpenSystem} title="用系统应用打开" style={{ ...iconBtn, opacity: 0.6 }}>↗</button>
       </div>
 
-      <div style={{ flex: 1, overflow: "auto" }}>
+      <div
+        ref={previewRef}
+        onMouseUp={updateSelectionAction}
+        onKeyUp={updateSelectionAction}
+        onScroll={() => setSelectionAction(null)}
+        style={{ flex: 1, overflow: "auto", position: "relative" }}
+      >
+        {selectionAction && (
+          <div
+            style={{
+              position: "absolute",
+              left: `${selectionAction.x}px`,
+              top: `${selectionAction.y}px`,
+              zIndex: 3,
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "4px",
+              background: "var(--bg-primary, #1e1e1e)",
+              border: "1px solid var(--border)",
+              borderRadius: "6px",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+            }}
+          >
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={addSelectionToChat}
+              style={{
+                ...actionBtn,
+                borderRadius: "4px",
+                fontSize: "11px",
+                padding: "4px 8px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              添加到对话
+            </button>
+          </div>
+        )}
         <SyntaxHighlighter
           language={lang === "text" ? "bash" : lang}
           style={vscDarkPlus}
           showLineNumbers
+          wrapLines
+          wrapLongLines={false}
+          codeTagProps={{
+            style: {
+              whiteSpace: wordWrap ? "pre-wrap" : "pre",
+              wordBreak: "normal",
+              overflowWrap: wordWrap ? "break-word" : "normal",
+              textAlign: "left",
+            },
+          }}
+          lineProps={(lineNumber) => {
+            const indentColumns = wordWrap ? getLeadingColumns(contentLines[lineNumber - 1] ?? "") : 0;
+            return {
+              "data-preview-line": lineNumber,
+              style: {
+                display: "block",
+                paddingLeft: indentColumns ? `${indentColumns}ch` : undefined,
+                textIndent: indentColumns ? `-${indentColumns}ch` : undefined,
+                whiteSpace: wordWrap ? "pre-wrap" : "pre",
+                wordBreak: "normal",
+                overflowWrap: wordWrap ? "break-word" : "normal",
+                textAlign: "left",
+              },
+            };
+          }}
           customStyle={{
             margin: 0,
             padding: "12px 8px",
@@ -592,13 +832,69 @@ function FilePreview({ path, content, onOpenSystem }: {
   );
 }
 
+function WrapTextIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M4 6h16" />
+      <path d="M4 11h11a3 3 0 0 1 0 6H9" />
+      <path d="m11 14-3 3 3 3" />
+      <path d="M4 21h9" />
+    </svg>
+  );
+}
+
+function getLeadingColumns(line: string): number {
+  let columns = 0;
+  for (const char of line) {
+    if (char === " ") {
+      columns += 1;
+      continue;
+    }
+    if (char === "\t") {
+      columns += 2;
+      continue;
+    }
+    break;
+  }
+  return columns;
+}
+
+function getSelectedLineNumbers(root: HTMLElement, range: Range): { startLine: number; endLine: number } | null {
+  const lineEls = Array.from(root.querySelectorAll<HTMLElement>("[data-preview-line]"));
+  const selected = lineEls
+    .filter((el) => range.intersectsNode(el))
+    .map((el) => Number(el.dataset.previewLine))
+    .filter((line) => Number.isFinite(line));
+
+  if (selected.length === 0) return null;
+  return {
+    startLine: Math.min(...selected),
+    endLine: Math.max(...selected),
+  };
+}
+
+function getSelectedSourceText(lines: string[], startLine: number, endLine: number): string {
+  return lines.slice(startLine - 1, endLine).join("\n").trim();
+}
+
 // ── BinaryPrompt ──────────────────────────────────────────────────────────────
 
 function BinaryPrompt({ path, onOpen }: { path: string; onOpen: (p: string) => void }) {
   const name = lastName(path);
   return (
     <div style={{ ...emptyHint, flexDirection: "column", gap: "10px" }}>
-      <span style={{ fontSize: "28px", opacity: 0.4 }}>📄</span>
+      <FileTypeIcon src={getFileIcon(name)} label="file" size={32} opacity={0.55} />
       <span style={{ fontSize: "12px", opacity: 0.6 }}>{name}</span>
       <span style={{ fontSize: "11px", opacity: 0.4 }}>无法预览此文件类型</span>
       <div style={{ display: "flex", gap: "8px" }}>
@@ -611,19 +907,116 @@ function BinaryPrompt({ path, onOpen }: { path: string; onOpen: (p: string) => v
 
 // ── Icon helpers ──────────────────────────────────────────────────────────────
 
-function fileIcon(name: string): string {
-  const ext = getExt(name);
-  const icons: Record<string, string> = {
-    ts: "🔷", tsx: "🔷", js: "🟡", jsx: "🟡",
-    rs: "🦀", py: "🐍",
-    json: "📋", yaml: "📋", yml: "📋", toml: "📋",
-    md: "📝", mdx: "📝",
-    sh: "💲", zsh: "💲", bash: "💲",
-    css: "🎨", scss: "🎨",
-    png: "🖼", jpg: "🖼", jpeg: "🖼", gif: "🖼", svg: "🖼", webp: "🖼",
-    pdf: "📕",
-  };
-  return icons[ext] ?? "📄";
+type FolderIconPair = {
+  closed: string;
+  open: string;
+};
+
+const FILE_ICON_BY_NAME: Record<string, string> = {
+  "cargo.lock": lockSvg,
+  "cargo.toml": rustSvg,
+  ".gitignore": gitSvg,
+  ".gitattributes": gitSvg,
+  "license": licenseSvg,
+  "license.md": licenseSvg,
+  "license.txt": licenseSvg,
+  "package.json": npmSvg,
+  "package-lock.json": npmSvg,
+  "pnpm-lock.yaml": pnpmSvg,
+  "pnpm-workspace.yaml": pnpmSvg,
+  "tauri.conf.json": tauriSvg,
+  "tsconfig.json": tsSvg,
+};
+
+const FILE_ICON_BY_EXT: Record<string, string> = {
+  ts: tsSvg,
+  tsx: reactTsSvg,
+  js: jsSvg,
+  jsx: reactSvg,
+  rs: rustSvg,
+  py: pythonSvg,
+  json: jsonSvg,
+  yaml: yamlSvg,
+  yml: yamlSvg,
+  toml: tomlSvg,
+  md: markdownSvg,
+  mdx: markdownSvg,
+  sh: bashSvg,
+  zsh: bashSvg,
+  bash: bashSvg,
+  css: cssSvg,
+  scss: sassSvg,
+  sass: sassSvg,
+  html: htmlSvg,
+  htm: htmlSvg,
+  xml: xmlSvg,
+  png: imageSvg,
+  jpg: imageSvg,
+  jpeg: imageSvg,
+  gif: imageSvg,
+  svg: imageSvg,
+  webp: imageSvg,
+  pdf: pdfSvg,
+  lock: lockSvg,
+  zip: zipSvg,
+};
+
+const FOLDER_ICON_BY_NAME: Record<string, FolderIconPair> = {
+  ".config": { closed: folderConfigSvg, open: folderConfigOpenSvg },
+  ".github": { closed: folderGithubSvg, open: folderGithubOpenSvg },
+  ".vscode": { closed: folderVscodeSvg, open: folderVscodeOpenSvg },
+  config: { closed: folderConfigSvg, open: folderConfigOpenSvg },
+  dist: { closed: folderDistSvg, open: folderDistOpenSvg },
+  docs: { closed: folderDocsSvg, open: folderDocsOpenSvg },
+  node_modules: { closed: folderNodeSvg, open: folderNodeOpenSvg },
+  public: { closed: folderPublicSvg, open: folderPublicOpenSvg },
+  scripts: { closed: folderScriptsSvg, open: folderScriptsOpenSvg },
+  src: { closed: folderScriptsSvg, open: folderScriptsOpenSvg },
+  "src-tauri": { closed: folderSrcTauriSvg, open: folderSrcTauriOpenSvg },
+  target: { closed: folderTargetSvg, open: folderTargetOpenSvg },
+  test: { closed: folderTestSvg, open: folderTestOpenSvg },
+  tests: { closed: folderTestSvg, open: folderTestOpenSvg },
+  ui: { closed: folderUiSvg, open: folderUiOpenSvg },
+};
+
+function getFileIcon(name: string): string {
+  return FILE_ICON_BY_NAME[name.toLowerCase()] ?? FILE_ICON_BY_EXT[getExt(name)] ?? fileSvg;
+}
+
+function getFolderIcon(name: string, open: boolean): string {
+  const pair = FOLDER_ICON_BY_NAME[name.toLowerCase()];
+  if (pair) return open ? pair.open : pair.closed;
+  return open ? folderOpenSvg : folderSvg;
+}
+
+function FileTypeIcon({
+  src,
+  label,
+  size = 16,
+  opacity = 1,
+}: {
+  src: string;
+  label: string;
+  size?: number;
+  opacity?: number;
+}) {
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-label={label}
+      draggable={false}
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        marginRight: "6px",
+        flexShrink: 0,
+        opacity,
+        objectFit: "contain",
+        userSelect: "none",
+      }}
+    />
+  );
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -681,6 +1074,20 @@ const iconBtn: React.CSSProperties = {
   fontSize: "14px",
   padding: "2px 4px",
   flexShrink: 0,
+};
+
+const previewIconBtn: React.CSSProperties = {
+  width: "22px",
+  height: "22px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  border: "1px solid var(--border)",
+  borderRadius: "4px",
+  padding: 0,
+  cursor: "pointer",
+  flexShrink: 0,
+  transition: "background 0.15s, border-color 0.15s, color 0.15s",
 };
 
 const actionBtn: React.CSSProperties = {

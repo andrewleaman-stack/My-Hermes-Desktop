@@ -72,8 +72,21 @@ fn extract_resume_session_id(line: &str) -> Option<String> {
 }
 
 #[tauri::command]
+pub async fn kill_session(
+    state: tauri::State<'_, crate::AppState>,
+    session_tag: String,
+) -> Result<(), String> {
+    let mut map = state.chat_processes.lock().unwrap();
+    if let Some(mut child) = map.remove(&session_tag) {
+        child.kill().ok();
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn send_message(
     app: AppHandle,
+    state: tauri::State<'_, crate::AppState>,
     session_id: Option<String>,
     message: String,
     session_tag: String,
@@ -116,6 +129,13 @@ pub async fn send_message(
         .map_err(|e| format!("Failed to start hermes: {e}. Is hermes installed and in PATH?"))?;
 
     let stdout = child.stdout.take().ok_or("No stdout")?;
+
+    // Store child for kill_session to use
+    {
+        let mut map = state.chat_processes.lock().unwrap();
+        map.insert(session_tag.clone(), child);
+    }
+
     let reader = BufReader::new(stdout);
     let mut in_think = false;
     let mut in_footer = false;
@@ -200,9 +220,17 @@ pub async fn send_message(
         emit(&app, &session_tag, "text", trimmed);
     }
 
-    let output = child.wait().map_err(|e| e.to_string())?;
-    if !output.success() {
-        emit(&app, &session_tag, "error", &format!("Hermes exited with status: {output}"));
+    // Take child back; if None, it was already killed by kill_session (user interrupt)
+    let maybe_child = {
+        let mut map = state.chat_processes.lock().unwrap();
+        map.remove(&session_tag)
+    };
+
+    if let Some(mut child) = maybe_child {
+        let output = child.wait().map_err(|e| e.to_string())?;
+        if !output.success() {
+            emit(&app, &session_tag, "error", &format!("Hermes exited with status: {output}"));
+        }
     }
 
     let mut done_session_tag = session_tag.clone();

@@ -53,6 +53,7 @@ pub struct AppState {
         Mutex<std::collections::HashMap<String, commands::background::BackgroundTask>>,
     >,
     pub say_process: std::sync::Mutex<Option<std::process::Child>>,
+    pub chat_processes: std::sync::Mutex<std::collections::HashMap<String, std::process::Child>>,
 }
 
 impl AppState {
@@ -64,6 +65,7 @@ impl AppState {
             dashboard_child: std::sync::Mutex::new(None),
             background_tasks: Arc::new(Mutex::new(std::collections::HashMap::new())),
             say_process: std::sync::Mutex::new(None),
+            chat_processes: std::sync::Mutex::new(std::collections::HashMap::new()),
         }
     }
 }
@@ -97,6 +99,7 @@ pub fn run() {
             commands::sessions::undo_last_turn,
             commands::sessions::set_hermes_path,
             commands::chat::send_message,
+            commands::chat::kill_session,
             commands::chat::get_hermes_info,
             commands::chat::get_hermes_model_config,
             commands::chat::set_hermes_model,

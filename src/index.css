@@ -4218,6 +4218,15 @@ body {
   opacity: 0.45;
   cursor: not-allowed;
 }
+.bg-run-btn.stop-btn {
+  color: var(--error, #e5534b);
+  border-color: var(--error, #e5534b);
+}
+.bg-run-btn.stop-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--error, #e5534b) 12%, transparent);
+  border-color: var(--error, #e5534b);
+  color: var(--error, #e5534b);
+}
 .bg-run-btn.mic-recording {
   color: var(--error, #e5534b);
   border-color: var(--error, #e5534b);

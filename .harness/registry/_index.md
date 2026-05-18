@@ -4,6 +4,8 @@
 > - Session 开始时：只读最近 5 条，了解近况
 > - Session 结束时：在最前面追加新条目（不是末尾）
 
+[2026-05-18 05:00] DONE Agent 停止中断功能 — AppState 新增 chat_processes 字段存 Child；send_message 存/取进程；新增 kill_session Tauri 命令；ChatView 红色"停止"按钮在 streaming 时出现；ChatPage 传 onStop handler
+
 [2026-05-18 04:00] DONE feat-210 文件树侧边栏 — FileTreePanel（文件树+预览双栏）；react-syntax-highlighter 代码高亮；Rust list_dir/read_text_file/get_home_dir；WorkingDirBar ⊟ 触发；与 SnapshotPanel 互斥
 
 [2026-05-18 03:00] FIX TerminalPanel lineHeight 修复 — xterm.js lineHeight 1.3→1.0，消除 ASCII 艺术字行间缝隙，与原生终端渲染一致

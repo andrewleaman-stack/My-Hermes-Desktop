@@ -109,6 +109,7 @@ export default function ChatPage() {
   const [snapshotCreateCount, setSnapshotCreateCount] = useState(0);
   const [snapshotPanelTab, setSnapshotPanelTab] = useState<"snapshot" | "background">("snapshot");
   const [bgRunningCount, setBgRunningCount] = useState(0);
+  const [pendingInputAppend, setPendingInputAppend] = useState<{ id: number; text: string } | null>(null);
 
   // Per-session states
   const [sessionMessages, setSessionMessages] = useState<Record<string, Message[]>>({});
@@ -561,6 +562,11 @@ export default function ChatPage() {
     [activeSessionId, sendToSession]
   );
 
+  const handleStopSession = useCallback(() => {
+    if (!activeSessionId) return;
+    invoke("kill_session", { sessionTag: activeSessionId }).catch(() => {});
+  }, [activeSessionId]);
+
   const handleRetryLastMessage = useCallback(() => {
     if (!activeSessionId || streaming) return;
     const msgs = sessionMessages[activeSessionId] ?? [];
@@ -931,6 +937,7 @@ export default function ChatPage() {
           <FileTreePanel
             initialPath={workingDir ?? ""}
             onClose={() => setFileTreeOpen(false)}
+            onAddToChat={(text) => setPendingInputAppend({ id: Date.now(), text })}
           />
         )}
         {snapshotPanelOpen && (
@@ -986,11 +993,13 @@ export default function ChatPage() {
           }}
           queue={queue}
           onRetryLastMessage={handleRetryLastMessage}
+          onStop={handleStopSession}
           error={error}
           hasSession={activeSessionId !== null || messages.length > 0}
           onRunBackground={handleRunBackground}
           bgRunningCount={bgRunningCount}
           onPtyWrite={handlePtyWrite}
+          pendingInputAppend={pendingInputAppend}
         />
       </div>
     </div>
