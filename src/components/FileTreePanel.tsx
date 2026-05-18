@@ -400,7 +400,7 @@ function TreeRow({
 
 // ── CopyPathButton ────────────────────────────────────────────────────────────
 
-function CopyPathButton({ path }: { path: string }) {
+function CopyPathButton({ path, variant = "inline" }: { path: string; variant?: "inline" | "block" }) {
   const [copied, setCopied] = useState(false);
   function handleCopy() {
     navigator.clipboard.writeText(path).then(() => {
@@ -408,13 +408,34 @@ function CopyPathButton({ path }: { path: string }) {
       setTimeout(() => setCopied(false), 1500);
     });
   }
+
+  if (variant === "block") {
+    return (
+      <button onClick={handleCopy} style={{
+        ...actionBtn,
+        background: copied ? "var(--accent, #c07a5a)" : "var(--bg-secondary, rgba(255,255,255,0.08))",
+        color: copied ? "#fff" : "var(--text-secondary, #aaa)",
+        border: "1px solid var(--border)",
+      }}>
+        {copied ? "✓ 已复制" : "复制路径"}
+      </button>
+    );
+  }
+
   return (
-    <button
-      onClick={handleCopy}
-      title={copied ? "已复制" : "复制路径"}
-      style={{ ...iconBtn, opacity: copied ? 1 : 0.6, fontSize: "12px", color: copied ? "var(--accent, #c07a5a)" : "inherit" }}
-    >
-      {copied ? "✓" : "⎘"}
+    <button onClick={handleCopy} style={{
+      background: copied ? "var(--accent, #c07a5a)" : "var(--bg-secondary, rgba(255,255,255,0.08))",
+      border: "1px solid var(--border)",
+      borderRadius: "4px",
+      color: copied ? "#fff" : "var(--text-secondary, #aaa)",
+      fontSize: "11px",
+      padding: "2px 8px",
+      cursor: "pointer",
+      flexShrink: 0,
+      whiteSpace: "nowrap",
+      transition: "background 0.15s",
+    }}>
+      {copied ? "✓ 已复制" : "复制路径"}
     </button>
   );
 }
@@ -488,7 +509,7 @@ function BinaryPrompt({ path, onOpen }: { path: string; onOpen: (p: string) => v
       <span style={{ fontSize: "11px", opacity: 0.4 }}>无法预览此文件类型</span>
       <div style={{ display: "flex", gap: "8px" }}>
         <button onClick={() => onOpen(path)} style={actionBtn}>用系统应用打开</button>
-        <CopyPathButton path={path} />
+        <CopyPathButton path={path} variant="block" />
       </div>
     </div>
   );
