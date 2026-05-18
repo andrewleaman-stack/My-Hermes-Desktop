@@ -178,6 +178,27 @@
       "acceptance": "左侧导航有文件树入口；文件树正确展示工作目录内容；文件可拖入对话区，输入框上方出现文件名 chip；右键菜单两项可用；工作目录切换后文件树刷新",
       "depends_on": ["feat-209"],
       "passes": false
+    },
+    {
+      "id": "feat-211",
+      "description": "隐式上下文 info 条 — 对话区顶部（GoalBar 下方）显示一条淡色 info 行，展示当前 hermes 进程读取的上下文摘要：会话历史消息条数、个人记忆是否已加载（检测 ~/.hermes/memories/MEMORY.md 是否存在且非空）；新建会话或切换会话时自动更新；让用户在发送前知道系统「看到了什么」",
+      "acceptance": "对话区顶部显示 info 条，格式如「已加载：会话历史 12 条 · 个人记忆已加载」；条数与当前 messages 数组同步；记忆状态通过 Rust 侧检测文件得出；新会话时重置为「新会话 · 个人记忆已加载/未配置」",
+      "depends_on": [],
+      "passes": false
+    },
+    {
+      "id": "feat-212",
+      "description": "后台任务步骤时间线 — 扩展 feat-108 后台任务面板：任务条目展开时在摘要输出上方显示步骤时间线，格式为「✓ 已完成步骤 / ⏳ 当前进行中 / ○ 待执行」；步骤数据从 hermes 输出中按行解析（以特定前缀识别）；随 5s 轮询更新",
+      "acceptance": "任务展开后显示步骤时间线；各步骤状态图标正确（完成/进行/等待）；至少能解析 hermes 输出中的 tool call 步骤作为时间线节点；时间线随轮询刷新",
+      "depends_on": ["feat-108"],
+      "passes": false
+    },
+    {
+      "id": "feat-213",
+      "description": "Grounding 气泡 — 每条 assistant 消息 header 区域加 ⓘ 按钮，点击弹出 Popover 显示本条回复的上下文来源信息：当前使用的模型（provider · model）、本条消息在会话中的位置（第 N 条）、个人记忆是否已加载；Popover 点击外部关闭",
+      "acceptance": "assistant 消息 header 出现 ⓘ 按钮；点击弹出 Popover，展示模型名/消息序号/记忆状态三项；信息准确；点击外部关闭；不影响现有 hover 操作",
+      "depends_on": [],
+      "passes": false
     }
   ]
 }
