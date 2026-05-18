@@ -101,6 +101,18 @@ pub fn hermes_home() -> Option<std::path::PathBuf> {
 /// macOS .app bundles only get a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin),
 /// so we check known install locations first, then fall back to the login shell.
 pub fn hermes_binary() -> String {
+    // 1. User-specified path (saved via set_hermes_path)
+    if let Some(home) = dirs::home_dir() {
+        let custom = home.join(".hermes").join(".desktop_binary_path");
+        if let Ok(path) = std::fs::read_to_string(&custom) {
+            let path = path.trim().to_string();
+            if !path.is_empty() && std::path::Path::new(&path).exists() {
+                return path;
+            }
+        }
+    }
+
+    // 2. Known install locations
     let mut candidates: Vec<std::path::PathBuf> = Vec::new();
     if let Some(home) = dirs::home_dir() {
         candidates.push(home.join(".hermes").join("bin").join("hermes"));
@@ -117,7 +129,7 @@ pub fn hermes_binary() -> String {
         }
     }
 
-    // Fallback: ask the login shell (slower, but handles any custom PATH)
+    // 3. Fallback: ask the login shell (slower, but handles any custom PATH)
     for shell in &["/bin/zsh", "/bin/bash"] {
         if let Ok(out) = std::process::Command::new(shell)
             .args(["-l", "-c", "command -v hermes 2>/dev/null"])
@@ -133,6 +145,41 @@ pub fn hermes_binary() -> String {
     }
 
     "hermes".to_string()
+}
+
+#[tauri::command]
+pub async fn set_hermes_path(path: String) -> Result<String, String> {
+    let path = path.trim().to_string();
+    // Expand leading ~
+    let expanded = if path.starts_with("~/") {
+        dirs::home_dir()
+            .map(|h| h.join(&path[2..]).to_string_lossy().to_string())
+            .unwrap_or_else(|| path.clone())
+    } else {
+        path.clone()
+    };
+
+    if !std::path::Path::new(&expanded).exists() {
+        return Err(format!("路径不存在：{expanded}"));
+    }
+
+    // Quick smoke-test: hermes version
+    let out = std::process::Command::new(&expanded)
+        .arg("version")
+        .output()
+        .map_err(|e| format!("无法执行：{e}"))?;
+    if !out.status.success() {
+        return Err("路径有效但执行 hermes version 失败，请确认是正确的 hermes 二进制".to_string());
+    }
+
+    // Persist
+    if let Some(home) = dirs::home_dir() {
+        let dir = home.join(".hermes");
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        std::fs::write(dir.join(".desktop_binary_path"), &expanded).map_err(|e| e.to_string())?;
+    }
+
+    Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
 }
 
 fn filename_stem(path: &std::path::Path) -> String {

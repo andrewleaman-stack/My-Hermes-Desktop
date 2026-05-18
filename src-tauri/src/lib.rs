@@ -95,6 +95,7 @@ pub fn run() {
             commands::sessions::delete_session,
             commands::sessions::rename_session,
             commands::sessions::undo_last_turn,
+            commands::sessions::set_hermes_path,
             commands::chat::send_message,
             commands::chat::get_hermes_info,
             commands::chat::get_hermes_model_config,

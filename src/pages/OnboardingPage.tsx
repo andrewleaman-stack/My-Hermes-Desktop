@@ -52,6 +52,25 @@ interface Props {
 export default function OnboardingPage({ setup, checking, onRetry, onContinue }: Props) {
   const [copiedCommand, setCopiedCommand] = useState<"install" | "setup" | null>(null);
   const [terminalError, setTerminalError] = useState("");
+  const [showPathInput, setShowPathInput] = useState(false);
+  const [customPath, setCustomPath] = useState("");
+  const [pathSaving, setPathSaving] = useState(false);
+  const [pathResult, setPathResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  const saveCustomPath = async () => {
+    if (!customPath.trim()) return;
+    setPathSaving(true);
+    setPathResult(null);
+    try {
+      const version = await invoke<string>("set_hermes_path", { path: customPath.trim() });
+      setPathResult({ ok: true, msg: `已保存，检测到 ${version}` });
+      window.setTimeout(() => onRetry(), 800);
+    } catch (e) {
+      setPathResult({ ok: false, msg: String(e) });
+    } finally {
+      setPathSaving(false);
+    }
+  };
 
   const copyCommand = async (kind: "install" | "setup", command: string) => {
     setTerminalError("");
@@ -147,6 +166,43 @@ export default function OnboardingPage({ setup, checking, onRetry, onContinue }:
               {setup?.installed ? <Icon name="check" size={14} /> : <Icon name="alert" size={14} />}
               <span>{setup?.installed ? `已安装 ${setup.version}` : setup?.error || "等待检测"}</span>
             </div>
+
+            {/* 手动指定路径 — 仅在检测失败时显示 */}
+            {setup && !setup.installed && (
+              <div className="onboarding-custom-path">
+                <button
+                  className="onboarding-link-btn ui-font"
+                  onClick={() => setShowPathInput((v) => !v)}
+                >
+                  {showPathInput ? "收起" : "手动指定 hermes 路径"}
+                </button>
+                {showPathInput && (
+                  <div className="onboarding-path-row">
+                    <input
+                      className="onboarding-path-input ui-font"
+                      type="text"
+                      placeholder="例：/usr/local/bin/hermes 或 ~/.hermes/bin/hermes"
+                      value={customPath}
+                      onChange={(e) => setCustomPath(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && saveCustomPath()}
+                      autoFocus
+                    />
+                    <button
+                      className="guide-retry-btn ui-font"
+                      onClick={saveCustomPath}
+                      disabled={pathSaving || !customPath.trim()}
+                    >
+                      {pathSaving ? "验证中…" : "验证并保存"}
+                    </button>
+                  </div>
+                )}
+                {pathResult && (
+                  <p className={`onboarding-path-result ${pathResult.ok ? "ok" : "error"}`}>
+                    {pathResult.msg}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </article>
       </section>
@@ -159,6 +215,11 @@ export default function OnboardingPage({ setup, checking, onRetry, onContinue }:
         >
           {checking ? "检测中..." : setup?.installed && onContinue ? "进入对话" : "我已完成，重新检测"}
         </button>
+        {!setup?.installed && onContinue && (
+          <button className="onboarding-skip-btn ui-font" onClick={onContinue}>
+            跳过检测，直接进入
+          </button>
+        )}
       </div>
     </div>
   );
