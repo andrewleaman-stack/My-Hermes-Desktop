@@ -73,6 +73,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState::new())
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {

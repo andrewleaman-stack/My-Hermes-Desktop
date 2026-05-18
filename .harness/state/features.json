@@ -1,8 +1,8 @@
 {
   "_readme": "只允许把 passes 从 false 改成 true。禁止删除条目或修改 description。违反视为严重错误。",
   "_project": "hermes-desktop",
-  "_sprint": "Phase 1 — 斜杠命令图形化（Week 3～7）",
-  "_updated": "2026-05-14",
+  "_sprint": "Phase 2 — macOS 原生感",
+  "_updated": "2026-05-17",
   "features": [
     {
       "id": "feat-000",
@@ -108,6 +108,76 @@
       "acceptance": "可拖拽图片到输入区域；可粘贴截图；输入框上方显示图片缩略图和删除按钮；发送后消息中正确显示图片",
       "depends_on": [],
       "passes": true
+    },
+    {
+      "id": "feat-207",
+      "description": "斜杠命令菜单 — 输入框输入 / 时浮出命令选择菜单；按命令名实时过滤；↑↓ 键盘导航，Enter 选中，Esc 关闭；无参命令直接发送，有参命令填入输入框等用户补填；菜单按会话/上下文/目标任务/快照分组展示",
+      "acceptance": "输入框输入 / 后弹出命令菜单；继续输入可过滤命令；键盘和鼠标均可选择；选中无参命令直接发送；选中有参命令填入输入框并定位光标；Esc 关闭；菜单内容覆盖主要 hermes 命令并分组",
+      "depends_on": [],
+      "passes": false
+    },
+    {
+      "id": "feat-208",
+      "description": "分支会话 — 在当前会话节点发送 /branch [name] 开启新分支，探索不同方向而不影响主线；侧边栏显示分支关系（缩进或标记）；可从任意分支节点继续对话",
+      "acceptance": "输入框可通过斜杠菜单或直接输入触发 /branch；执行后在侧边栏出现新的分支会话并自动切换；分支会话标题标注来源；可正常对话",
+      "depends_on": ["feat-207"],
+      "passes": false
+    },
+    {
+      "id": "feat-201",
+      "description": "菜单栏托盘集成 — 系统托盘常驻图标，状态色反映 idle/running/error；右键菜单含打开/新会话/退出；关闭主窗口隐藏到托盘不退出进程。跨平台：tauri-plugin-tray-icon 三平台支持，图标资源按平台适配",
+      "acceptance": "应用启动后托盘图标出现；running 时图标变色/脉冲；右键菜单三项可用；关闭窗口后进程仍在托盘；托盘「退出」才真正退出",
+      "depends_on": [],
+      "passes": false
+    },
+    {
+      "id": "feat-202",
+      "description": "全局快捷键唤起 — Cmd+Shift+H（macOS）/ Ctrl+Shift+H（Win/Linux）从任意 App 唤出/隐藏主窗口；tauri-plugin-global-shortcut 实现，三平台支持",
+      "acceptance": "在其他 App 前台时按快捷键可唤出 Hermes Desktop 主窗口；再按一次隐藏；快捷键冲突时给出提示",
+      "depends_on": ["feat-201"],
+      "passes": false
+    },
+    {
+      "id": "feat-203",
+      "description": "macOS 原生通知 — 后台任务完成(>30s)或报错时推送原生通知；点击通知跳转对应会话；tauri-plugin-notification 实现，三平台支持",
+      "acceptance": "后台任务完成后弹出系统通知；通知显示任务名和状态；点击通知激活窗口并切换到对应会话；报错任务同样推送",
+      "depends_on": ["feat-108"],
+      "passes": false
+    },
+    {
+      "id": "feat-204",
+      "description": "毛玻璃 + 主题深度打磨 — 侧边栏/TopBar CSS backdrop-filter blur（三平台）；窗口级 vibrancy macOS/Windows 条件编译（#[cfg(target_os)]），Linux 退化为纯色；前端用 @tauri-apps/plugin-os 判断平台，traffic-light 区域 macOS 才加间距；跟随系统 prefers-color-scheme",
+      "acceptance": "侧边栏/TopBar 有毛玻璃质感；深色/浅色跟随系统切换；macOS 窗口有 vibrancy 效果；Linux/Windows 正常显示无报错",
+      "depends_on": [],
+      "passes": false
+    },
+    {
+      "id": "feat-205",
+      "description": "快捷键面板 — Cmd+/（macOS）/ Ctrl+/（Win/Linux）调出快捷键速查面板；列出所有可用快捷键，符号适配平台（⌘ vs Ctrl）；Esc 关闭；Cmd+N 新会话 / Cmd+W 关闭面板",
+      "acceptance": "按快捷键弹出速查面板；面板显示所有快捷键及说明；macOS 显示 ⌘ 符号，其他平台显示 Ctrl；Esc 正常关闭",
+      "depends_on": [],
+      "passes": false
+    },
+    {
+      "id": "feat-206",
+      "description": "配置引导卡片 — 启动时读 config 文件检测 API Key，未配置则对话区顶部显示常驻卡片；hermes 进程报错时 Rust 层拦截错误类型（api key/model/rate limit/mcp），在对话流中插入说明卡片 + 跳转 dashboard 对应页面按钮；config 路径用 dirs crate 跨平台",
+      "acceptance": "无 API Key 时启动即出现引导卡片；hermes 返回 401/model not found/rate limit 错误时对话流中出现对应说明卡片；卡片按钮可跳转到 dashboard 对应页面；API Key 配置后卡片消失",
+      "depends_on": [],
+      "passes": false
+    },
+    {
+      "id": "feat-209",
+      "description": "工作目录切换 — ChatPage 顶部目录条展示当前工作目录路径（截断显示 basename）；点击唤出系统原生 Folder Picker（Tauri dialog::open）；选定目录后 hermes 进程以该目录为 cwd 启动；目录持久化到 localStorage；支持快速切换到「主目录」",
+      "acceptance": "对话区顶部显示当前工作目录（basename）；点击弹出原生文件夹选择对话框；选定后新发出的 hermes 进程使用该目录；重启应用后目录记忆保持；可一键重置为用户主目录",
+      "depends_on": [],
+      "passes": true
+    },
+    {
+      "id": "feat-210",
+      "description": "文件树侧边栏 — 左侧导航新增「文件」图标入口；面板展示当前工作目录的只读文件树（2层展开，.gitignore 隐藏）；文件项支持：拖入对话区作为上下文附件（读取内容附加到输入框）、右键菜单含「在 Finder 中显示」和「用默认程序打开」；目录变更时文件树自动刷新",
+      "acceptance": "左侧导航有文件树入口；文件树正确展示工作目录内容；文件可拖入对话区，输入框上方出现文件名 chip；右键菜单两项可用；工作目录切换后文件树刷新",
+      "depends_on": ["feat-209"],
+      "passes": false
     }
   ]
 }

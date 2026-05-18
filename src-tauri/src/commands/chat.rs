@@ -78,6 +78,7 @@ pub async fn send_message(
     message: String,
     session_tag: String,
     image: Option<String>,
+    working_dir: Option<String>,
 ) -> Result<(), String> {
     // No -Q: non-quiet mode streams output token-by-token as the model generates.
     // PYTHONUNBUFFERED=1 ensures Python flushes stdout on each write.
@@ -99,11 +100,18 @@ pub async fn send_message(
     // Use pipe (not PTY) so hermes detects non-TTY stdout and runs in line-buffered
     // non-interactive mode. PTY would put hermes into TUI mode where it uses ANSI
     // redraws + \r in place of \n, which BufReader::lines() cannot consume.
-    let mut child = Command::new("hermes")
-        .args(&args)
+    let mut cmd = Command::new("hermes");
+    cmd.args(&args)
         .env("PYTHONUNBUFFERED", "1")
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::piped());
+    if let Some(ref dir) = working_dir {
+        let path = std::path::Path::new(dir);
+        if path.is_dir() {
+            cmd.current_dir(path);
+        }
+    }
+    let mut child = cmd
         .spawn()
         .map_err(|e| format!("Failed to start hermes: {e}. Is hermes installed and in PATH?"))?;
 

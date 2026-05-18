@@ -39,6 +39,13 @@
 
 <!-- 新需求追加到这里 -->
 
+- [2026-05-17] [用户反馈] 配置引导：上下文感知卡片 + dashboard 深链接
+  - 场景1：App 启动时读 ~/.hermes/config.yaml，检测到 API Key 未配置 → 对话区顶部常驻卡片（可关闭）
+  - 场景2：hermes 进程报错时 Rust 层拦截错误类型（api key/model not found/rate limit/mcp tool 等），在对话流中插入对应说明卡片 + 跳转到 dashboard 指定页面的按钮
+  - 前置条件：先摸清 hermes dashboard 的实际路由结构（localhost:9119 跑起来后看），确认深链接可行性
+  - 不做：完整重建配置 UI，只做"缺啥说哪里补"的引导入口
+  - 优先级：Phase 2 候选，先完成 macOS 原生感核心功能后评估
+
 ---
 
 ## 已规划 / 已否决 / 变更

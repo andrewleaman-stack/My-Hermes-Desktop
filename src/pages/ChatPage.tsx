@@ -7,6 +7,7 @@ import TopBar from "../components/topbar/TopBar";
 import ChatView from "../components/ChatView";
 import TerminalPanel from "../components/TerminalPanel";
 import SnapshotPanel from "../components/SnapshotPanel";
+import WorkingDirBar from "../components/WorkingDirBar";
 import { getLastUserText } from "../utils/messageActions";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -100,6 +101,7 @@ export default function ChatPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [hermesVersion, setHermesVersion] = useState<string>("");
+  const [workingDir, setWorkingDir] = useState<string | null>(() => localStorage.getItem("hermes_working_dir"));
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [snapshotPanelOpen, setSnapshotPanelOpen] = useState(false);
   const [snapshotCreateCount, setSnapshotCreateCount] = useState(0);
@@ -120,6 +122,8 @@ export default function ChatPage() {
   const prevStreamingRef = useRef<Set<string>>(new Set());
   const activeSessionIdRef = useRef(activeSessionId);
   const prevStreamingForQueueRef = useRef<Set<string>>(new Set());
+  const activePtyId = useRef(`pty-${Date.now()}`);
+  const pendingPtyCommandRef = useRef<string | null>(null);
 
   // Derived values for current active session
   const activeSession = activeSessionId ? sessions.find((s) => s.id === activeSessionId) : null;
@@ -296,6 +300,59 @@ export default function ChatPage() {
     [activeSessionId, loadSessions]
   );
 
+  // ─── PTY write ───────────────────────────────────────────────────────────────
+
+  const writeToPty = useCallback((data: string) => {
+    invoke("pty_write", { ptyId: activePtyId.current, data }).catch(() => {});
+    setTimeout(() => invoke("pty_write", { ptyId: activePtyId.current, data: "\r" }).catch(() => {}), 150);
+    setTimeout(() => invoke("pty_write", { ptyId: activePtyId.current, data: "\r" }).catch(() => {}), 300);
+  }, []);
+
+  const handlePtyWrite = useCallback((data: string) => {
+    if (!terminalOpen) {
+      // 自动打开终端，缓存命令等 TUI 就绪后执行
+      pendingPtyCommandRef.current = data;
+      setTerminalOpen(true);
+      return;
+    }
+    writeToPty(data);
+  }, [terminalOpen, writeToPty]);
+
+  // 终端刚打开且有待发命令时，监听 PTY 输出，500ms 静默后认为 TUI 就绪再发送
+  useEffect(() => {
+    if (!terminalOpen || !pendingPtyCommandRef.current) return;
+
+    const cmd = pendingPtyCommandRef.current;
+    pendingPtyCommandRef.current = null;
+
+    let unlistenFn: (() => void) | null = null;
+    let sent = false;
+
+    const sendCmd = () => {
+      if (sent) return;
+      sent = true;
+      if (unlistenFn) { unlistenFn(); unlistenFn = null; }
+      clearTimeout(fallback);
+      // 检测到 ready 后稍等 100ms 再发，确保 TUI 完全稳定
+      setTimeout(() => writeToPty(cmd), 100);
+    };
+
+    // 检测 TUI 状态栏出现 "ready" 字样即视为就绪
+    listen<string>(`pty:${activePtyId.current}`, (event) => {
+      if (event.payload.includes("ready")) {
+        sendCmd();
+      }
+    }).then((u) => { unlistenFn = u; });
+
+    // 兜底：8s 内无论如何都发
+    const fallback = setTimeout(sendCmd, 8000);
+
+    return () => {
+      clearTimeout(fallback);
+      if (unlistenFn) unlistenFn();
+    };
+  }, [terminalOpen, writeToPty]);
+
   // ─── Background tasks ────────────────────────────────────────────────────────
 
   const handleRunBackground = useCallback(async (text: string) => {
@@ -436,6 +493,7 @@ export default function ChatPage() {
           message: text.trim(),
           sessionTag,
           image: options?.image ?? null,
+          workingDir: workingDir ?? null,
         });
       } catch (e) {
         const message = String(e);
@@ -848,8 +906,16 @@ export default function ChatPage() {
         badges={sessionBadges}
       />
       <div className="content-area">
+        <WorkingDirBar
+          workingDir={workingDir}
+          onDirChange={(dir) => {
+            setWorkingDir(dir);
+            if (dir) localStorage.setItem("hermes_working_dir", dir);
+            else localStorage.removeItem("hermes_working_dir");
+          }}
+        />
         {terminalOpen && (
-          <TerminalPanel sessionId={activeSessionId} onClose={() => setTerminalOpen(false)} />
+          <TerminalPanel ptyId={activePtyId.current} sessionId={activeSessionId} onClose={() => setTerminalOpen(false)} />
         )}
         {snapshotPanelOpen && (
           <SnapshotPanel
@@ -908,6 +974,7 @@ export default function ChatPage() {
           hasSession={activeSessionId !== null || messages.length > 0}
           onRunBackground={handleRunBackground}
           bgRunningCount={bgRunningCount}
+          onPtyWrite={handlePtyWrite}
         />
       </div>
     </div>
