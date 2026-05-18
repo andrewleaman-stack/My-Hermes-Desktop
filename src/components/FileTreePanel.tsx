@@ -398,6 +398,27 @@ function TreeRow({
   );
 }
 
+// ── CopyPathButton ────────────────────────────────────────────────────────────
+
+function CopyPathButton({ path }: { path: string }) {
+  const [copied, setCopied] = useState(false);
+  function handleCopy() {
+    navigator.clipboard.writeText(path).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+  return (
+    <button
+      onClick={handleCopy}
+      title={copied ? "已复制" : "复制路径"}
+      style={{ ...iconBtn, opacity: copied ? 1 : 0.6, fontSize: "12px", color: copied ? "var(--accent, #c07a5a)" : "inherit" }}
+    >
+      {copied ? "✓" : "⎘"}
+    </button>
+  );
+}
+
 // ── FilePreview ───────────────────────────────────────────────────────────────
 
 function FilePreview({ path, content, onOpenSystem }: {
@@ -431,6 +452,7 @@ function FilePreview({ path, content, onOpenSystem }: {
         }}>
           {lang}
         </span>
+        <CopyPathButton path={path} />
         <button onClick={onOpenSystem} title="用系统应用打开" style={{ ...iconBtn, opacity: 0.6 }}>↗</button>
       </div>
 
@@ -464,7 +486,10 @@ function BinaryPrompt({ path, onOpen }: { path: string; onOpen: (p: string) => v
       <span style={{ fontSize: "28px", opacity: 0.4 }}>📄</span>
       <span style={{ fontSize: "12px", opacity: 0.6 }}>{name}</span>
       <span style={{ fontSize: "11px", opacity: 0.4 }}>无法预览此文件类型</span>
-      <button onClick={() => onOpen(path)} style={actionBtn}>用系统应用打开</button>
+      <div style={{ display: "flex", gap: "8px" }}>
+        <button onClick={() => onOpen(path)} style={actionBtn}>用系统应用打开</button>
+        <CopyPathButton path={path} />
+      </div>
     </div>
   );
 }
