@@ -1244,6 +1244,37 @@ body {
   letter-spacing: -0.374px;
 }
 
+.starter-prompts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 380px;
+  margin-top: 4px;
+}
+.starter-prompt-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--surface-card);
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.starter-prompt-card:hover {
+  color: var(--body);
+  border-color: var(--primary-disabled);
+  background: var(--surface-cream-strong);
+}
+.starter-prompt-icon {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
 /* ── Message Bubbles ── */
 .message-group { display: flex; flex-direction: column; gap: 4px; }
 
@@ -2603,10 +2634,89 @@ body {
   border: 1px solid var(--hairline);
 }
 
+.input-row-wrapper {
+  position: relative;
+}
+
 .input-row {
   display: flex;
   gap: 10px;
   align-items: flex-end;
+}
+
+/* ── Slash Command Menu ── */
+.slash-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--surface-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 100;
+  padding: 4px 0;
+}
+
+.slash-menu-section + .slash-menu-section {
+  border-top: 1px solid var(--hairline-soft);
+  margin-top: 2px;
+  padding-top: 2px;
+}
+
+.slash-menu-group {
+  padding: 6px 12px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  font-family: var(--font-sans);
+}
+
+.slash-menu-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: var(--ink);
+  transition: background 0.1s;
+}
+
+.slash-menu-item:hover,
+.slash-menu-item.selected {
+  background: var(--primary-glow);
+}
+
+.slash-menu-cmd {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.slash-menu-args {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.slash-menu-desc {
+  font-size: 12px;
+  color: var(--body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .chat-textarea {

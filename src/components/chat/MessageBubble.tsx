@@ -200,7 +200,8 @@ export default function MessageBubble({ message, isLastAssistant, streaming, onR
   const [copied, setCopied] = useState(false);
   const isUser = message.role === "user";
   const isStreaming = streaming && isLastAssistant && message.status === "streaming";
-  const showActions = isLastAssistant && !streaming && message.status === "done";
+  const showCopy = !isUser && !isStreaming && message.status === "done";
+  const showRetry = isLastAssistant && !streaming && message.status === "done";
 
   const copyMarkdown = async () => {
     const markdown = messageToMarkdown(message);
@@ -257,16 +258,20 @@ export default function MessageBubble({ message, isLastAssistant, streaming, onR
         {message.status === "error" && (
           <span style={{ fontSize: 10, color: "var(--error)" }}>error</span>
         )}
-        {showActions && (
+        {(showCopy || showRetry) && (
           <div className="message-actions">
-            <button className="message-action-btn" onClick={onRetry} title="重试这一轮">
-              <Icon name="refresh" size={12} />
-              重试
-            </button>
-            <button className="message-action-btn" onClick={copyMarkdown} title="复制为 Markdown">
-              <Icon name="copy" size={12} />
-              {copied ? "已复制" : "复制 MD"}
-            </button>
+            {showRetry && (
+              <button className="message-action-btn" onClick={onRetry} title="重试这一轮">
+                <Icon name="refresh" size={12} />
+                重试
+              </button>
+            )}
+            {showCopy && (
+              <button className="message-action-btn" onClick={copyMarkdown} title="复制为 Markdown">
+                <Icon name="copy" size={12} />
+                {copied ? "已复制" : "复制"}
+              </button>
+            )}
           </div>
         )}
       </div>

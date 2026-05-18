@@ -5,6 +5,7 @@ import GuideBot from "./chat/GuideBot";
 import MessageBubble from "./chat/MessageBubble";
 import GoalBar from "./chat/GoalBar";
 import PersonalityPicker from "./chat/PersonalityPicker";
+import SlashCommandMenu, { SLASH_COMMANDS, SlashCommand } from "./chat/SlashCommandMenu";
 
 interface AttachedImage {
   dataUrl: string;
@@ -29,6 +30,7 @@ interface Props {
   onCompress?: () => void;
   onRunBackground?: (text: string) => void;
   bgRunningCount?: number;
+  onPtyWrite?: (data: string) => void;
 }
 
 const SUPPORTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp"];
@@ -57,6 +59,7 @@ export default function ChatView({
   onCompress,
   onRunBackground,
   bgRunningCount = 0,
+  onPtyWrite,
 }: Props) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -66,6 +69,10 @@ export default function ChatView({
 
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  const [slashOpen, setSlashOpen] = useState(false);
+  const [slashQuery, setSlashQuery] = useState("");
+  const [slashIdx, setSlashIdx] = useState(0);
 
   const attachImageFile = async (file: File) => {
     if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) return false;
@@ -135,7 +142,59 @@ export default function ChatView({
     textareaRef.current?.focus();
   }, []);
 
+  const filteredSlashCmds = slashOpen
+    ? SLASH_COMMANDS.filter((cmd) =>
+        slashQuery === "" ||
+        cmd.command.slice(1).startsWith(slashQuery.toLowerCase()) ||
+        cmd.description.toLowerCase().includes(slashQuery.toLowerCase())
+      )
+    : [];
+
+  const handleSlashSelect = (cmd: SlashCommand) => {
+    setSlashOpen(false);
+    if (cmd.directSend) {
+      onSend(cmd.command);
+      if (textareaRef.current) {
+        textareaRef.current.value = "";
+        textareaRef.current.style.height = "auto";
+      }
+      setIsTyping(false);
+    } else {
+      const fill = `${cmd.command} `;
+      if (textareaRef.current) {
+        textareaRef.current.value = fill;
+        textareaRef.current.style.height = "auto";
+        textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 160) + "px";
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(fill.length, fill.length);
+      }
+      setIsTyping(true);
+    }
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (slashOpen && filteredSlashCmds.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSlashIdx((i) => (i + 1) % filteredSlashCmds.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSlashIdx((i) => (i - 1 + filteredSlashCmds.length) % filteredSlashCmds.length);
+        return;
+      }
+      if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+        e.preventDefault();
+        handleSlashSelect(filteredSlashCmds[slashIdx]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setSlashOpen(false);
+        return;
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       submit();
@@ -173,18 +232,71 @@ export default function ChatView({
     setIsTyping(false);
   };
 
-  // Auto-resize textarea + track isTyping
+  const submitToTui = () => {
+    const text = textareaRef.current?.value.trim();
+    if (!text || !onPtyWrite) return;
+    onPtyWrite(text + "\r");
+    if (textareaRef.current) {
+      textareaRef.current.value = "";
+      textareaRef.current.style.height = "auto";
+    }
+    setIsTyping(false);
+  };
+
+  // Auto-resize textarea + track isTyping + slash menu detection
   const handleInput = () => {
     const ta = textareaRef.current;
     if (!ta) return;
     ta.style.height = "auto";
     ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
     setIsTyping(ta.value.length > 0);
+    const val = ta.value;
+    if (val.startsWith("/") && !val.includes(" ")) {
+      setSlashOpen(true);
+      setSlashQuery(val.slice(1));
+      setSlashIdx(0);
+    } else {
+      setSlashOpen(false);
+    }
   };
 
   const focusInput = () => {
     textareaRef.current?.focus();
   };
+
+  const fillInput = (text: string) => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.value = text;
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
+    ta.focus();
+    ta.setSelectionRange(text.length, text.length);
+    setIsTyping(text.length > 0);
+  };
+
+  const STARTER_PROMPTS = [
+    {
+      icon: "terminal" as const,
+      title: "写一个脚本",
+      text: "帮我写一个 shell 脚本：",
+    },
+    {
+      icon: "alert" as const,
+      title: "解释报错",
+      text: "解释这段报错信息，告诉我原因和解决方法：\n\n",
+    },
+    {
+      icon: "code" as const,
+      title: "分析代码",
+      text: "分析当前项目的代码结构，给我一个简洁的概览，说明各主要模块的职责",
+    },
+    {
+      icon: "message" as const,
+      title: "随便问问",
+      text: "",
+    },
+  ];
 
   const lastAssistantIdx = [...messages]
     .reverse()
@@ -207,12 +319,17 @@ export default function ChatView({
             <div className="chat-empty-title ui-font">
               {hasSession ? "Session loaded" : "Start a conversation"}
             </div>
-            <div className="chat-empty-hint">
-              Hermes is a self-improving agent — it learns from your interactions
-              and creates skills from patterns it observes.
-              <br />
-              <br />
-              Type a message below to begin.
+            <div className="starter-prompts">
+              {STARTER_PROMPTS.map((p) => (
+                <button
+                  key={p.title}
+                  className="starter-prompt-card ui-font"
+                  onClick={() => p.text ? fillInput(p.text) : focusInput()}
+                >
+                  <Icon name={p.icon} size={15} className="starter-prompt-icon" />
+                  <span>{p.title}</span>
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -292,7 +409,15 @@ export default function ChatView({
           </div>
         )}
 
-        <div className="input-row">
+        <div className="input-row-wrapper">
+          {slashOpen && filteredSlashCmds.length > 0 && (
+            <SlashCommandMenu
+              items={filteredSlashCmds}
+              selectedIndex={slashIdx}
+              onSelect={handleSlashSelect}
+            />
+          )}
+          <div className="input-row">
           <textarea
             ref={textareaRef}
             className="chat-textarea"
@@ -323,7 +448,8 @@ export default function ChatView({
               </>
             )}
           </button>
-        </div>
+          </div>{/* input-row */}
+        </div>{/* input-row-wrapper */}
 
         {queue.length > 0 && (
           <div className="queue-list">
@@ -365,6 +491,18 @@ export default function ChatView({
                 {bgRunningCount > 0 && (
                   <span className="bg-run-badge">{bgRunningCount}</span>
                 )}
+              </button>
+            )}
+            {onPtyWrite && (
+              <button
+                type="button"
+                className="bg-run-btn ui-font"
+                onClick={submitToTui}
+                disabled={!isTyping}
+                title="把当前输入发送到 TUI 终端（测试 PTY 控制）"
+              >
+                <Icon name="terminal" size={13} />
+                发送到 TUI
               </button>
             )}
           </div>
