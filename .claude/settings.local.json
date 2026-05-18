@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/wuguirong/.hermes/hermes-agent -path \"*/acp_adapter/server.py\" -o -path \"*/acp_adapter/session.py\" 2>/dev/null | head -5)",
+      "Read(//Users/wuguirong/.hermes/hermes-agent/**)",
+      "Bash(rtk grep *)",
+      "Bash(rtk curl *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); c=d.get\\('crate',{}\\); print\\('Crate:', c.get\\('name'\\)\\); print\\('Newest:', c.get\\('newest_version'\\)\\); print\\('Description:', c.get\\('description',''\\)[:100]\\)\")",
+      "Bash(python3 -c \"import json,sys; [print\\(f['name']\\) for f in json.load\\(sys.stdin\\)]\")",
+      "Bash(rtk read *)"
+    ]
+  }
+}

@@ -39,3 +39,10 @@ npm-debug.log*
 # 运行时数据
 *.pid
 *.seed
+
+# 临时文件
+.tmp/
+.temp/
+temp/
+.codebase-memory/
+spike/

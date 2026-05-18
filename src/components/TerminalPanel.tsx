@@ -8,22 +8,22 @@ import "@xterm/xterm/css/xterm.css";
 import Icon from "./Icon";
 
 interface Props {
+  ptyId: string;
   sessionId: string | null;
   onClose: () => void;
 }
 
-export default function TerminalPanel({ sessionId, onClose }: Props) {
+export default function TerminalPanel({ ptyId, sessionId, onClose }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const sizeRef = useRef<{ rows: number; cols: number } | null>(null);
-  const ptyId = useRef(`pty-${Date.now()}`);
   const unlistenRef = useRef<(() => void) | null>(null);
 
   const doClose = useCallback(() => {
-    invoke("pty_close", { ptyId: ptyId.current }).catch(() => {});
+    invoke("pty_close", { ptyId }).catch(() => {});
     onClose();
-  }, [onClose]);
+  }, [ptyId, onClose]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -57,7 +57,7 @@ export default function TerminalPanel({ sessionId, onClose }: Props) {
     termRef.current = term;
     fitAddonRef.current = fitAddon;
 
-    listen<string>(`pty:${ptyId.current}`, (event) => {
+    listen<string>(`pty:${ptyId}`, (event) => {
       term.write(event.payload);
     }).then((u) => {
       if (disposed) {
@@ -68,14 +68,14 @@ export default function TerminalPanel({ sessionId, onClose }: Props) {
     });
 
     term.onData((data) => {
-      invoke("pty_write", { ptyId: ptyId.current, data }).catch(() => {});
+      invoke("pty_write", { ptyId: ptyId, data }).catch(() => {});
     });
 
     openFrame = window.requestAnimationFrame(() => {
       fitAddon.fit();
       const { rows, cols } = term;
       sizeRef.current = { rows, cols };
-      invoke("pty_open", { ptyId: ptyId.current, sessionId, rows, cols })
+      invoke("pty_open", { ptyId: ptyId, sessionId, rows, cols })
         .catch((e) => term.writeln(`\r\n\x1b[31mFailed to open terminal: ${e}\x1b[0m`));
     });
 
@@ -89,7 +89,7 @@ export default function TerminalPanel({ sessionId, onClose }: Props) {
         const prev = sizeRef.current;
         if (prev?.rows === rows && prev?.cols === cols) return;
         sizeRef.current = { rows, cols };
-        invoke("pty_resize", { ptyId: ptyId.current, rows, cols }).catch(() => {});
+        invoke("pty_resize", { ptyId: ptyId, rows, cols }).catch(() => {});
       });
     });
     ro.observe(containerRef.current);
@@ -101,7 +101,7 @@ export default function TerminalPanel({ sessionId, onClose }: Props) {
       ro.disconnect();
       unlistenRef.current?.();
       unlistenRef.current = null;
-      invoke("pty_close", { ptyId: ptyId.current }).catch(() => {});
+      invoke("pty_close", { ptyId: ptyId }).catch(() => {});
       term.dispose();
     };
   }, [sessionId]);

@@ -1,34 +1,39 @@
 # 当前阶段目标
 
-**阶段**：Phase 1 — 斜杠命令图形化
-**目标**：所有核心斜杠命令有图形入口，用户彻底不需要记忆命令；补齐首次使用引导
-**完成标准**：features.json 中 feat-101 ～ feat-110 全部 passes = true
+**阶段**：Phase 2 — macOS 原生感
+**目标**：让用户觉得「这是个真正的 Mac 应用」；同时为跨平台（Linux/Windows）兼容打好基础
+**完成标准**：features.json 中 feat-201 ～ feat-206 全部 passes = true
 **默认 Session 阶段**：BUILD
 **当前版本**：（发布后填入）
 
 ---
 
+## 跨平台设计原则（本阶段新增约束）
+
+- Tauri 官方插件优先（tray/global-shortcut/notification 均三平台支持）
+- 窗口级原生效果（vibrancy/acrylic）用 `#[cfg(target_os)]` 条件编译，Linux 退化为纯色
+- 前端平台判断统一用 `@tauri-apps/plugin-os`，不猜 userAgent
+- 路径处理统一用 Rust `dirs` crate，不写 hardcode `~/`
+
+---
+
 ## Sprint 拆分
 
-### Sprint 1 — 快速可见（预计 4～5 天）
+### Sprint 1 — 系统集成（预计 4～5 天）
 
 | ID | 功能 | 估时 |
 |----|------|------|
-| feat-101 | 模型选择器（TopBar `/model` 下拉） | 1天 |
-| feat-102 | 会话标题编辑（侧边栏 `/title` 内联） | 0.5天 |
-| feat-103 | 消息快捷操作（`/retry` + `/undo` 悬停按钮） | 0.5天 |
-| feat-104 | 排队发送 UI 仿真（`/queue` 前端状态） | 1天 |
-| feat-110 | 首次使用引导（hermes 安装检测 + 三步引导页） | 1～2天 |
+| feat-201 | 菜单栏托盘集成 | 2～3天 |
+| feat-202 | 全局快捷键唤起 | 1天 |
+| feat-203 | 原生通知推送 | 1天 |
 
-### Sprint 2 — 大块面板（预计 9～11 天）
+### Sprint 2 — 界面打磨（预计 4～5 天）
 
 | ID | 功能 | 估时 |
 |----|------|------|
-| feat-105 | 目标条（`/goal` 全状态图形化） | 1天 |
-| feat-106 | 快照时间线（`/snapshot` + `/rollback` 面板） | 2天 |
-| feat-107 | 人格选择器（`/personality` 弹层） | 1天 |
-| feat-108 | 后台任务面板（`/background` + `/agents` + `/stop`） | 4～5天 |
-| feat-109 | 图片/附件输入（拖拽/粘贴 → base64） | 1～2天 |
+| feat-204 | 毛玻璃 + 主题深度打磨 | 1～2天 |
+| feat-205 | 快捷键面板 | 1天 |
+| feat-206 | 配置引导卡片 | 2天 |
 
 ---
 
