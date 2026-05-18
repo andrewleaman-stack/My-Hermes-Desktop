@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { open as shellOpen } from "@tauri-apps/plugin-shell";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
@@ -109,9 +108,9 @@ function lastName(p: string): string {
 
 async function openWithSystem(path: string) {
   try {
-    await shellOpen("file://" + path);
+    await invoke("open_path", { path });
   } catch (e) {
-    console.error("open failed:", e);
+    console.error("open_path failed:", e);
   }
 }
 

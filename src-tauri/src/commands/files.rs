@@ -50,6 +50,29 @@ pub async fn get_home_dir() -> String {
         .unwrap_or_else(|| "/".to_string())
 }
 
+#[tauri::command]
+pub async fn open_path(path: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    std::process::Command::new("open")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| format!("open failed: {e}"))?;
+
+    #[cfg(target_os = "windows")]
+    std::process::Command::new("explorer")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| format!("open failed: {e}"))?;
+
+    #[cfg(target_os = "linux")]
+    std::process::Command::new("xdg-open")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| format!("open failed: {e}"))?;
+
+    Ok(())
+}
+
 const MAX_PREVIEW_BYTES: u64 = 512 * 1024; // 512 KB
 
 #[tauri::command]
