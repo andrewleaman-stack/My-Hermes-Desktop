@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-shell";
-import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
+import { open as shellOpen } from "@tauri-apps/plugin-shell";
+import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
-// Register only commonly needed languages to keep bundle small
 import ts from "react-syntax-highlighter/dist/esm/languages/prism/typescript";
 import tsx from "react-syntax-highlighter/dist/esm/languages/prism/tsx";
 import js from "react-syntax-highlighter/dist/esm/languages/prism/javascript";
@@ -31,6 +30,8 @@ SyntaxHighlighter.registerLanguage("markdown", markdown);
 SyntaxHighlighter.registerLanguage("bash", bash);
 SyntaxHighlighter.registerLanguage("css", css);
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
 interface FileEntry {
   name: string;
   path: string;
@@ -48,7 +49,7 @@ interface Props {
   onClose: () => void;
 }
 
-// ── Language detection from extension ────────────────────────────────────────
+// ── Language / text detection ─────────────────────────────────────────────────
 
 const EXT_LANG: Record<string, string> = {
   ts: "typescript", tsx: "tsx",
@@ -59,20 +60,22 @@ const EXT_LANG: Record<string, string> = {
   yaml: "yaml", yml: "yaml",
   toml: "toml",
   md: "markdown", mdx: "markdown",
-  sh: "bash", zsh: "bash",
+  sh: "bash", zsh: "bash", bash: "bash",
   css: "css", scss: "css",
 };
 
 const TEXT_EXTENSIONS = new Set([
   "ts", "tsx", "js", "jsx", "rs", "py", "json", "yaml", "yml",
   "toml", "md", "mdx", "sh", "zsh", "bash", "css", "scss",
-  "html", "htm", "xml", "txt", "env", "gitignore", "lock",
-  "Makefile", "Dockerfile", "sql", "graphql", "gql",
+  "html", "htm", "xml", "txt", "env", "lock", "sql", "graphql", "gql",
+  "gitignore", "gitattributes", "editorconfig", "prettierrc", "eslintrc",
 ]);
 
 function getExt(name: string): string {
+  // handle dotfiles like .gitignore
+  if (name.startsWith(".") && !name.slice(1).includes(".")) return name.slice(1);
   const parts = name.split(".");
-  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : name;
+  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
 }
 
 function isTextFile(name: string): boolean {
@@ -87,322 +90,29 @@ function getLang(name: string): string {
 
 function toDisplayPath(absPath: string): string {
   const parts = absPath.split("/");
-  const home = parts.slice(0, 3).join("/");
-  return absPath.startsWith(home) ? absPath.replace(home, "~") : absPath;
+  if (parts.length >= 3 && parts[1] === "Users") {
+    return "~/" + parts.slice(3).join("/");
+  }
+  return absPath;
 }
 
 function parentPath(p: string): string {
-  return p.split("/").slice(0, -1).join("/") || "/";
+  const parts = p.split("/").filter(Boolean);
+  if (parts.length === 0) return "/";
+  return "/" + parts.slice(0, -1).join("/");
 }
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+function lastName(p: string): string {
+  const parts = p.split("/").filter(Boolean);
+  return parts[parts.length - 1] ?? p;
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
-export default function FileTreePanel({ initialPath, onClose }: Props) {
-  const [currentPath, setCurrentPath] = useState(initialPath);
-  const [nodes, setNodes] = useState<TreeNode[]>([]);
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [fileContent, setFileContent] = useState<string | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
-  const [loadingDir, setLoadingDir] = useState<string | null>(null);
-  const [loadingFile, setLoadingFile] = useState(false);
-
-  const loadDir = useCallback(async (path: string) => {
-    setLoadingDir(path);
-    try {
-      const entries = await invoke<FileEntry[]>("list_dir", { path });
-      setNodes(entries.map((e) => ({ ...e })));
-      setCurrentPath(path);
-      setSelectedPath(null);
-      setFileContent(null);
-      setPreviewError(null);
-    } catch (e) {
-      setPreviewError(String(e));
-    } finally {
-      setLoadingDir(null);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (initialPath) {
-      loadDir(initialPath);
-    } else {
-      invoke<string>("get_home_dir").then((home) => loadDir(home));
-    }
-  }, [initialPath]);
-
-  async function toggleDir(node: TreeNode) {
-    if (!node.is_dir) return;
-    if (node.expanded) {
-      setNodes((prev) => collapseNode(prev, node.path));
-      return;
-    }
-    setLoadingDir(node.path);
-    try {
-      const children = await invoke<FileEntry[]>("list_dir", { path: node.path });
-      setNodes((prev) =>
-        expandNode(prev, node.path, children.map((e) => ({ ...e })))
-      );
-    } catch {
-      // ignore
-    } finally {
-      setLoadingDir(null);
-    }
+async function openWithSystem(path: string) {
+  try {
+    await shellOpen("file://" + path);
+  } catch (e) {
+    console.error("open failed:", e);
   }
-
-  async function selectFile(node: TreeNode) {
-    setSelectedPath(node.path);
-    setFileContent(null);
-    setPreviewError(null);
-
-    if (!isTextFile(node.name)) {
-      setPreviewError("binary");
-      return;
-    }
-    setLoadingFile(true);
-    try {
-      const content = await invoke<string>("read_text_file", { path: node.path });
-      setFileContent(content);
-    } catch (e) {
-      setPreviewError(String(e));
-    } finally {
-      setLoadingFile(false);
-    }
-  }
-
-  async function openWithSystem(path: string) {
-    try {
-      await open(path);
-    } catch (e) {
-      console.error("open failed:", e);
-    }
-  }
-
-  const displayPath = toDisplayPath(currentPath);
-  const canGoUp = currentPath !== "/" && currentPath !== "";
-
-  return (
-    <div style={panelStyle}>
-      {/* ── Header ── */}
-      <div style={headerStyle}>
-        <button
-          onClick={() => canGoUp && loadDir(parentPath(currentPath))}
-          disabled={!canGoUp}
-          title="上级目录"
-          style={{ ...iconBtn, opacity: canGoUp ? 0.8 : 0.3 }}
-        >
-          ←
-        </button>
-        <span
-          title={currentPath}
-          style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "12px", opacity: 0.7 }}
-        >
-          {displayPath}
-        </span>
-        <button onClick={onClose} style={{ ...iconBtn, opacity: 0.6 }}>✕</button>
-      </div>
-
-      {/* ── Body: tree + preview ── */}
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {/* File tree */}
-        <div style={treeColStyle}>
-          {nodes.length === 0 && loadingDir === currentPath && (
-            <div style={emptyStyle}>加载中…</div>
-          )}
-          {nodes.length === 0 && loadingDir !== currentPath && (
-            <div style={emptyStyle}>空目录</div>
-          )}
-          {nodes.map((node) => (
-            <TreeRow
-              key={node.path}
-              node={node}
-              selected={selectedPath === node.path}
-              loading={loadingDir === node.path}
-              onToggleDir={toggleDir}
-              onSelectFile={selectFile}
-              depth={0}
-            />
-          ))}
-        </div>
-
-        {/* Divider */}
-        <div style={{ width: "1px", background: "var(--border)", flexShrink: 0 }} />
-
-        {/* Preview pane */}
-        <div style={previewColStyle}>
-          {!selectedPath && (
-            <div style={emptyStyle}>点击文件预览内容</div>
-          )}
-          {selectedPath && loadingFile && (
-            <div style={emptyStyle}>读取中…</div>
-          )}
-          {selectedPath && previewError === "binary" && (
-            <BinaryPrompt path={selectedPath} onOpen={openWithSystem} />
-          )}
-          {selectedPath && previewError && previewError !== "binary" && (
-            <div style={{ ...emptyStyle, color: "var(--error, #e06c6c)" }}>
-              {previewError}
-              <button
-                onClick={() => openWithSystem(selectedPath)}
-                style={{ ...actionBtn, marginTop: "12px" }}
-              >
-                用系统应用打开
-              </button>
-            </div>
-          )}
-          {fileContent !== null && !previewError && (
-            <FilePreview
-              path={selectedPath!}
-              content={fileContent}
-              onOpenSystem={() => openWithSystem(selectedPath!)}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── TreeRow ───────────────────────────────────────────────────────────────────
-
-function TreeRow({
-  node, selected, loading, onToggleDir, onSelectFile, depth,
-}: {
-  node: TreeNode;
-  selected: boolean;
-  loading: boolean;
-  onToggleDir: (n: TreeNode) => void;
-  onSelectFile: (n: TreeNode) => void;
-  depth: number;
-}) {
-  function handleClick() {
-    if (node.is_dir) onToggleDir(node);
-    else onSelectFile(node);
-  }
-
-  return (
-    <>
-      <button
-        onClick={handleClick}
-        title={node.path}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "5px",
-          width: "100%",
-          background: selected ? "var(--accent-bg, rgba(192,122,90,0.15))" : "none",
-          border: "none",
-          borderRadius: "4px",
-          padding: `3px 8px 3px ${8 + depth * 14}px`,
-          cursor: "pointer",
-          color: selected ? "var(--text-primary, #eee)" : "var(--text-secondary, #aaa)",
-          fontSize: "12px",
-          textAlign: "left",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          flexShrink: 0,
-        }}
-      >
-        <span style={{ flexShrink: 0, fontSize: "11px", opacity: 0.7 }}>
-          {node.is_dir
-            ? (loading ? "⟳" : node.expanded ? "▾" : "▸")
-            : fileIcon(node.name)}
-        </span>
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-          {node.name}
-        </span>
-      </button>
-      {node.expanded && node.children?.map((child) => (
-        <TreeRow
-          key={child.path}
-          node={child}
-          selected={selected && child.path === node.path}
-          loading={loading}
-          onToggleDir={onToggleDir}
-          onSelectFile={onSelectFile}
-          depth={depth + 1}
-        />
-      ))}
-    </>
-  );
-}
-
-// ── FilePreview ───────────────────────────────────────────────────────────────
-
-function FilePreview({ path, content, onOpenSystem }: {
-  path: string;
-  content: string;
-  onOpenSystem: () => void;
-}) {
-  const name = path.split("/").slice(-1)[0] ?? "";
-  const lang = getLang(name);
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-      {/* Preview header */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: "8px",
-        padding: "6px 12px",
-        borderBottom: "1px solid var(--border)",
-        fontSize: "11px",
-        flexShrink: 0,
-      }}>
-        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", opacity: 0.7 }}>
-          {name}
-        </span>
-        <span style={{
-          background: "var(--bg-secondary, rgba(255,255,255,0.06))",
-          borderRadius: "3px",
-          padding: "1px 5px",
-          opacity: 0.6,
-          flexShrink: 0,
-        }}>
-          {lang}
-        </span>
-        <button onClick={onOpenSystem} title="用系统应用打开" style={iconBtn}>↗</button>
-      </div>
-
-      {/* Code */}
-      <div style={{ flex: 1, overflow: "auto" }}>
-        <SyntaxHighlighter
-          language={lang}
-          style={vscDarkPlus}
-          showLineNumbers
-          customStyle={{
-            margin: 0,
-            padding: "12px",
-            background: "transparent",
-            fontSize: "11.5px",
-            lineHeight: "1.6",
-            minHeight: "100%",
-          }}
-          lineNumberStyle={{ opacity: 0.3, userSelect: "none", minWidth: "2.5em" }}
-        >
-          {content}
-        </SyntaxHighlighter>
-      </div>
-    </div>
-  );
-}
-
-// ── BinaryPrompt ──────────────────────────────────────────────────────────────
-
-function BinaryPrompt({ path, onOpen }: { path: string; onOpen: (p: string) => void }) {
-  const name = path.split("/").slice(-1)[0] ?? "";
-  return (
-    <div style={{ ...emptyStyle, gap: "12px" }}>
-      <span style={{ fontSize: "28px", opacity: 0.4 }}>📄</span>
-      <span style={{ fontSize: "12px", opacity: 0.6 }}>{name}</span>
-      <span style={{ fontSize: "11px", opacity: 0.4 }}>无法预览此文件类型</span>
-      <button onClick={() => onOpen(path)} style={actionBtn}>用系统应用打开</button>
-    </div>
-  );
 }
 
 // ── Tree state helpers ────────────────────────────────────────────────────────
@@ -423,28 +133,364 @@ function collapseNode(nodes: TreeNode[], targetPath: string): TreeNode[] {
   });
 }
 
-// ── File icon by extension ────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
+
+export default function FileTreePanel({ initialPath, onClose }: Props) {
+  const [currentPath, setCurrentPath] = useState(initialPath);
+  const [nodes, setNodes] = useState<TreeNode[]>([]);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [fileContent, setFileContent] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [loadingDir, setLoadingDir] = useState<string | null>(null);
+  const [loadingFile, setLoadingFile] = useState(false);
+
+  const loadDir = useCallback(async (path: string) => {
+    setLoadingDir(path);
+    try {
+      const entries = await invoke<FileEntry[]>("list_dir", { path });
+      setNodes(entries.map((e) => ({ ...e })));
+      setCurrentPath(path);
+      setSelectedFile(null);
+      setFileContent(null);
+      setPreviewError(null);
+    } catch (e) {
+      setPreviewError(String(e));
+    } finally {
+      setLoadingDir(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (initialPath) {
+      loadDir(initialPath);
+    } else {
+      invoke<string>("get_home_dir").then((home) => loadDir(home));
+    }
+  }, [initialPath]);
+
+  // Toggle expand/collapse in-tree (triangle click)
+  async function handleToggle(node: TreeNode) {
+    if (node.expanded) {
+      setNodes((prev) => collapseNode(prev, node.path));
+      return;
+    }
+    setLoadingDir(node.path);
+    try {
+      const children = await invoke<FileEntry[]>("list_dir", { path: node.path });
+      setNodes((prev) => expandNode(prev, node.path, children.map((e) => ({ ...e }))));
+    } catch {
+      // ignore
+    } finally {
+      setLoadingDir(null);
+    }
+  }
+
+  // Navigate into directory (name click)
+  function handleNavigate(node: TreeNode) {
+    loadDir(node.path);
+  }
+
+  // Select file for preview (name click)
+  async function handleSelectFile(node: TreeNode) {
+    setSelectedFile(node.path);
+    setFileContent(null);
+    setPreviewError(null);
+
+    if (!isTextFile(node.name)) {
+      setPreviewError("binary");
+      return;
+    }
+    setLoadingFile(true);
+    try {
+      const content = await invoke<string>("read_text_file", { path: node.path });
+      setFileContent(content);
+    } catch (e) {
+      setPreviewError(String(e));
+    } finally {
+      setLoadingFile(false);
+    }
+  }
+
+  const canGoUp = currentPath !== "/" && currentPath.split("/").filter(Boolean).length > 0;
+
+  return (
+    <div style={panelStyle}>
+      {/* Header */}
+      <div style={headerStyle}>
+        <button
+          onClick={() => canGoUp && loadDir(parentPath(currentPath))}
+          disabled={!canGoUp}
+          title="上级目录"
+          style={{ ...iconBtn, opacity: canGoUp ? 0.75 : 0.25 }}
+        >
+          ←
+        </button>
+        <span
+          title={currentPath}
+          style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "12px", opacity: 0.65 }}
+        >
+          {toDisplayPath(currentPath)}
+        </span>
+        <button onClick={onClose} title="关闭" style={{ ...iconBtn, opacity: 0.5 }}>✕</button>
+      </div>
+
+      {/* Body */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {/* Tree column */}
+        <div style={treeColStyle}>
+          {loadingDir === currentPath && nodes.length === 0 && (
+            <div style={emptyHint}>加载中…</div>
+          )}
+          {loadingDir !== currentPath && nodes.length === 0 && (
+            <div style={emptyHint}>空目录</div>
+          )}
+          {nodes.map((node) => (
+            <TreeRow
+              key={node.path}
+              node={node}
+              selected={selectedFile === node.path}
+              loading={loadingDir === node.path}
+              depth={0}
+              onToggle={handleToggle}
+              onNavigate={handleNavigate}
+              onSelectFile={handleSelectFile}
+              selectedFile={selectedFile}
+              loadingDir={loadingDir}
+            />
+          ))}
+        </div>
+
+        <div style={{ width: "1px", background: "var(--border)", flexShrink: 0 }} />
+
+        {/* Preview column */}
+        <div style={previewColStyle}>
+          {!selectedFile && <div style={emptyHint}>点击文件预览内容</div>}
+          {selectedFile && loadingFile && <div style={emptyHint}>读取中…</div>}
+          {selectedFile && previewError === "binary" && (
+            <BinaryPrompt path={selectedFile} onOpen={openWithSystem} />
+          )}
+          {selectedFile && previewError && previewError !== "binary" && (
+            <div style={{ ...emptyHint, flexDirection: "column", gap: "10px" }}>
+              <span style={{ color: "var(--error, #e06c6c)", fontSize: "12px" }}>{previewError}</span>
+              <button onClick={() => openWithSystem(selectedFile)} style={actionBtn}>
+                用系统应用打开
+              </button>
+            </div>
+          )}
+          {fileContent !== null && !previewError && (
+            <FilePreview
+              path={selectedFile!}
+              content={fileContent}
+              onOpenSystem={() => openWithSystem(selectedFile!)}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── TreeRow ───────────────────────────────────────────────────────────────────
+
+function TreeRow({
+  node, selected, loading, depth,
+  onToggle, onNavigate, onSelectFile,
+  selectedFile, loadingDir,
+}: {
+  node: TreeNode;
+  selected: boolean;
+  loading: boolean;
+  depth: number;
+  onToggle: (n: TreeNode) => void;
+  onNavigate: (n: TreeNode) => void;
+  onSelectFile: (n: TreeNode) => void;
+  selectedFile: string | null;
+  loadingDir: string | null;
+}) {
+  const isExpanded = !!node.expanded;
+
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          paddingLeft: `${8 + depth * 14}px`,
+          paddingRight: "6px",
+          borderRadius: "4px",
+          background: node.is_dir && isExpanded
+            ? "var(--bg-expanded, rgba(255,255,255,0.06))"
+            : selected
+            ? "var(--accent-bg, rgba(192,122,90,0.15))"
+            : "transparent",
+          marginBottom: "1px",
+        }}
+      >
+        {/* Triangle / expand toggle (dirs only) */}
+        {node.is_dir ? (
+          <button
+            onClick={() => onToggle(node)}
+            title={isExpanded ? "折叠" : "展开"}
+            style={{
+              ...iconBtn,
+              fontSize: "10px",
+              width: "16px",
+              flexShrink: 0,
+              opacity: 0.6,
+            }}
+          >
+            {loading ? "⟳" : isExpanded ? "▾" : "▸"}
+          </button>
+        ) : (
+          <span style={{ width: "16px", flexShrink: 0 }} />
+        )}
+
+        {/* Folder / file icon */}
+        <span style={{ marginRight: "5px", fontSize: "13px", flexShrink: 0, lineHeight: 1 }}>
+          {node.is_dir
+            ? (isExpanded ? "📂" : "📁")
+            : fileIcon(node.name)}
+        </span>
+
+        {/* Name — click to navigate (dir) or select (file) */}
+        <button
+          onClick={() => node.is_dir ? onNavigate(node) : onSelectFile(node)}
+          title={node.path}
+          style={{
+            flex: 1,
+            background: "none",
+            border: "none",
+            padding: "4px 0",
+            cursor: "pointer",
+            color: selected
+              ? "var(--text-primary, #eee)"
+              : node.is_dir && isExpanded
+              ? "var(--text-primary, #ddd)"
+              : "var(--text-secondary, #aaa)",
+            fontWeight: node.is_dir && isExpanded ? 600 : 400,
+            fontSize: "12px",
+            textAlign: "left",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {node.name}
+        </button>
+      </div>
+
+      {/* Children (expanded) */}
+      {isExpanded && node.children?.map((child) => (
+        <TreeRow
+          key={child.path}
+          node={child}
+          selected={selectedFile === child.path}
+          loading={loadingDir === child.path}
+          depth={depth + 1}
+          onToggle={onToggle}
+          onNavigate={onNavigate}
+          onSelectFile={onSelectFile}
+          selectedFile={selectedFile}
+          loadingDir={loadingDir}
+        />
+      ))}
+    </>
+  );
+}
+
+// ── FilePreview ───────────────────────────────────────────────────────────────
+
+function FilePreview({ path, content, onOpenSystem }: {
+  path: string;
+  content: string;
+  onOpenSystem: () => void;
+}) {
+  const name = lastName(path);
+  const lang = getLang(name);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+      <div style={{
+        display: "flex", alignItems: "center", gap: "8px",
+        padding: "6px 10px",
+        borderBottom: "1px solid var(--border)",
+        fontSize: "11px",
+        flexShrink: 0,
+        color: "var(--text-secondary, #aaa)",
+      }}>
+        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {name}
+        </span>
+        <span style={{
+          background: "var(--bg-secondary, rgba(255,255,255,0.06))",
+          borderRadius: "3px",
+          padding: "1px 5px",
+          opacity: 0.6,
+          flexShrink: 0,
+          fontFamily: "monospace",
+        }}>
+          {lang}
+        </span>
+        <button onClick={onOpenSystem} title="用系统应用打开" style={{ ...iconBtn, opacity: 0.6 }}>↗</button>
+      </div>
+
+      <div style={{ flex: 1, overflow: "auto" }}>
+        <SyntaxHighlighter
+          language={lang === "text" ? "bash" : lang}
+          style={vscDarkPlus}
+          showLineNumbers
+          customStyle={{
+            margin: 0,
+            padding: "12px 8px",
+            background: "transparent",
+            fontSize: "11.5px",
+            lineHeight: "1.6",
+          }}
+          lineNumberStyle={{ opacity: 0.3, userSelect: "none", minWidth: "2.5em" }}
+        >
+          {content}
+        </SyntaxHighlighter>
+      </div>
+    </div>
+  );
+}
+
+// ── BinaryPrompt ──────────────────────────────────────────────────────────────
+
+function BinaryPrompt({ path, onOpen }: { path: string; onOpen: (p: string) => void }) {
+  const name = lastName(path);
+  return (
+    <div style={{ ...emptyHint, flexDirection: "column", gap: "10px" }}>
+      <span style={{ fontSize: "28px", opacity: 0.4 }}>📄</span>
+      <span style={{ fontSize: "12px", opacity: 0.6 }}>{name}</span>
+      <span style={{ fontSize: "11px", opacity: 0.4 }}>无法预览此文件类型</span>
+      <button onClick={() => onOpen(path)} style={actionBtn}>用系统应用打开</button>
+    </div>
+  );
+}
+
+// ── Icon helpers ──────────────────────────────────────────────────────────────
 
 function fileIcon(name: string): string {
   const ext = getExt(name);
-  if (["ts", "tsx"].includes(ext)) return "𝘛";
-  if (["js", "jsx"].includes(ext)) return "𝘑";
-  if (ext === "rs") return "𝗥";
-  if (ext === "py") return "𝗣";
-  if (ext === "json") return "{ }";
-  if (["md", "mdx"].includes(ext)) return "𝗠";
-  if (["yaml", "yml"].includes(ext)) return "𝗬";
-  if (["sh", "zsh", "bash"].includes(ext)) return "$";
-  return "·";
+  const icons: Record<string, string> = {
+    ts: "🔷", tsx: "🔷", js: "🟡", jsx: "🟡",
+    rs: "🦀", py: "🐍",
+    json: "📋", yaml: "📋", yml: "📋", toml: "📋",
+    md: "📝", mdx: "📝",
+    sh: "💲", zsh: "💲", bash: "💲",
+    css: "🎨", scss: "🎨",
+    png: "🖼", jpg: "🖼", jpeg: "🖼", gif: "🖼", svg: "🖼", webp: "🖼",
+    pdf: "📕",
+  };
+  return icons[ext] ?? "📄";
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const panelStyle: React.CSSProperties = {
   position: "fixed",
-  top: 0,
-  right: 0,
-  bottom: 0,
+  top: 0, right: 0, bottom: 0,
   width: "640px",
   display: "flex",
   flexDirection: "column",
@@ -478,15 +524,13 @@ const previewColStyle: React.CSSProperties = {
   flexDirection: "column",
 };
 
-const emptyStyle: React.CSSProperties = {
+const emptyHint: React.CSSProperties = {
   display: "flex",
-  flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
   height: "100%",
   color: "var(--text-secondary, #666)",
   fontSize: "12px",
-  gap: "6px",
 };
 
 const iconBtn: React.CSSProperties = {
