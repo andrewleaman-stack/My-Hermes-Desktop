@@ -4,6 +4,8 @@ import { open } from "@tauri-apps/plugin-dialog";
 interface Props {
   workingDir: string | null;
   onDirChange: (dir: string | null) => void;
+  fileTreeOpen?: boolean;
+  onToggleFileTree?: () => void;
 }
 
 function normalizePath(raw: string): string {
@@ -23,7 +25,7 @@ function buildSegments(absPath: string): { label: string; path: string }[] {
   }));
 }
 
-export default function WorkingDirBar({ workingDir, onDirChange }: Props) {
+export default function WorkingDirBar({ workingDir, onDirChange, fileTreeOpen, onToggleFileTree }: Props) {
   const [editing, setEditing] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -150,19 +152,33 @@ export default function WorkingDirBar({ workingDir, onDirChange }: Props) {
             </span>
           ))}
 
+          {/* spacer */}
+          <span style={{ flex: 1 }} />
+
           {/* edit trigger */}
           <button
             onClick={enterEdit}
             title={"编辑路径: " + displayPath}
-            style={{
-              ...iconBtnStyle,
-              marginLeft: "4px",
-              opacity: 0,
-            }}
+            style={{ ...iconBtnStyle, opacity: 0 }}
             className="workingdir-edit-btn"
           >
             ✎
           </button>
+
+          {/* file tree toggle */}
+          {onToggleFileTree && (
+            <button
+              onClick={onToggleFileTree}
+              title={fileTreeOpen ? "关闭文件树" : "浏览文件树"}
+              style={{
+                ...iconBtnStyle,
+                opacity: fileTreeOpen ? 0.9 : 0.45,
+                fontSize: "15px",
+              }}
+            >
+              ⊟
+            </button>
+          )}
         </>
       )}
 

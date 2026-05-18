@@ -116,6 +116,9 @@ pub fn run() {
             commands::background::bg_stop_all,
             commands::background::bg_clear_finished,
             commands::background::bg_running_count,
+            commands::files::list_dir,
+            commands::files::read_text_file,
+            commands::files::get_home_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

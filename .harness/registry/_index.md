@@ -4,6 +4,10 @@
 > - Session 开始时：只读最近 5 条，了解近况
 > - Session 结束时：在最前面追加新条目（不是末尾）
 
+[2026-05-18 04:00] DONE feat-210 文件树侧边栏 — FileTreePanel（文件树+预览双栏）；react-syntax-highlighter 代码高亮；Rust list_dir/read_text_file/get_home_dir；WorkingDirBar ⊟ 触发；与 SnapshotPanel 互斥
+
+[2026-05-18 03:00] FIX TerminalPanel lineHeight 修复 — xterm.js lineHeight 1.3→1.0，消除 ASCII 艺术字行间缝隙，与原生终端渲染一致
+
 [2026-05-18 02:00] PLAN 录入 feat-211～213 — 隐式上下文 info 条 / 后台任务步骤时间线 / Grounding 气泡；Agent 计划确认流因依赖模型行为暂不录入，待评估
 
 [2026-05-18 01:30] DONE feat-209 工作目录切换 — WorkingDirBar 组件：basename 展示 + 原生 Folder Picker + cwd 传入 hermes 进程 + localStorage 持久化；tauri-plugin-dialog 新增

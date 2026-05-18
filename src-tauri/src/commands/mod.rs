@@ -1,6 +1,7 @@
 pub mod background;
 pub mod chat;
 pub mod dashboard;
+pub mod files;
 pub mod memory;
 pub mod setup;
 pub mod sessions;

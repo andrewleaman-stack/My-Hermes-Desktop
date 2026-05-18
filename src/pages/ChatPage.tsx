@@ -8,6 +8,7 @@ import ChatView from "../components/ChatView";
 import TerminalPanel from "../components/TerminalPanel";
 import SnapshotPanel from "../components/SnapshotPanel";
 import WorkingDirBar from "../components/WorkingDirBar";
+import FileTreePanel from "../components/FileTreePanel";
 import { getLastUserText } from "../utils/messageActions";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -102,6 +103,7 @@ export default function ChatPage() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [hermesVersion, setHermesVersion] = useState<string>("");
   const [workingDir, setWorkingDir] = useState<string | null>(() => localStorage.getItem("hermes_working_dir"));
+  const [fileTreeOpen, setFileTreeOpen] = useState(false);
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [snapshotPanelOpen, setSnapshotPanelOpen] = useState(false);
   const [snapshotCreateCount, setSnapshotCreateCount] = useState(0);
@@ -892,7 +894,10 @@ export default function ChatPage() {
         toolCallCount={toolCallCount}
         sessionTitle={activeSession?.title ?? null}
         onOpenTerminal={() => setTerminalOpen(true)}
-        onOpenSnapshot={() => setSnapshotPanelOpen((v) => !v)}
+        onOpenSnapshot={() => {
+            setSnapshotPanelOpen((v) => !v);
+            setFileTreeOpen(false);
+          }}
         onSendMessage={handleSendMessage}
         onNewSession={handleNewSession}
         onRenameSession={handleRenameSession}
@@ -913,9 +918,20 @@ export default function ChatPage() {
             if (dir) localStorage.setItem("hermes_working_dir", dir);
             else localStorage.removeItem("hermes_working_dir");
           }}
+          fileTreeOpen={fileTreeOpen}
+          onToggleFileTree={() => {
+            setFileTreeOpen((v) => !v);
+            if (!fileTreeOpen) setSnapshotPanelOpen(false);
+          }}
         />
         {terminalOpen && (
           <TerminalPanel ptyId={activePtyId.current} sessionId={activeSessionId} onClose={() => setTerminalOpen(false)} />
+        )}
+        {fileTreeOpen && (
+          <FileTreePanel
+            initialPath={workingDir ?? ""}
+            onClose={() => setFileTreeOpen(false)}
+          />
         )}
         {snapshotPanelOpen && (
           <SnapshotPanel
