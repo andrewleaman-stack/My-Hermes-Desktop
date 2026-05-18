@@ -121,6 +121,7 @@ pub fn run() {
             commands::files::get_home_dir,
             commands::files::open_path,
             commands::files::open_with_editor,
+            commands::files::speak_text,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

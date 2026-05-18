@@ -76,11 +76,57 @@ pub async fn open_path(path: String) -> Result<(), String> {
 #[tauri::command]
 pub async fn open_with_editor(path: String, editor: String) -> Result<(), String> {
     let cmd = if editor.trim().is_empty() { "code".to_string() } else { editor.trim().to_string() };
-    std::process::Command::new(&cmd)
-        .arg(&path)
-        .spawn()
-        .map_err(|e| format!("Cannot open editor '{cmd}': {e}. Is it installed and in PATH?"))
-        .map(|_| ())
+
+    #[cfg(target_os = "macos")]
+    {
+        // Map known editor CLI names to macOS .app bundle names.
+        // `open -a` uses the system app database — no PATH dependency.
+        let app_name = match cmd.as_str() {
+            "code"      => Some("Visual Studio Code"),
+            "cursor"    => Some("Cursor"),
+            "zed"       => Some("Zed"),
+            "windsurf"  => Some("Windsurf"),
+            "webstorm"  => Some("WebStorm"),
+            "idea"      => Some("IntelliJ IDEA"),
+            _           => None,
+        };
+        if let Some(app) = app_name {
+            return std::process::Command::new("open")
+                .args(["-a", app, &path])
+                .spawn()
+                .map_err(|e| format!("无法打开 {app}：{e}（确认已安装该应用）"))
+                .map(|_| ());
+        }
+        // Fallback: try via login shell (picks up /usr/local/bin etc.)
+        let shell_cmd = format!("{} \"{}\"", cmd, path.replace('"', "\\\""));
+        std::process::Command::new("/bin/zsh")
+            .args(["-l", "-c", &shell_cmd])
+            .spawn()
+            .map_err(|e| format!("命令 '{cmd}' 未找到：{e}"))?;
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        std::process::Command::new(&cmd)
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Cannot open editor '{cmd}': {e}. Is it installed and in PATH?"))?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn speak_text(text: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let truncated = if text.len() > 1000 { &text[..1000] } else { &text };
+        std::process::Command::new("say")
+            .args(["-v", "Tingting", truncated])
+            .spawn()
+            .map_err(|e| format!("say failed: {e}"))?;
+    }
+    Ok(())
 }
 
 const MAX_PREVIEW_BYTES: u64 = 512 * 1024; // 512 KB

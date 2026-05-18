@@ -2,6 +2,7 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
+import { invoke } from "@tauri-apps/api/core";
 import { Message, ToolCallBlock } from "../../types";
 import Icon from "../Icon";
 
@@ -198,6 +199,7 @@ function messageToMarkdown(message: Message): string {
 
 export default function MessageBubble({ message, isLastAssistant, streaming, onRetry }: Props) {
   const [copied, setCopied] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const isUser = message.role === "user";
   const isStreaming = streaming && isLastAssistant && message.status === "streaming";
   const showCopy = !isUser && !isStreaming && message.status === "done";
@@ -209,6 +211,17 @@ export default function MessageBubble({ message, isLastAssistant, streaming, onR
     await navigator.clipboard.writeText(markdown);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1200);
+  };
+
+  const speakMessage = async () => {
+    const text = messageToMarkdown(message);
+    if (!text || speaking) return;
+    setSpeaking(true);
+    try {
+      await invoke("speak_text", { text });
+    } finally {
+      window.setTimeout(() => setSpeaking(false), 1500);
+    }
   };
 
   if (isUser) {
@@ -264,6 +277,12 @@ export default function MessageBubble({ message, isLastAssistant, streaming, onR
               <button className="message-action-btn" onClick={onRetry} title="重试这一轮">
                 <Icon name="refresh" size={12} />
                 重试
+              </button>
+            )}
+            {showCopy && (
+              <button className="message-action-btn" onClick={speakMessage} title="朗读回复" disabled={speaking}>
+                <Icon name="volume" size={12} />
+                {speaking ? "朗读中" : "朗读"}
               </button>
             )}
             {showCopy && (

@@ -4160,6 +4160,15 @@ body {
   opacity: 0.45;
   cursor: not-allowed;
 }
+.bg-run-btn.mic-recording {
+  color: var(--error, #e5534b);
+  border-color: var(--error, #e5534b);
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
 .bg-run-badge {
   display: inline-flex;
   align-items: center;

@@ -17,6 +17,7 @@ export type IconName =
   | "graduation"
   | "keyboard"
   | "message"
+  | "mic"
   | "package"
   | "palette"
   | "refresh"
@@ -27,7 +28,8 @@ export type IconName =
   | "spark"
   | "terminal"
   | "timer"
-  | "tool";
+  | "tool"
+  | "volume";
 
 interface IconProps extends SVGProps<SVGSVGElement> {
   name: IconName;
@@ -139,6 +141,14 @@ const paths: Record<IconName, JSX.Element> = {
       <path d="M9 11.2h3.5" />
     </>
   ),
+  mic: (
+    <>
+      <rect x="9" y="2" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0" />
+      <path d="M12 18v3" />
+      <path d="M9 21h6" />
+    </>
+  ),
   package: (
     <>
       <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" />
@@ -215,6 +225,12 @@ const paths: Record<IconName, JSX.Element> = {
     <>
       <path d="M14.7 6.3a4.2 4.2 0 0 0 4.7 5.5l-7.6 7.6a2.3 2.3 0 0 1-3.2-3.2l7.6-7.6a4.2 4.2 0 0 0-1.5-2.3Z" />
       <path d="m6.5 17.5 2 2" />
+    </>
+  ),
+  volume: (
+    <>
+      <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
     </>
   ),
 };

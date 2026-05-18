@@ -39,6 +39,13 @@
 
 <!-- 新需求追加到这里 -->
 
+- [2026-05-18] [用户反馈] 语音输入输出优化（whisper-rs 方案）
+  - 当前 feat-214 使用 Web Speech API（需联网，走 Apple 服务器）+ macOS `say`
+  - 优化方向：用 `whisper-rs`（whisper.cpp 的 Rust binding）替换 Web Speech API，实现完全本地离线 STT，tiny 模型 75MB，精度更高，隐私更好
+  - 语音输出继续用 `say`（稳定性优先，Edge TTS 是非官方 API 不建议用）
+  - 前置条件：先评估 whisper-rs 模型打包方案（sidecar vs bundle），控制应用体积
+  - 优先级：Phase 3 候选，feat-214 稳定后评估
+
 - [2026-05-17] [用户反馈] 配置引导：上下文感知卡片 + dashboard 深链接
   - 场景1：App 启动时读 ~/.hermes/config.yaml，检测到 API Key 未配置 → 对话区顶部常驻卡片（可关闭）
   - 场景2：hermes 进程报错时 Rust 层拦截错误类型（api key/model not found/rate limit/mcp tool 等），在对话流中插入对应说明卡片 + 跳转到 dashboard 指定页面的按钮

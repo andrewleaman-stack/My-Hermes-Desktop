@@ -2,7 +2,7 @@
   "_readme": "只允许把 passes 从 false 改成 true。禁止删除条目或修改 description。违反视为严重错误。",
   "_project": "hermes-desktop",
   "_sprint": "Phase 2 — macOS 原生感",
-  "_updated": "2026-05-17",
+  "_updated": "2026-05-18",
   "features": [
     {
       "id": "feat-000",
@@ -15,14 +15,18 @@
       "id": "feat-001",
       "description": "Dashboard 集成 — Rust 层启动/守护/退出 hermes dashboard 进程，前端通过左侧导航入口打开全屏 iframe（localhost:9119），依赖缺失时显示安装引导卡片",
       "acceptance": "左侧导航点击”管理”可打开 hermes dashboard 全屏 iframe；应用启动时自动拉起 dashboard 进程，应用退出时自动 kill；dashboard 未安装时弹出含复制命令和”在终端中打开”的引导卡片",
-      "depends_on": ["feat-000"],
+      "depends_on": [
+        "feat-000"
+      ],
       "passes": true
     },
     {
       "id": "feat-002",
       "description": "Memory 编辑器 — 读写 ~/.hermes/memories/ 下的 MEMORY.md 和 USER.md，双面板编辑器，含字数进度条（2200/1375 字符上限），超限禁止保存",
       "acceptance": "在 UI 内可读取、编辑、保存 MEMORY.md 和 USER.md；字数进度条颜色随用量变化（绿/橙/红）；超出上限时保存按钮禁用",
-      "depends_on": ["feat-000"],
+      "depends_on": [
+        "feat-000"
+      ],
       "passes": true
     },
     {
@@ -36,7 +40,9 @@
       "id": "feat-004",
       "description": "上下文压缩触发器 — Context 进度条旁显示”压缩”按钮，>70% 时高亮；点击弹出焦点输入框，确认后发送 /compress [focus] 命令",
       "acceptance": "Context >70% 时”压缩”按钮高亮；点击弹出 Popover，可选填压缩焦点；确认后发送 /compress 命令，对话流中出现”✓ 上下文已压缩”系统消息",
-      "depends_on": ["feat-003"],
+      "depends_on": [
+        "feat-003"
+      ],
       "passes": true
     },
     {
@@ -120,7 +126,9 @@
       "id": "feat-208",
       "description": "分支会话 — 在当前会话节点发送 /branch [name] 开启新分支，探索不同方向而不影响主线；侧边栏显示分支关系（缩进或标记）；可从任意分支节点继续对话",
       "acceptance": "输入框可通过斜杠菜单或直接输入触发 /branch；执行后在侧边栏出现新的分支会话并自动切换；分支会话标题标注来源；可正常对话",
-      "depends_on": ["feat-207"],
+      "depends_on": [
+        "feat-207"
+      ],
       "passes": false
     },
     {
@@ -134,14 +142,18 @@
       "id": "feat-202",
       "description": "全局快捷键唤起 — Cmd+Shift+H（macOS）/ Ctrl+Shift+H（Win/Linux）从任意 App 唤出/隐藏主窗口；tauri-plugin-global-shortcut 实现，三平台支持",
       "acceptance": "在其他 App 前台时按快捷键可唤出 Hermes Desktop 主窗口；再按一次隐藏；快捷键冲突时给出提示",
-      "depends_on": ["feat-201"],
+      "depends_on": [
+        "feat-201"
+      ],
       "passes": false
     },
     {
       "id": "feat-203",
       "description": "macOS 原生通知 — 后台任务完成(>30s)或报错时推送原生通知；点击通知跳转对应会话；tauri-plugin-notification 实现，三平台支持",
       "acceptance": "后台任务完成后弹出系统通知；通知显示任务名和状态；点击通知激活窗口并切换到对应会话；报错任务同样推送",
-      "depends_on": ["feat-108"],
+      "depends_on": [
+        "feat-108"
+      ],
       "passes": false
     },
     {
@@ -176,7 +188,9 @@
       "id": "feat-210",
       "description": "文件树侧边栏 — 左侧导航新增「文件」图标入口；面板展示当前工作目录的只读文件树（2层展开，.gitignore 隐藏）；文件项支持：拖入对话区作为上下文附件（读取内容附加到输入框）、右键菜单含「在 Finder 中显示」和「用默认程序打开」；目录变更时文件树自动刷新",
       "acceptance": "左侧导航有文件树入口；文件树正确展示工作目录内容；文件可拖入对话区，输入框上方出现文件名 chip；右键菜单两项可用；工作目录切换后文件树刷新",
-      "depends_on": ["feat-209"],
+      "depends_on": [
+        "feat-209"
+      ],
       "passes": true
     },
     {
@@ -190,13 +204,22 @@
       "id": "feat-212",
       "description": "后台任务步骤时间线 — 扩展 feat-108 后台任务面板：任务条目展开时在摘要输出上方显示步骤时间线，格式为「✓ 已完成步骤 / ⏳ 当前进行中 / ○ 待执行」；步骤数据从 hermes 输出中按行解析（以特定前缀识别）；随 5s 轮询更新",
       "acceptance": "任务展开后显示步骤时间线；各步骤状态图标正确（完成/进行/等待）；至少能解析 hermes 输出中的 tool call 步骤作为时间线节点；时间线随轮询刷新",
-      "depends_on": ["feat-108"],
+      "depends_on": [
+        "feat-108"
+      ],
       "passes": false
     },
     {
       "id": "feat-213",
       "description": "Grounding 气泡 — 每条 assistant 消息 header 区域加 ⓘ 按钮，点击弹出 Popover 显示本条回复的上下文来源信息：当前使用的模型（provider · model）、本条消息在会话中的位置（第 N 条）、个人记忆是否已加载；Popover 点击外部关闭",
       "acceptance": "assistant 消息 header 出现 ⓘ 按钮；点击弹出 Popover，展示模型名/消息序号/记忆状态三项；信息准确；点击外部关闭；不影响现有 hover 操作",
+      "depends_on": [],
+      "passes": false
+    },
+    {
+      "id": "feat-214",
+      "description": "语音输入输出 — 输入框麦克风按钮触发 Web Speech API 录音转文字填入输入框；assistant 消息操作栏新增朗读按钮，调用 macOS say 命令朗读回复",
+      "acceptance": "点击麦克风按钮可录音，识别结果填入输入框；录音中按钮高亮闪烁；assistant 消息操作栏显示朗读按钮，点击调用 say 朗读文本内容",
       "depends_on": [],
       "passes": false
     }

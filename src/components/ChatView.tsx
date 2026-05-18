@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, KeyboardEvent, ClipboardEvent, DragEvent } from "react";
+import { useEffect, useMemo, useRef, useState, KeyboardEvent, ClipboardEvent, DragEvent, useCallback } from "react";
 import { Message } from "../types";
 import Icon from "./Icon";
 import GuideBot from "./chat/GuideBot";
@@ -112,6 +112,41 @@ export default function ChatView({
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashQuery, setSlashQuery] = useState("");
   const [slashIdx, setSlashIdx] = useState(0);
+
+  const [isRecording, setIsRecording] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+
+  const toggleRecording = useCallback(() => {
+    if (isRecording && recognitionRef.current) {
+      recognitionRef.current.stop();
+      return;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    if (!SR) return;
+    const recognition = new SR();
+    recognition.lang = "zh-CN";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onend = () => { setIsRecording(false); recognitionRef.current = null; };
+    recognition.onerror = () => { setIsRecording(false); recognitionRef.current = null; };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (e: any) => {
+      const transcript: string = e.results[0][0].transcript;
+      const ta = textareaRef.current;
+      if (!ta) return;
+      ta.value = ta.value + transcript;
+      ta.style.height = "auto";
+      ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
+      ta.focus();
+      setIsTyping(ta.value.length > 0);
+    };
+    recognitionRef.current = recognition;
+    recognition.start();
+  }, [isRecording]);
 
   const attachImageFile = async (file: File) => {
     if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) return false;
@@ -532,6 +567,15 @@ export default function ChatView({
         <div className="input-hints ui-font">
           <div className="input-shortcuts">
             <PersonalityPicker onSend={onSend} />
+            <button
+              type="button"
+              className={`bg-run-btn ui-font${isRecording ? " mic-recording" : ""}`}
+              onClick={toggleRecording}
+              title={isRecording ? "点击停止录音" : "语音输入"}
+            >
+              <Icon name="mic" size={13} />
+              {isRecording ? "录音中" : "语音"}
+            </button>
             {onRunBackground && (
               <button
                 type="button"
