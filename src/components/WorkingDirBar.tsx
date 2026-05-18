@@ -172,11 +172,18 @@ export default function WorkingDirBar({ workingDir, onDirChange, fileTreeOpen, o
               title={fileTreeOpen ? "关闭文件树" : "浏览文件树"}
               style={{
                 ...iconBtnStyle,
-                opacity: fileTreeOpen ? 0.9 : 0.45,
-                fontSize: "15px",
+                opacity: fileTreeOpen ? 1 : 0.5,
+                padding: "2px 3px",
+                color: fileTreeOpen ? "var(--accent, #c07a5a)" : "inherit",
               }}
             >
-              ⊟
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+                {/* folder outline */}
+                <path d="M1 4.5A1 1 0 0 1 2 3.5h3l1 1h7a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1z" strokeWidth="1.2"/>
+                {/* file list lines inside folder */}
+                <line x1="4" y1="8" x2="12" y2="8"/>
+                <line x1="4" y1="10.2" x2="10" y2="10.2"/>
+              </svg>
             </button>
           )}
         </>

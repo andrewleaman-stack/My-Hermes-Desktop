@@ -73,6 +73,16 @@ pub async fn open_path(path: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+pub async fn open_with_editor(path: String, editor: String) -> Result<(), String> {
+    let cmd = if editor.trim().is_empty() { "code".to_string() } else { editor.trim().to_string() };
+    std::process::Command::new(&cmd)
+        .arg(&path)
+        .spawn()
+        .map_err(|e| format!("Cannot open editor '{cmd}': {e}. Is it installed and in PATH?"))
+        .map(|_| ())
+}
+
 const MAX_PREVIEW_BYTES: u64 = 512 * 1024; // 512 KB
 
 #[tauri::command]

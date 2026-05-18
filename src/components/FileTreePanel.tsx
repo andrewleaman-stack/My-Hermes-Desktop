@@ -230,6 +230,7 @@ export default function FileTreePanel({ initialPath, onClose }: Props) {
         >
           {toDisplayPath(currentPath)}
         </span>
+        <CopyPathButton path={currentPath} />
         <button onClick={onClose} title="关闭" style={{ ...iconBtn, opacity: 0.5 }}>✕</button>
       </div>
 
@@ -440,6 +441,98 @@ function CopyPathButton({ path, variant = "inline" }: { path: string; variant?: 
   );
 }
 
+// ── EditWithEditorButton ──────────────────────────────────────────────────────
+
+function EditWithEditorButton({ path }: { path: string }) {
+  const [editor, setEditor] = useState(() => localStorage.getItem("hermes_editor") ?? "code");
+  const [configuring, setConfiguring] = useState(false);
+  const [input, setInput] = useState(editor);
+  const [error, setError] = useState("");
+
+  async function handleOpen() {
+    setError("");
+    try {
+      await invoke("open_with_editor", { path, editor });
+    } catch (e) {
+      setError(String(e));
+      setConfiguring(true);
+    }
+  }
+
+  function saveEditor() {
+    const val = input.trim() || "code";
+    setEditor(val);
+    localStorage.setItem("hermes_editor", val);
+    setConfiguring(false);
+    setError("");
+  }
+
+  if (configuring) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") saveEditor(); if (e.key === "Escape") setConfiguring(false); }}
+          placeholder="code / cursor / vim"
+          title={error || "编辑器命令"}
+          autoFocus
+          style={{
+            width: "90px",
+            background: "var(--bg-input, rgba(0,0,0,0.2))",
+            border: `1px solid ${error ? "var(--error,#e06c6c)" : "var(--accent,#c07a5a)"}`,
+            borderRadius: "4px",
+            color: "var(--text-primary, #eee)",
+            fontSize: "11px",
+            padding: "2px 5px",
+            outline: "none",
+          }}
+        />
+        <button onClick={saveEditor} style={{ ...iconBtn, opacity: 0.8, fontSize: "12px" }}>✓</button>
+        <button onClick={() => { setConfiguring(false); setError(""); }} style={{ ...iconBtn, opacity: 0.5, fontSize: "12px" }}>✕</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "2px", flexShrink: 0 }}>
+      <button
+        onClick={handleOpen}
+        title={`用 ${editor} 打开`}
+        style={{
+          background: "var(--bg-secondary, rgba(255,255,255,0.08))",
+          border: "1px solid var(--border)",
+          borderRadius: "4px 0 0 4px",
+          color: "var(--text-secondary, #aaa)",
+          fontSize: "11px",
+          padding: "2px 7px",
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+          borderRight: "none",
+        }}
+      >
+        编辑
+      </button>
+      <button
+        onClick={() => { setInput(editor); setConfiguring(true); }}
+        title={`当前编辑器：${editor}，点击修改`}
+        style={{
+          background: "var(--bg-secondary, rgba(255,255,255,0.08))",
+          border: "1px solid var(--border)",
+          borderRadius: "0 4px 4px 0",
+          color: "var(--text-secondary, #777)",
+          fontSize: "10px",
+          padding: "2px 4px",
+          cursor: "pointer",
+          fontFamily: "monospace",
+        }}
+      >
+        {editor}
+      </button>
+    </div>
+  );
+}
+
 // ── FilePreview ───────────────────────────────────────────────────────────────
 
 function FilePreview({ path, content, onOpenSystem }: {
@@ -453,7 +546,7 @@ function FilePreview({ path, content, onOpenSystem }: {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       <div style={{
-        display: "flex", alignItems: "center", gap: "8px",
+        display: "flex", alignItems: "center", gap: "6px",
         padding: "6px 10px",
         borderBottom: "1px solid var(--border)",
         fontSize: "11px",
@@ -473,6 +566,7 @@ function FilePreview({ path, content, onOpenSystem }: {
         }}>
           {lang}
         </span>
+        <EditWithEditorButton path={path} />
         <CopyPathButton path={path} />
         <button onClick={onOpenSystem} title="用系统应用打开" style={{ ...iconBtn, opacity: 0.6 }}>↗</button>
       </div>

@@ -120,6 +120,7 @@ pub fn run() {
             commands::files::read_text_file,
             commands::files::get_home_dir,
             commands::files::open_path,
+            commands::files::open_with_editor,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
