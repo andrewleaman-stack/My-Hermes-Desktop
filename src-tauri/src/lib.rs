@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
 
-pub mod stream;
 pub mod commands;
+pub mod stream;
 
 // ─── Shared Data Types ────────────────────────────────────────────────────────
 
@@ -40,9 +40,8 @@ pub struct StatusInfo {
 // ─── Shared App State ─────────────────────────────────────────────────────────
 
 pub struct AppState {
-    pub pty_writers: std::sync::Mutex<
-        std::collections::HashMap<String, Box<dyn std::io::Write + Send>>,
-    >,
+    pub pty_writers:
+        std::sync::Mutex<std::collections::HashMap<String, Box<dyn std::io::Write + Send>>>,
     pub pty_masters: std::sync::Mutex<
         std::collections::HashMap<String, Box<dyn portable_pty::MasterPty + Send>>,
     >,
@@ -50,9 +49,8 @@ pub struct AppState {
         std::collections::HashMap<String, Box<dyn portable_pty::Child + Send + Sync>>,
     >,
     pub dashboard_child: std::sync::Mutex<Option<std::process::Child>>,
-    pub background_tasks: Arc<
-        Mutex<std::collections::HashMap<String, commands::background::BackgroundTask>>,
-    >,
+    pub background_tasks:
+        Arc<Mutex<std::collections::HashMap<String, commands::background::BackgroundTask>>>,
     pub say_process: std::sync::Mutex<Option<std::process::Child>>,
     pub chat_processes: std::sync::Mutex<std::collections::HashMap<String, std::process::Child>>,
 }
@@ -74,7 +72,9 @@ impl AppState {
 // ─── Shortcuts Setup ─────────────────────────────────────────────────────────
 
 fn setup_shortcuts(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-    use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+    use tauri_plugin_global_shortcut::{
+        Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState,
+    };
 
     #[cfg(target_os = "macos")]
     let modifiers = Modifiers::SUPER | Modifiers::SHIFT;
@@ -82,18 +82,19 @@ fn setup_shortcuts(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error
     let modifiers = Modifiers::CONTROL | Modifiers::SHIFT;
 
     let shortcut = Shortcut::new(Some(modifiers), Code::KeyH);
-    app.global_shortcut().on_shortcut(shortcut, |app, _shortcut, event| {
-        if event.state() == ShortcutState::Pressed {
-            if let Some(win) = app.get_webview_window("main") {
-                if win.is_visible().unwrap_or(false) {
-                    win.hide().unwrap();
-                } else {
-                    win.show().unwrap();
-                    win.set_focus().unwrap();
+    app.global_shortcut()
+        .on_shortcut(shortcut, |app, _shortcut, event| {
+            if event.state() == ShortcutState::Pressed {
+                if let Some(win) = app.get_webview_window("main") {
+                    if win.is_visible().unwrap_or(false) {
+                        win.hide().unwrap();
+                    } else {
+                        win.show().unwrap();
+                        win.set_focus().unwrap();
+                    }
                 }
             }
-        }
-    })?;
+        })?;
 
     Ok(())
 }

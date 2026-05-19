@@ -37,7 +37,9 @@ pub async fn list_dir(path: String) -> Result<Vec<FileEntry>, String> {
 
     // directories first, then files, both sorted alphabetically
     entries.sort_by(|a, b| {
-        b.is_dir.cmp(&a.is_dir).then(a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+        b.is_dir
+            .cmp(&a.is_dir)
+            .then(a.name.to_lowercase().cmp(&b.name.to_lowercase()))
     });
 
     Ok(entries)
@@ -75,20 +77,24 @@ pub async fn open_path(path: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn open_with_editor(path: String, editor: String) -> Result<(), String> {
-    let cmd = if editor.trim().is_empty() { "code".to_string() } else { editor.trim().to_string() };
+    let cmd = if editor.trim().is_empty() {
+        "code".to_string()
+    } else {
+        editor.trim().to_string()
+    };
 
     #[cfg(target_os = "macos")]
     {
         // Map known editor CLI names to macOS .app bundle names.
         // `open -a` uses the system app database — no PATH dependency.
         let app_name = match cmd.as_str() {
-            "code"      => Some("Visual Studio Code"),
-            "cursor"    => Some("Cursor"),
-            "zed"       => Some("Zed"),
-            "windsurf"  => Some("Windsurf"),
-            "webstorm"  => Some("WebStorm"),
-            "idea"      => Some("IntelliJ IDEA"),
-            _           => None,
+            "code" => Some("Visual Studio Code"),
+            "cursor" => Some("Cursor"),
+            "zed" => Some("Zed"),
+            "windsurf" => Some("Windsurf"),
+            "webstorm" => Some("WebStorm"),
+            "idea" => Some("IntelliJ IDEA"),
+            _ => None,
         };
         if let Some(app) = app_name {
             return std::process::Command::new("open")
@@ -110,7 +116,9 @@ pub async fn open_with_editor(path: String, editor: String) -> Result<(), String
         std::process::Command::new(&cmd)
             .arg(&path)
             .spawn()
-            .map_err(|e| format!("Cannot open editor '{cmd}': {e}. Is it installed and in PATH?"))?;
+            .map_err(|e| {
+                format!("Cannot open editor '{cmd}': {e}. Is it installed and in PATH?")
+            })?;
     }
 
     Ok(())

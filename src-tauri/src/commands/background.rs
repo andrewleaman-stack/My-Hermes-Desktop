@@ -101,7 +101,8 @@ pub async fn bg_start(
     let dir = output_dir();
     std::fs::create_dir_all(&dir).map_err(|e| format!("Cannot create log dir: {e}"))?;
     let log_path = dir.join(format!("{task_id}.log"));
-    let stdout_file = File::create(&log_path).map_err(|e| format!("Cannot create log file: {e}"))?;
+    let stdout_file =
+        File::create(&log_path).map_err(|e| format!("Cannot create log file: {e}"))?;
     let stderr_file = stdout_file.try_clone().map_err(|e| e.to_string())?;
 
     let mut bg_cmd = super::sessions::hermes_command();
@@ -212,9 +213,7 @@ pub async fn bg_start(
 }
 
 #[tauri::command]
-pub async fn bg_list(
-    app_state: State<'_, AppState>,
-) -> Result<Vec<BackgroundTaskSummary>, String> {
+pub async fn bg_list(app_state: State<'_, AppState>) -> Result<Vec<BackgroundTaskSummary>, String> {
     let map = app_state.background_tasks.lock().unwrap();
     let mut tasks: Vec<BackgroundTaskSummary> = map
         .values()
@@ -254,10 +253,7 @@ pub async fn bg_get_output(
 }
 
 #[tauri::command]
-pub async fn bg_stop(
-    app_state: State<'_, AppState>,
-    task_id: String,
-) -> Result<(), String> {
+pub async fn bg_stop(app_state: State<'_, AppState>, task_id: String) -> Result<(), String> {
     let pid = {
         let map = app_state.background_tasks.lock().unwrap();
         let t = map.get(&task_id).ok_or("Task not found")?;

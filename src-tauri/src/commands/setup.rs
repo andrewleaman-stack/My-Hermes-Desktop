@@ -95,7 +95,11 @@ pub async fn check_hermes_setup() -> Result<HermesSetupStatus, String> {
         .unwrap_or_default();
     let configured_providers = configured_providers_from_env(&env_text);
     let api_key_configured = !configured_providers.is_empty()
-        || API_KEY_NAMES.iter().any(|key| std::env::var(key).map(|v| !v.trim().is_empty()).unwrap_or(false));
+        || API_KEY_NAMES.iter().any(|key| {
+            std::env::var(key)
+                .map(|v| !v.trim().is_empty())
+                .unwrap_or(false)
+        });
 
     match hermes_version() {
         Ok(version) => Ok(HermesSetupStatus {

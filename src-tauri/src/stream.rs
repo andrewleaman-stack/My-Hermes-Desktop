@@ -7,27 +7,41 @@ pub fn strip_ansi(s: &str) -> String {
         match bytes[i] {
             0x1b => {
                 i += 1;
-                if i >= bytes.len() { break; }
+                if i >= bytes.len() {
+                    break;
+                }
                 match bytes[i] {
                     b'[' => {
                         i += 1;
-                        while i < bytes.len() && !bytes[i].is_ascii_alphabetic() { i += 1; }
-                        if i < bytes.len() { i += 1; }
+                        while i < bytes.len() && !bytes[i].is_ascii_alphabetic() {
+                            i += 1;
+                        }
+                        if i < bytes.len() {
+                            i += 1;
+                        }
                     }
                     b']' => {
                         // OSC sequence: ESC ] ... BEL(\x07) or ESC\
                         i += 1;
                         while i < bytes.len() {
-                            if bytes[i] == 0x07 { i += 1; break; }
+                            if bytes[i] == 0x07 {
+                                i += 1;
+                                break;
+                            }
                             if bytes[i] == 0x1b {
-                                if i + 1 < bytes.len() && bytes[i + 1] == b'\\' { i += 2; }
-                                else { i += 1; }
+                                if i + 1 < bytes.len() && bytes[i + 1] == b'\\' {
+                                    i += 2;
+                                } else {
+                                    i += 1;
+                                }
                                 break;
                             }
                             i += 1;
                         }
                     }
-                    _ => { i += 1; }
+                    _ => {
+                        i += 1;
+                    }
                 }
             }
             b'\r' => {
@@ -37,7 +51,9 @@ pub fn strip_ansi(s: &str) -> String {
             }
             _ => {
                 let start = i;
-                while i < bytes.len() && bytes[i] != 0x1b && bytes[i] != b'\r' { i += 1; }
+                while i < bytes.len() && bytes[i] != 0x1b && bytes[i] != b'\r' {
+                    i += 1;
+                }
                 if let Ok(chunk) = std::str::from_utf8(&bytes[start..i]) {
                     out.push_str(chunk);
                 }
@@ -49,15 +65,23 @@ pub fn strip_ansi(s: &str) -> String {
 
 /// Returns true for decorative/metadata lines that should never reach the UI.
 pub fn is_decorative(trimmed: &str) -> bool {
-    if trimmed.is_empty() { return false; }
+    if trimmed.is_empty() {
+        return false;
+    }
 
-    if trimmed.starts_with('╭') || trimmed.starts_with('╰') { return true; }
-    if trimmed.starts_with('┊') { return true; }
+    if trimmed.starts_with('╭') || trimmed.starts_with('╰') {
+        return true;
+    }
+    if trimmed.starts_with('┊') {
+        return true;
+    }
 
     // Box-drawing lines (─ ═ ━ │) but NOT plain ASCII dashes.
     // "---" is a valid markdown <hr> and must pass through.
     if trimmed.len() > 4
-        && trimmed.chars().all(|c| matches!(c, '─' | '═' | '━' | '│' | ' '))
+        && trimmed
+            .chars()
+            .all(|c| matches!(c, '─' | '═' | '━' | '│' | ' '))
     {
         return true;
     }
@@ -67,16 +91,32 @@ pub fn is_decorative(trimmed: &str) -> bool {
     }
 
     for prefix in &[
-        "Query:", "Initializing ", "↻ ", "Resume this session with:",
-        "Session: ", "Duration: ", "Messages: ", "Goodbye!",
-        "Welcome to Hermes", "Tip:", "Warning:",
+        "Query:",
+        "Initializing ",
+        "↻ ",
+        "Resume this session with:",
+        "Session: ",
+        "Duration: ",
+        "Messages: ",
+        "Goodbye!",
+        "Welcome to Hermes",
+        "Tip:",
+        "Warning:",
     ] {
-        if trimmed.starts_with(prefix) { return true; }
+        if trimmed.starts_with(prefix) {
+            return true;
+        }
     }
 
-    if trimmed.contains("reflecting...") { return true; }
-    if trimmed.contains("msg=interrupt") || trimmed.contains("Ctrl+C cancel") { return true; }
-    if trimmed == "❯" { return true; }
+    if trimmed.contains("reflecting...") {
+        return true;
+    }
+    if trimmed.contains("msg=interrupt") || trimmed.contains("Ctrl+C cancel") {
+        return true;
+    }
+    if trimmed == "❯" {
+        return true;
+    }
 
     false
 }
