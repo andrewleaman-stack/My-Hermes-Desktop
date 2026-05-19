@@ -4,6 +4,12 @@
 > - Session 开始时：只读最近 5 条，了解近况
 > - Session 结束时：在最前面追加新条目（不是末尾）
 
+[2026-05-19 12:00] DONE TUI 终端背景配置 — 新增 useTerminalBg hook（5 种：dark/glass/ocean/sunset/forest，localStorage 持久化）；xterm.js allowTransparency+动态 theme 更新；Settings 页新增"终端背景"5 张预览卡片；CSS 渐变+毛玻璃变体
+
+[2026-05-19 11:00] DONE feat-202+203 全局快捷键 + 原生通知 — Cmd+Shift+H toggle 窗口；bg_start Instant 计时 ≥30s 推 notification + emit bg-task-done；ChatPage 跳转会话/打开后台面板
+
+[2026-05-19 10:00] DONE feat-201 菜单栏托盘集成 — TrayIconBuilder with_id("hermes-tray")；右键菜单打开/新建/退出；CloseRequested→hide；update_tray_status 命令（三态 tooltip + macOS title 点）；ChatPage 同步 streaming 状态
+
 [2026-05-18 05:00] DONE Agent 停止中断功能 — AppState 新增 chat_processes 字段存 Child；send_message 存/取进程；新增 kill_session Tauri 命令；ChatView 红色"停止"按钮在 streaming 时出现；ChatPage 传 onStop handler
 
 [2026-05-18 04:00] DONE feat-210 文件树侧边栏 — FileTreePanel（文件树+预览双栏）；react-syntax-highlighter 代码高亮；Rust list_dir/read_text_file/get_home_dir；WorkingDirBar ⊟ 触发；与 SnapshotPanel 互斥
