@@ -55,7 +55,7 @@ fn configured_providers_from_env(env: &str) -> Vec<String> {
 }
 
 fn hermes_version() -> Result<String, String> {
-    let output = Command::new(super::sessions::hermes_binary())
+    let output = super::sessions::hermes_command()
         .arg("version")
         .output()
         .map_err(|e| format!("Hermes CLI 未安装或不在 PATH 中：{e}"))?;
@@ -145,7 +145,35 @@ fn open_terminal_with_command(command: &str) -> Result<(), String> {
         });
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    {
+        // Keep the terminal open after the command finishes with `exec bash -l`
+        let wsl_cmd = format!("{command}; exec bash -l");
+
+        // Prefer Windows Terminal (wt.exe) → plain wsl.exe → cmd fallback
+        let wt = Command::new("wt.exe")
+            .args(["wsl.exe", "bash", "-l", "-c", &wsl_cmd])
+            .spawn();
+        if wt.is_ok() {
+            return Ok(());
+        }
+
+        let wsl = Command::new("wsl.exe")
+            .args(["bash", "-l", "-c", &wsl_cmd])
+            .spawn();
+        if wsl.is_ok() {
+            return Ok(());
+        }
+
+        // Last resort: open a plain cmd window (works for native `hermes setup`)
+        Command::new("cmd")
+            .args(["/c", "start", "cmd", "/k", command])
+            .spawn()
+            .map_err(|e| format!("无法打开终端：{e}"))?;
+        return Ok(());
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         Err("当前平台暂不支持自动打开终端，请复制安装命令手动执行。".to_string())
     }

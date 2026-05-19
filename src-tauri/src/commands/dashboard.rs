@@ -1,52 +1,108 @@
 use crate::AppState;
+use std::io::Read;
 use std::net::TcpStream;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::time::{Duration, Instant};
 use tauri::State;
 
 const DASHBOARD_PORT: u16 = 9119;
 const READY_TIMEOUT_SECS: u64 = 12;
 
+fn dashboard_port_ready() -> Result<bool, String> {
+    let addr = format!("127.0.0.1:{DASHBOARD_PORT}");
+    Ok(TcpStream::connect_timeout(
+        &addr.parse().map_err(|e| format!("addr_parse:{e}"))?,
+        Duration::from_millis(200),
+    )
+    .is_ok())
+}
+
+fn normalize_dashboard_error(stderr: &str) -> String {
+    let message = stderr.trim();
+    if message.contains("Web UI frontend not built and npm is not available")
+        || message.contains("--skip-build was passed but no web dist found")
+    {
+        return format!(
+            "dashboard_dependency_missing:WSL 中的 Hermes Dashboard 前端未构建，且 npm 不可用。请在 WSL 终端执行：cd ~/.hermes/hermes-agent/web && npm install && npm run build。原始错误：{message}"
+        );
+    }
+
+    if message.is_empty() {
+        "dashboard_failed:Dashboard process exited before it was ready".to_string()
+    } else {
+        format!("dashboard_failed:{message}")
+    }
+}
+
+fn read_stderr_thread(handle: Option<std::thread::JoinHandle<String>>) -> String {
+    handle.and_then(|h| h.join().ok()).unwrap_or_default()
+}
+
+fn dashboard_args() -> Vec<String> {
+    vec![
+        "dashboard".into(),
+        "--no-open".into(),
+        "--skip-build".into(),
+        "--port".into(),
+        DASHBOARD_PORT.to_string(),
+    ]
+}
+
 /// Start hermes dashboard if not already running. Returns "ready" or an error string.
 #[tauri::command]
 pub async fn dashboard_start(state: State<'_, AppState>) -> Result<String, String> {
-    // Already running?
     {
         let mut child_lock = state.dashboard_child.lock().unwrap();
         if let Some(ref mut child) = *child_lock {
-            // Check if still alive
             if child.try_wait().map_or(true, |s| s.is_none()) {
-                return Ok("ready".to_string());
+                if dashboard_port_ready()? {
+                    return Ok("ready".to_string());
+                }
+                child.kill().ok();
             }
-            // Process died — remove and restart
             *child_lock = None;
         }
     }
 
-    // Spawn hermes dashboard --no-open --port 9119
-    let child = Command::new(super::sessions::hermes_binary())
-        .args(["dashboard", "--no-open", "--port", &DASHBOARD_PORT.to_string()])
+    let mut child = super::sessions::hermes_command()
+        .args(dashboard_args())
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| format!("start_failed:{e}"))?;
 
-    state.dashboard_child.lock().unwrap().replace(child);
+    let stderr_handle = child.stderr.take().map(|mut stderr| {
+        std::thread::spawn(move || {
+            let mut text = String::new();
+            stderr.read_to_string(&mut text).ok();
+            text
+        })
+    });
 
-    // Poll for readiness (TCP connect to 127.0.0.1:9119)
-    let addr = format!("127.0.0.1:{DASHBOARD_PORT}");
     let deadline = Instant::now() + Duration::from_secs(READY_TIMEOUT_SECS);
     loop {
-        if TcpStream::connect_timeout(
-            &addr.parse().map_err(|e| format!("addr_parse:{e}"))?,
-            Duration::from_millis(200),
-        )
-        .is_ok()
-        {
+        if dashboard_port_ready()? {
+            state.dashboard_child.lock().unwrap().replace(child);
             return Ok("ready".to_string());
         }
+
+        if let Some(status) = child.try_wait().map_err(|e| format!("wait_failed:{e}"))? {
+            let stderr = read_stderr_thread(stderr_handle);
+            let message = if stderr.trim().is_empty() {
+                format!("dashboard exited with status {status}")
+            } else {
+                stderr
+            };
+            return Err(normalize_dashboard_error(&message));
+        }
+
         if Instant::now() >= deadline {
-            return Err("timeout".to_string());
+            child.kill().ok();
+            let stderr = read_stderr_thread(stderr_handle);
+            if stderr.trim().is_empty() {
+                return Err("timeout".to_string());
+            }
+            return Err(format!("timeout:{}", normalize_dashboard_error(&stderr)));
         }
         tokio::time::sleep(Duration::from_millis(200)).await;
     }
@@ -75,5 +131,32 @@ pub fn dashboard_status(state: State<'_, AppState>) -> String {
             Ok(None) => "running".to_string(),
             Err(_) => "unknown".to_string(),
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dashboard_error_explains_missing_web_build_tools() {
+        let msg = normalize_dashboard_error("Web UI frontend not built and npm is not available.");
+
+        assert!(msg.contains("dashboard_dependency_missing:"));
+        assert!(msg.contains("WSL"));
+        assert!(msg.contains("npm"));
+        assert!(msg.contains("cd ~/.hermes/hermes-agent/web"));
+    }
+
+    #[test]
+    fn dashboard_error_keeps_unknown_stderr() {
+        let msg = normalize_dashboard_error("some other failure");
+
+        assert_eq!(msg, "dashboard_failed:some other failure");
+    }
+
+    #[test]
+    fn dashboard_args_skip_build_for_desktop_embedding() {
+        assert!(dashboard_args().iter().any(|arg| arg == "--skip-build"));
     }
 }

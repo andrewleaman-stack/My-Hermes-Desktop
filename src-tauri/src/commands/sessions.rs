@@ -6,18 +6,96 @@ use std::sync::OnceLock;
 
 static IMAGE_MARKER_RE: OnceLock<Regex> = OnceLock::new();
 
+// On Windows: detect the WSL hermes full path once per app lifetime.
+// WSL interop doesn't inherit the user's shell PATH, so we use a login
+// shell to locate hermes and cache the absolute Linux path.
+// Stored as Option<String>: Some(path) = WSL hermes found, None = not found.
+#[cfg(target_os = "windows")]
+static WSL_HERMES_PATH: OnceLock<Option<String>> = OnceLock::new();
+
+#[cfg(target_os = "windows")]
+pub fn wsl_hermes_path() -> Option<&'static str> {
+    WSL_HERMES_PATH
+        .get_or_init(|| {
+            let out = std::process::Command::new("wsl.exe")
+                .args(["bash", "-l", "-c", "command -v hermes 2>/dev/null"])
+                .output()
+                .ok()?;
+            if out.status.success() {
+                let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if !path.is_empty() {
+                    Some(path)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .as_deref()
+}
+
+#[cfg(target_os = "windows")]
+fn use_wsl_hermes() -> bool {
+    wsl_hermes_path().is_some()
+}
+
+/// Get the hermes home directory accessible from the Windows filesystem when
+/// running WSL hermes. Uses `wslpath -m` to convert the Linux path to a UNC
+/// path (e.g. \\wsl.localhost\Ubuntu\home\user\.hermes).
+#[cfg(target_os = "windows")]
+fn wsl_hermes_home() -> Option<std::path::PathBuf> {
+    let out = std::process::Command::new("wsl.exe")
+        .args(["wslpath", "-m", "~/.hermes"])
+        .output()
+        .ok()?;
+    if out.status.success() {
+        let path_str = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if !path_str.is_empty() {
+            return Some(std::path::PathBuf::from(path_str));
+        }
+    }
+    None
+}
+
+/// Returns a `Command` already pointing at the hermes executable (with any
+/// necessary prefix args set).  Callers just chain `.args(["chat", "-q", ...])`.
+pub fn hermes_command() -> Command {
+    #[cfg(target_os = "windows")]
+    {
+        let mut cmd = Command::new("wsl.exe");
+        if let Some(wsl_path) = wsl_hermes_path() {
+            cmd.arg(wsl_path);
+        } else {
+            cmd.arg("hermes");
+        }
+        cmd
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        Command::new(hermes_binary())
+    }
+}
+
 fn image_marker_re() -> &'static Regex {
     IMAGE_MARKER_RE.get_or_init(|| Regex::new(r"\[Image attached at:\s*([^\]]+)\]").unwrap())
 }
 
 fn mime_for_path(path: &str) -> Option<&'static str> {
     let lower = path.to_ascii_lowercase();
-    if lower.ends_with(".png") { Some("image/png") }
-    else if lower.ends_with(".jpg") || lower.ends_with(".jpeg") { Some("image/jpeg") }
-    else if lower.ends_with(".gif") { Some("image/gif") }
-    else if lower.ends_with(".webp") { Some("image/webp") }
-    else if lower.ends_with(".bmp") { Some("image/bmp") }
-    else { None }
+    if lower.ends_with(".png") {
+        Some("image/png")
+    } else if lower.ends_with(".jpg") || lower.ends_with(".jpeg") {
+        Some("image/jpeg")
+    } else if lower.ends_with(".gif") {
+        Some("image/gif")
+    } else if lower.ends_with(".webp") {
+        Some("image/webp")
+    } else if lower.ends_with(".bmp") {
+        Some("image/bmp")
+    } else {
+        None
+    }
 }
 
 fn read_image_as_data_url(path: &str) -> Option<String> {
@@ -65,7 +143,8 @@ fn extract_image_attachments(msg: &mut serde_json::Value) -> Vec<String> {
         }
     }
 
-    paths.into_iter()
+    paths
+        .into_iter()
         .filter_map(|p| read_image_as_data_url(&p))
         .collect()
 }
@@ -94,6 +173,14 @@ fn enrich_history_with_images(value: &mut serde_json::Value) {
 }
 
 pub fn hermes_home() -> Option<std::path::PathBuf> {
+    #[cfg(target_os = "windows")]
+    if use_wsl_hermes() {
+        if let Some(wsl_home) = wsl_hermes_home() {
+            if wsl_home.exists() {
+                return Some(wsl_home);
+            }
+        }
+    }
     dirs::home_dir().map(|h| h.join(".hermes"))
 }
 
@@ -118,10 +205,50 @@ pub fn hermes_binary() -> String {
         candidates.push(home.join(".hermes").join("bin").join("hermes"));
         candidates.push(home.join(".local").join("bin").join("hermes"));
         candidates.push(home.join("bin").join("hermes"));
+
+        #[cfg(target_os = "windows")]
+        {
+            // hermes installed via pip / pipx under Windows Python
+            candidates.push(
+                home.join("AppData")
+                    .join("Local")
+                    .join("hermes")
+                    .join("hermes-agent")
+                    .join("Scripts")
+                    .join("hermes.exe"),
+            );
+            candidates.push(
+                home.join("AppData")
+                    .join("Roaming")
+                    .join("Python")
+                    .join("Scripts")
+                    .join("hermes.exe"),
+            );
+            candidates.push(
+                home.join("AppData")
+                    .join("Local")
+                    .join("pipx")
+                    .join("venvs")
+                    .join("hermes")
+                    .join("Scripts")
+                    .join("hermes.exe"),
+            );
+            candidates.push(
+                home.join("AppData")
+                    .join("Local")
+                    .join("Programs")
+                    .join("hermes")
+                    .join("hermes.exe"),
+            );
+        }
     }
-    candidates.push(std::path::PathBuf::from("/usr/local/bin/hermes"));
-    candidates.push(std::path::PathBuf::from("/opt/homebrew/bin/hermes"));
-    candidates.push(std::path::PathBuf::from("/usr/bin/hermes"));
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        candidates.push(std::path::PathBuf::from("/usr/local/bin/hermes"));
+        candidates.push(std::path::PathBuf::from("/opt/homebrew/bin/hermes"));
+        candidates.push(std::path::PathBuf::from("/usr/bin/hermes"));
+    }
 
     for path in &candidates {
         if path.exists() {
@@ -129,7 +256,8 @@ pub fn hermes_binary() -> String {
         }
     }
 
-    // 3. Fallback: ask the login shell (slower, but handles any custom PATH)
+    // 3. Fallback: ask the shell (slower, but handles any custom PATH)
+    #[cfg(not(target_os = "windows"))]
     for shell in &["/bin/zsh", "/bin/bash"] {
         if let Ok(out) = std::process::Command::new(shell)
             .args(["-l", "-c", "command -v hermes 2>/dev/null"])
@@ -140,6 +268,22 @@ pub fn hermes_binary() -> String {
                 if !path.is_empty() {
                     return path;
                 }
+            }
+        }
+    }
+
+    // Windows: use `where` to locate hermes in PATH
+    #[cfg(target_os = "windows")]
+    if let Ok(out) = std::process::Command::new("where").arg("hermes").output() {
+        if out.status.success() {
+            let first_line = String::from_utf8_lossy(&out.stdout)
+                .lines()
+                .next()
+                .unwrap_or("")
+                .trim()
+                .to_string();
+            if !first_line.is_empty() {
+                return first_line;
             }
         }
     }
@@ -452,7 +596,7 @@ pub async fn rename_session(session_id: String, title: String) -> Result<(), Str
         return Err("Title cannot be empty".into());
     }
 
-    let out = Command::new(hermes_binary())
+    let out = hermes_command()
         .args(["sessions", "rename", &session_id, clean_title])
         .output()
         .map_err(|e| format!("Failed to start hermes: {e}. Is hermes installed and in PATH?"))?;
@@ -477,7 +621,7 @@ pub async fn rename_session(session_id: String, title: String) -> Result<(), Str
 
 #[tauri::command]
 pub async fn get_session_history(session_id: String) -> Result<serde_json::Value, String> {
-    let out = Command::new(hermes_binary())
+    let out = hermes_command()
         .args(["sessions", "export", "-", "--session-id", &session_id])
         .output();
 
@@ -560,7 +704,7 @@ pub async fn undo_last_turn(session_id: String) -> Result<(), String> {
 #[tauri::command]
 pub async fn delete_session(session_id: String) -> Result<(), String> {
     // Tell hermes to deregister the session from its internal state
-    let _ = Command::new(hermes_binary())
+    let _ = hermes_command()
         .args(["sessions", "delete", "--yes", &session_id])
         .output();
 

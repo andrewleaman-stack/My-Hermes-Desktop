@@ -4,6 +4,7 @@ import Icon from "../components/Icon";
 
 const DASHBOARD_URL = "http://127.0.0.1:9119";
 const INSTALL_CMD = "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash";
+const DASHBOARD_BUILD_CMD = "cd ~/.hermes/hermes-agent/web && npm install && npm run build";
 
 type Status = "idle" | "starting" | "ready" | "error" | "missing";
 
@@ -25,8 +26,12 @@ export default function DashboardPage() {
       }
     } catch (e: unknown) {
       const msg = String(e);
-      if (msg.includes("start_failed") || msg.includes("No such file")) {
+      if (msg.includes("dashboard_dependency_missing")) {
         setStatus("missing");
+        setErrorMsg(msg.replace(/^.*dashboard_dependency_missing:/, ""));
+      } else if (msg.includes("start_failed") || msg.includes("No such file")) {
+        setStatus("missing");
+        setErrorMsg("");
       } else if (msg.includes("timeout")) {
         setStatus("error");
         setErrorMsg("Dashboard 启动超时，请检查 hermes-agent 是否正确安装");
@@ -41,7 +46,8 @@ export default function DashboardPage() {
   useEffect(() => { start(); }, [start]);
 
   const copyCmd = () => {
-    navigator.clipboard?.writeText(INSTALL_CMD).then(() => {
+    const command = errorMsg ? DASHBOARD_BUILD_CMD : INSTALL_CMD;
+    navigator.clipboard?.writeText(command).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }).catch(() => {});
@@ -59,6 +65,7 @@ export default function DashboardPage() {
 
   // ── Missing dependency ──
   if (status === "missing") {
+    const command = errorMsg ? DASHBOARD_BUILD_CMD : INSTALL_CMD;
     return (
       <div className="dashboard-guide">
         <div className="dashboard-guide-icon">
@@ -66,10 +73,10 @@ export default function DashboardPage() {
         </div>
         <div className="dashboard-guide-title ui-font">需要安装 Dashboard 依赖</div>
         <div className="dashboard-guide-desc">
-          运行以下命令安装，完成后点击"重试"。
+          {errorMsg || "运行以下命令安装，完成后点击\"重试\"。"}
         </div>
         <div className="dashboard-guide-cmd">
-          <code>{INSTALL_CMD}</code>
+          <code>{command}</code>
           <button className="guide-copy-btn ui-font" onClick={copyCmd}>
             {copied && <Icon name="check" size={12} />}
             {copied ? "已复制" : "复制"}

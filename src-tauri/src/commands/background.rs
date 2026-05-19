@@ -103,11 +103,15 @@ pub async fn bg_start(
     let stdout_file = File::create(&log_path).map_err(|e| format!("Cannot create log file: {e}"))?;
     let stderr_file = stdout_file.try_clone().map_err(|e| e.to_string())?;
 
-    let child = Command::new(super::sessions::hermes_binary())
+    let mut bg_cmd = super::sessions::hermes_command();
+    bg_cmd
         .args(["chat", "-q", &prompt, "--source", "tool"])
         .env("PYTHONUNBUFFERED", "1")
         .stdout(Stdio::from(stdout_file))
-        .stderr(Stdio::from(stderr_file))
+        .stderr(Stdio::from(stderr_file));
+    #[cfg(target_os = "windows")]
+    bg_cmd.env("TERM", "dumb").env("NO_COLOR", "1");
+    let child = bg_cmd
         .spawn()
         .map_err(|e| format!("Failed to start hermes: {e}. Is hermes installed and in PATH?"))?;
 

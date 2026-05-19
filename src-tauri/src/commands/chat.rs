@@ -1,26 +1,28 @@
-use crate::StreamChunk;
 use crate::stream::{is_decorative, strip_ansi};
+use crate::StreamChunk;
 use base64::Engine;
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter};
 
 fn decode_image_data_url(data_url: &str) -> Result<(Vec<u8>, &'static str), String> {
-    let body = data_url.strip_prefix("data:").ok_or("image is not a data URL")?;
+    let body = data_url
+        .strip_prefix("data:")
+        .ok_or("image is not a data URL")?;
     let (header, payload) = body.split_once(',').ok_or("image data URL missing comma")?;
     let (mime, encoding) = header.split_once(';').unwrap_or((header, ""));
     if !encoding.eq_ignore_ascii_case("base64") {
         return Err("image data URL must be base64-encoded".into());
     }
     let ext = match mime.to_ascii_lowercase().as_str() {
-        "image/png"  => "png",
+        "image/png" => "png",
         "image/jpeg" => "jpg",
-        "image/jpg"  => "jpg",
-        "image/gif"  => "gif",
+        "image/jpg" => "jpg",
+        "image/gif" => "gif",
         "image/webp" => "webp",
-        "image/bmp"  => "bmp",
+        "image/bmp" => "bmp",
         other => return Err(format!("unsupported image mime: {other}")),
     };
     let bytes = base64::engine::general_purpose::STANDARD
@@ -47,17 +49,22 @@ fn write_image_persistent(data_url: &str) -> Result<PathBuf, String> {
         .map(|d| d.as_nanos())
         .unwrap_or(0);
     let path = dir.join(format!("img-{nanos}-{:x}.{ext}", std::process::id()));
-    let mut f = std::fs::File::create(&path).map_err(|e| format!("cannot create image file: {e}"))?;
-    f.write_all(&bytes).map_err(|e| format!("cannot write image file: {e}"))?;
+    let mut f =
+        std::fs::File::create(&path).map_err(|e| format!("cannot create image file: {e}"))?;
+    f.write_all(&bytes)
+        .map_err(|e| format!("cannot write image file: {e}"))?;
     Ok(path)
 }
 
 fn emit(app: &AppHandle, session_id: &str, kind: &str, content: &str) {
-    app.emit("hermes:chunk", StreamChunk {
-        kind: kind.to_string(),
-        content: content.to_string(),
-        session_id: session_id.to_string(),
-    })
+    app.emit(
+        "hermes:chunk",
+        StreamChunk {
+            kind: kind.to_string(),
+            content: content.to_string(),
+            session_id: session_id.to_string(),
+        },
+    )
     .ok();
 }
 
@@ -65,7 +72,10 @@ fn extract_resume_session_id(line: &str) -> Option<String> {
     let mut parts = line.split_whitespace();
     while let Some(part) = parts.next() {
         if part == "--resume" || part == "-r" {
-            return parts.next().map(|value| value.trim().to_string()).filter(|value| !value.is_empty());
+            return parts
+                .next()
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty());
         }
     }
     None
@@ -113,11 +123,14 @@ pub async fn send_message(
     // Use pipe (not PTY) so hermes detects non-TTY stdout and runs in line-buffered
     // non-interactive mode. PTY would put hermes into TUI mode where it uses ANSI
     // redraws + \r in place of \n, which BufReader::lines() cannot consume.
-    let mut cmd = Command::new(super::sessions::hermes_binary());
+    let mut cmd = super::sessions::hermes_command();
     cmd.args(&args)
         .env("PYTHONUNBUFFERED", "1")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    // On Windows the command runs under WSL; these env vars are forwarded by wsl.exe.
+    #[cfg(target_os = "windows")]
+    cmd.env("TERM", "dumb").env("NO_COLOR", "1");
     if let Some(ref dir) = working_dir {
         let path = std::path::Path::new(dir);
         if path.is_dir() {
@@ -147,7 +160,27 @@ pub async fn send_message(
         let clean = strip_ansi(&raw);
         let trimmed = clean.trim();
 
-        emit(&app, &session_tag, "raw", &clean);
+        // On Windows+WSL, wsl.exe from a non-console (GUI) process creates a ConPTY
+        // making isatty()=True. prompt_toolkit uses Vt100 mode, emitting the
+        // "Query: …" header one ASCII char per line (bare single-byte lines) plus
+        // many cursor-positioning sequences that become empty lines after stripping.
+        //
+        // Single-char ASCII lines: skip entirely (no content value at all).
+        // Empty lines: suppress only the raw terminal display; still run through
+        // the content state machine below so block separation is preserved.
+        #[cfg(target_os = "windows")]
+        if clean.len() == 1 && raw.trim().len() == 1 {
+            continue;
+        }
+
+        #[cfg(target_os = "windows")]
+        let show_raw = !trimmed.is_empty();
+        #[cfg(not(target_os = "windows"))]
+        let show_raw = true;
+
+        if show_raw {
+            emit(&app, &session_tag, "raw", &clean);
+        }
 
         // ── Footer (session info after response) ──────────────────────────────
         if trimmed.starts_with("Resume this session with:") {
@@ -170,12 +203,16 @@ pub async fn send_message(
         }
 
         // ── Think block ───────────────────────────────────────────────────────
-        if trimmed == "<think>" || trimmed.to_lowercase() == "[thinking]" || trimmed == "《思考》" {
+        if trimmed == "<think>" || trimmed.to_lowercase() == "[thinking]" || trimmed == "《思考》"
+        {
             in_think = true;
             emit(&app, &session_tag, "think_start", "");
             continue;
         }
-        if trimmed == "</think>" || trimmed.to_lowercase() == "[/thinking]" || trimmed == "《/思考》" {
+        if trimmed == "</think>"
+            || trimmed.to_lowercase() == "[/thinking]"
+            || trimmed == "《/思考》"
+        {
             in_think = false;
             emit(&app, &session_tag, "think_end", "");
             continue;
@@ -229,7 +266,12 @@ pub async fn send_message(
     if let Some(mut child) = maybe_child {
         let output = child.wait().map_err(|e| e.to_string())?;
         if !output.success() {
-            emit(&app, &session_tag, "error", &format!("Hermes exited with status: {output}"));
+            emit(
+                &app,
+                &session_tag,
+                "error",
+                &format!("Hermes exited with status: {output}"),
+            );
         }
     }
 
@@ -291,12 +333,11 @@ pub async fn set_hermes_model(provider: String, model: String) -> Result<(), Str
     let home = crate::commands::sessions::hermes_home()
         .ok_or_else(|| "Cannot locate hermes home".to_string())?;
     let path = home.join("config.yaml");
-    let text = std::fs::read_to_string(&path)
-        .map_err(|e| format!("Cannot read config.yaml: {e}"))?;
+    let text =
+        std::fs::read_to_string(&path).map_err(|e| format!("Cannot read config.yaml: {e}"))?;
     let model = normalize_model_id(&provider, &model);
     let updated = rewrite_model_section(&text, &provider, &model);
-    std::fs::write(&path, updated)
-        .map_err(|e| format!("Cannot write config.yaml: {e}"))
+    std::fs::write(&path, updated).map_err(|e| format!("Cannot write config.yaml: {e}"))
 }
 
 // ─── Helpers for get_hermes_model_config ─────────────────────────────────────
@@ -339,7 +380,9 @@ fn configured_providers_from_env(env: &str) -> Vec<String> {
     let mut providers = Vec::new();
     for line in env.lines() {
         let t = line.trim();
-        if t.starts_with('#') || t.is_empty() { continue; }
+        if t.starts_with('#') || t.is_empty() {
+            continue;
+        }
         for (key, prov) in KEY_MAP {
             if let Some(val) = t.strip_prefix(&format!("{}=", key)) {
                 let v = val.trim();
@@ -358,7 +401,7 @@ pub async fn get_hermes_model_config() -> Result<serde_json::Value, String> {
         .ok_or_else(|| "Cannot locate hermes home".to_string())?;
 
     let config_text = std::fs::read_to_string(home.join("config.yaml")).unwrap_or_default();
-    let env_text    = std::fs::read_to_string(home.join(".env")).unwrap_or_default();
+    let env_text = std::fs::read_to_string(home.join(".env")).unwrap_or_default();
 
     let (current_provider, current_model) = parse_model_section(&config_text);
     let mut configured = configured_providers_from_env(&env_text);
@@ -384,13 +427,29 @@ pub async fn get_hermes_model_config() -> Result<serde_json::Value, String> {
 
     // Hardcoded model fallbacks for providers not covered by models_dev_cache.json
     const PROVIDER_MODEL_FALLBACKS: &[(&str, &[&str])] = &[
-        ("openai-codex", &["gpt-5.5", "gpt-5.4-mini", "gpt-5.4", "gpt-5.3-codex", "gpt-5.2-codex", "gpt-5.1-codex-max", "gpt-5.1-codex-mini"]),
-        ("nous", &["hermes-3-llama-3.1-405b", "hermes-3-llama-3.1-70b"]),
+        (
+            "openai-codex",
+            &[
+                "gpt-5.5",
+                "gpt-5.4-mini",
+                "gpt-5.4",
+                "gpt-5.3-codex",
+                "gpt-5.2-codex",
+                "gpt-5.1-codex-max",
+                "gpt-5.1-codex-mini",
+            ],
+        ),
+        (
+            "nous",
+            &["hermes-3-llama-3.1-405b", "hermes-3-llama-3.1-70b"],
+        ),
     ];
 
     // Read models_dev_cache.json and extract model IDs per configured provider
-    let cache_text = std::fs::read_to_string(home.join("models_dev_cache.json")).unwrap_or_default();
-    let cache: serde_json::Value = serde_json::from_str(&cache_text).unwrap_or(serde_json::Value::Null);
+    let cache_text =
+        std::fs::read_to_string(home.join("models_dev_cache.json")).unwrap_or_default();
+    let cache: serde_json::Value =
+        serde_json::from_str(&cache_text).unwrap_or(serde_json::Value::Null);
 
     let mut model_groups: Vec<serde_json::Value> = Vec::new();
     for prov in &configured {
@@ -427,7 +486,7 @@ pub async fn get_hermes_model_config() -> Result<serde_json::Value, String> {
 
 #[tauri::command]
 pub async fn get_hermes_info() -> Result<serde_json::Value, String> {
-    let version_out = Command::new(super::sessions::hermes_binary())
+    let version_out = super::sessions::hermes_command()
         .args(["version"])
         .output()
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())

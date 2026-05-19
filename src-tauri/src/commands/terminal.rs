@@ -1,7 +1,41 @@
 use crate::AppState;
-use portable_pty::{CommandBuilder, PtySize, native_pty_system};
+use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use std::io::{Read, Write};
 use tauri::{AppHandle, Emitter, State};
+
+fn append_tui_args(cmd: &mut CommandBuilder, session_id: Option<&str>) {
+    cmd.arg("chat");
+    cmd.arg("--tui");
+    if let Some(id) = session_id {
+        cmd.arg("--resume");
+        cmd.arg(id);
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn build_wsl_tui_command(wsl_hermes_path: &str, session_id: Option<&str>) -> CommandBuilder {
+    let mut cmd = CommandBuilder::new("wsl.exe");
+    cmd.arg(wsl_hermes_path);
+    append_tui_args(&mut cmd, session_id);
+    cmd
+}
+
+fn build_tui_command(session_id: Option<&str>) -> Result<CommandBuilder, String> {
+    #[cfg(target_os = "windows")]
+    {
+        let Some(wsl_path) = super::sessions::wsl_hermes_path() else {
+            return Err("WSL 中未找到 hermes，请先在 WSL 里安装并确认 `bash -l -c \"command -v hermes\"` 能找到它".into());
+        };
+        return Ok(build_wsl_tui_command(wsl_path, session_id));
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let mut cmd = CommandBuilder::new(super::sessions::hermes_binary());
+        append_tui_args(&mut cmd, session_id);
+        Ok(cmd)
+    }
+}
 
 fn close_pty_handles(state: &AppState, pty_id: &str) {
     if let Some(mut child) = state.pty_children.lock().unwrap().remove(pty_id) {
@@ -24,24 +58,38 @@ pub fn pty_open(
 
     let pty_system = native_pty_system();
     let pair = pty_system
-        .openpty(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
+        .openpty(PtySize {
+            rows,
+            cols,
+            pixel_width: 0,
+            pixel_height: 0,
+        })
         .map_err(|e| format!("PTY open failed: {e}"))?;
 
-    let mut cmd = CommandBuilder::new("hermes");
-    cmd.arg("chat");
-    cmd.arg("--tui");
-    if let Some(ref id) = session_id {
-        cmd.arg("--resume");
-        cmd.arg(id);
-    }
+    let cmd = build_tui_command(session_id.as_deref())?;
 
-    let child = pair.slave.spawn_command(cmd).map_err(|e| format!("Failed to start hermes: {e}"))?;
+    let child = pair
+        .slave
+        .spawn_command(cmd)
+        .map_err(|e| format!("Failed to start hermes: {e}"))?;
     let mut reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
     let writer = pair.master.take_writer().map_err(|e| e.to_string())?;
 
-    state.pty_writers.lock().unwrap().insert(pty_id.clone(), writer);
-    state.pty_masters.lock().unwrap().insert(pty_id.clone(), pair.master);
-    state.pty_children.lock().unwrap().insert(pty_id.clone(), child);
+    state
+        .pty_writers
+        .lock()
+        .unwrap()
+        .insert(pty_id.clone(), writer);
+    state
+        .pty_masters
+        .lock()
+        .unwrap()
+        .insert(pty_id.clone(), pair.master);
+    state
+        .pty_children
+        .lock()
+        .unwrap()
+        .insert(pty_id.clone(), child);
 
     let event_name = format!("pty:{}", pty_id);
     std::thread::spawn(move || {
@@ -61,14 +109,12 @@ pub fn pty_open(
 }
 
 #[tauri::command]
-pub fn pty_write(
-    state: State<'_, AppState>,
-    pty_id: String,
-    data: String,
-) -> Result<(), String> {
+pub fn pty_write(state: State<'_, AppState>, pty_id: String, data: String) -> Result<(), String> {
     let mut writers = state.pty_writers.lock().unwrap();
     if let Some(writer) = writers.get_mut(&pty_id) {
-        writer.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
+        writer
+            .write_all(data.as_bytes())
+            .map_err(|e| e.to_string())?;
     }
     Ok(())
 }
@@ -83,17 +129,42 @@ pub fn pty_resize(
     let masters = state.pty_masters.lock().unwrap();
     if let Some(master) = masters.get(&pty_id) {
         master
-            .resize(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
+            .resize(PtySize {
+                rows,
+                cols,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
             .map_err(|e| e.to_string())?;
     }
     Ok(())
 }
 
 #[tauri::command]
-pub fn pty_close(
-    state: State<'_, AppState>,
-    pty_id: String,
-) -> Result<(), String> {
+pub fn pty_close(state: State<'_, AppState>, pty_id: String) -> Result<(), String> {
     close_pty_handles(&state, &pty_id);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::OsStr;
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn tui_command_uses_wsl_hermes_on_windows() {
+        let cmd = build_wsl_tui_command("/home/me/.local/bin/hermes", Some("session-123"));
+        let argv = cmd.get_argv();
+
+        assert_eq!(argv[0], OsStr::new("wsl.exe"));
+        assert_eq!(argv[1], OsStr::new("/home/me/.local/bin/hermes"));
+        assert_eq!(
+            argv.iter().filter(|arg| *arg == OsStr::new("chat")).count(),
+            1
+        );
+        assert!(argv.iter().any(|arg| arg == OsStr::new("--tui")));
+        assert!(argv.iter().any(|arg| arg == OsStr::new("--resume")));
+        assert!(argv.iter().any(|arg| arg == OsStr::new("session-123")));
+    }
 }
