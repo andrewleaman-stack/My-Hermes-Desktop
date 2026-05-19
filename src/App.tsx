@@ -104,7 +104,7 @@ function AppShell() {
       {showShortcuts && <KeyboardShortcutsPanel onClose={() => setShowShortcuts(false)} />}
       <div className="page-area">
         <div className="chat-page-host" style={{ display: isChat ? "block" : "none" }}>
-          <ChatPage />
+          <ChatPage apiKeyConfigured={setup?.api_key_configured ?? true} />
         </div>
         {!isChat && (
           <Routes>

@@ -4439,6 +4439,98 @@ body {
   to   { opacity: 1; }
 }
 
+/* ── Config Guide Card (API Key 未配置) ── */
+.config-guide-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 16px 2px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--warning) 10%, var(--canvas));
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+  border-radius: var(--radius);
+}
+
+.config-guide-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.config-guide-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.config-guide-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.config-guide-desc {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+.config-guide-btn {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--primary);
+  background: transparent;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.config-guide-btn:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ── Error Card (结构化错误 + Dashboard 跳转) ── */
+.error-card {
+  margin: 8px 16px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--error) 8%, var(--canvas));
+  border: 1px solid color-mix(in srgb, var(--error) 25%, transparent);
+  border-radius: var(--radius);
+}
+
+.error-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--error);
+}
+
+.error-card-desc {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.error-card-btn {
+  margin-top: 8px;
+  padding: 3px 10px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--error);
+  background: transparent;
+  color: var(--error);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.error-card-btn:hover {
+  background: var(--error);
+  color: #fff;
+}
+
 /* ── Keyboard Shortcuts Panel ── */
 .kbd-panel-overlay {
   position: fixed;
