@@ -4,6 +4,8 @@
 > - Session 开始时：只读最近 5 条，了解近况
 > - Session 结束时：在最前面追加新条目（不是末尾）
 
+[2026-05-19 16:35] FIX macOS 标题栏拖动改用 JS startDragging() — -webkit-app-region:drag 在 WKWebView+Overlay 组合下不可靠；mousedown 时调 Tauri startDragging() API，closest() 过滤掉 button/input 等交互元素
+
 [2026-05-19 16:25] FIX tauri.conf.json titleBarStyle 枚举值 — Tauri 2.x 要求 PascalCase，"overlay"→"Overlay"
 
 [2026-05-19 16:20] FIX macOS 标题栏无法拖动 — .app-titlebar-left 默认 justify-self:stretch 撑满 1fr 列覆盖拖拽区；加 justify-self:start 使其只占内容宽度，空白区恢复为 drag 区域
