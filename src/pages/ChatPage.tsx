@@ -231,12 +231,17 @@ export default function ChatPage() {
     });
   }, [activeSessionId]);
 
-  // 监听托盘"新建会话"菜单项（必须在 handleNewSession 定义之后）
+  // 监听托盘"新建会话"菜单项 + 全局快捷键 Cmd+N（必须在 handleNewSession 定义之后）
   useEffect(() => {
     const unlisten = listen("new-session-from-tray", () => {
       handleNewSession();
     });
-    return () => { unlisten.then((fn) => fn()); };
+    const hotkeyHandler = () => handleNewSession();
+    window.addEventListener("new-session-hotkey", hotkeyHandler);
+    return () => {
+      unlisten.then((fn) => fn());
+      window.removeEventListener("new-session-hotkey", hotkeyHandler);
+    };
   }, [handleNewSession]);
 
   // 后台任务完成通知 → 刷新会话列表并跳转
