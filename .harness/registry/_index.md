@@ -4,6 +4,8 @@
 > - Session 开始时：只读最近 5 条，了解近况
 > - Session 结束时：在最前面追加新条目（不是末尾）
 
+[2026-05-19 12:30] FIX TUI 终端背景透明不生效 — xterm.js 不识别 "transparent"→改 rgba(0,0,0,0)；.xterm-viewport inline style 被 JS 覆盖→CSS !important 强制透明；渐变移至 .terminal-panel-body 紧贴 canvas
+
 [2026-05-19 12:00] DONE TUI 终端背景配置 — 新增 useTerminalBg hook（5 种：dark/glass/ocean/sunset/forest，localStorage 持久化）；xterm.js allowTransparency+动态 theme 更新；Settings 页新增"终端背景"5 张预览卡片；CSS 渐变+毛玻璃变体
 
 [2026-05-19 11:00] DONE feat-202+203 全局快捷键 + 原生通知 — Cmd+Shift+H toggle 窗口；bg_start Instant 计时 ≥30s 推 notification + emit bg-task-done；ChatPage 跳转会话/打开后台面板
