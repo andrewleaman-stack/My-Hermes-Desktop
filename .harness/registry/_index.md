@@ -4,6 +4,8 @@
 > - Session 开始时：只读最近 5 条，了解近况
 > - Session 结束时：在最前面追加新条目（不是末尾）
 
+[2026-05-19 16:10] FIX macOS 双层标题栏 — tauri.conf.json 加 titleBarStyle:"overlay"+hiddenTitle:true；.app-titlebar-macos 加 padding-left:72px 避开红绿灯；Windows/Linux 不受影响
+
 [2026-05-19 13:00] FIX 毛玻璃半透明暗膜 — glass 模式 xterm 背景改 rgba(13,17,23,0.52)，body 挂蓝紫渐变底色；52% 暗膜叠渐变产生深度感；ocean/sunset/forest 渐变明确挂 body 层
 
 [2026-05-19 12:30] FIX TUI 终端背景透明不生效 — xterm.js 不识别 "transparent"→改 rgba(0,0,0,0)；.xterm-viewport inline style 被 JS 覆盖→CSS !important 强制透明；渐变移至 .terminal-panel-body 紧贴 canvas
