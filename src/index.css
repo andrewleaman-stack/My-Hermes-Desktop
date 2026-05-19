@@ -65,7 +65,8 @@
 
   /* Dimensions */
   --sidebar-w: 240px;
-  --topbar-h:  48px;
+  --app-titlebar-h: 36px;
+  --topbar-h:  42px;
   --navbar-w:  52px;
 
   /* Border radius */
@@ -244,10 +245,235 @@ body {
 
 /* ── App Shell ── */
 .app-shell {
-  display: flex;
+  display: grid;
+  grid-template-rows: var(--app-titlebar-h) minmax(0, 1fr);
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  background: var(--canvas);
+}
+
+.app-body {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-titlebar {
+  height: var(--app-titlebar-h);
+  min-height: var(--app-titlebar-h);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(200px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0 0 10px;
+  background:
+    color-mix(in srgb, var(--surface-soft) 82%, var(--canvas));
+  border-bottom: 1px solid var(--hairline);
+  color: var(--body);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.app-titlebar > * {
+  -webkit-app-region: no-drag;
+}
+
+.app-titlebar-left,
+.app-titlebar-actions,
+.app-window-controls {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.app-titlebar-left {
+  gap: 12px;
+}
+
+.app-titlebar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--body-strong);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.app-titlebar-mark {
+  width: 20px;
+  height: 20px;
+  border-radius: 7px;
+}
+
+.app-titlebar-menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.app-titlebar-menu-root {
+  position: relative;
+}
+
+.app-titlebar-menu-btn {
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: var(--radius-xs);
+  padding: 0 8px;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+
+.app-titlebar-menu-btn:hover,
+.app-titlebar-menu-btn.active {
+  background: var(--surface-card);
+  color: var(--body-strong);
+}
+
+.app-titlebar-menu-popover {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  min-width: 168px;
+  z-index: 600;
+  padding: 6px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+}
+
+.app-titlebar-menu-item {
+  width: 100%;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--body);
+  border-radius: var(--radius-xs);
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-titlebar-menu-item:hover:not(:disabled) {
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
+.app-titlebar-menu-item:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.app-titlebar-menu-item kbd {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--muted-soft);
+  font-weight: 500;
+}
+
+.app-titlebar-center {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--body);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.app-titlebar-context {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-titlebar-context.muted {
+  color: var(--muted);
+}
+
+.app-titlebar-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--muted-soft);
+  opacity: 0.55;
+}
+
+.app-titlebar-actions {
+  justify-self: end;
+  gap: 4px;
+}
+
+.app-titlebar-icon-btn {
+  width: 28px;
+  height: 26px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  border-radius: var(--radius-xs);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.app-titlebar-icon-btn:hover {
+  background: var(--surface-card);
+  color: var(--body-strong);
+  border-color: var(--hairline);
+}
+
+.app-window-controls {
+  align-self: stretch;
+}
+
+.app-window-controls button {
+  width: 46px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.app-window-controls button:hover {
+  background: var(--surface-card);
+  color: var(--body-strong);
+}
+
+.app-window-controls button.close:hover {
+  background: #c42b1c;
+  color: #fff;
+}
+
+.app-titlebar-macos {
+  grid-template-columns: minmax(0, 1fr) auto minmax(200px, 1fr);
+  padding-right: 12px;
+}
+
+[data-theme="apple"] .app-titlebar {
+  background: rgba(245, 245, 247, 0.86);
+  backdrop-filter: saturate(180%) blur(18px);
+}
+
+[data-theme="warp"] .app-titlebar {
+  background: color-mix(in srgb, var(--surface-soft) 86%, #000);
 }
 
 .page-area {
@@ -728,10 +954,10 @@ body {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  padding: 0 14px;
+  padding: 0 14px 0 12px;
   background: var(--canvas);
   border-bottom: 1px solid var(--hairline);
-  gap: 12px;
+  gap: 10px;
   -webkit-app-region: drag;
 }
 .topbar > * { -webkit-app-region: no-drag; }

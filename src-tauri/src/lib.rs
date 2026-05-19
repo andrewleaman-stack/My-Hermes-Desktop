@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
-use tauri::{Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 pub mod commands;
 pub mod stream;
@@ -67,6 +67,23 @@ impl AppState {
             chat_processes: std::sync::Mutex::new(std::collections::HashMap::new()),
         }
     }
+}
+
+fn shutdown_children(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    if let Some(mut child) = state.dashboard_child.lock().unwrap().take() {
+        child.kill().ok();
+    }
+    let mut procs = state.chat_processes.lock().unwrap();
+    for (_, mut child) in procs.drain() {
+        child.kill().ok();
+    }
+}
+
+#[tauri::command]
+fn quit_app(app: AppHandle) {
+    shutdown_children(&app);
+    app.exit(0);
 }
 
 // ─── Shortcuts Setup ─────────────────────────────────────────────────────────
@@ -154,20 +171,64 @@ fn setup_tray(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
             }
             "quit" => {
                 // 退出前 kill 后台进程
-                let state = app.state::<AppState>();
-                if let Some(mut child) = state.dashboard_child.lock().unwrap().take() {
-                    child.kill().ok();
-                }
-                let mut procs = state.chat_processes.lock().unwrap();
-                for (_, mut child) in procs.drain() {
-                    child.kill().ok();
-                }
+                shutdown_children(app);
                 app.exit(0);
             }
             _ => {}
         })
         .build(app)?;
 
+    Ok(())
+}
+
+fn setup_app_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+
+    let new_session = MenuItem::with_id(app, "new-session", "新建会话", true, Some("CmdOrCtrl+N"))?;
+    let snapshot = MenuItem::with_id(app, "toggle-snapshot", "保存快照 / 快照时间线", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "退出 Hermes Desktop", true, Some("CmdOrCtrl+Q"))?;
+    let file_sep = PredefinedMenuItem::separator(app)?;
+    let file = Submenu::with_items(app, "文件", true, &[&new_session, &snapshot, &file_sep, &quit])?;
+
+    let stop_agent = MenuItem::with_id(app, "stop-agent", "停止运行", true, None::<&str>)?;
+    let shortcuts = MenuItem::with_id(app, "show-shortcuts", "快捷键", true, Some("CmdOrCtrl+/"))?;
+    let edit = Submenu::with_items(app, "编辑", true, &[&stop_agent, &shortcuts])?;
+
+    let chat = MenuItem::with_id(app, "open-chat", "对话", true, None::<&str>)?;
+    let memory = MenuItem::with_id(app, "open-memory", "记忆", true, None::<&str>)?;
+    let files = MenuItem::with_id(app, "open-files", "文件树", true, None::<&str>)?;
+    let dashboard = MenuItem::with_id(app, "open-dashboard", "管理面板", true, None::<&str>)?;
+    let settings = MenuItem::with_id(app, "open-settings", "设置", true, None::<&str>)?;
+    let terminal = MenuItem::with_id(app, "toggle-terminal", "终端", true, None::<&str>)?;
+    let view = Submenu::with_items(
+        app,
+        "查看",
+        true,
+        &[&chat, &memory, &files, &dashboard, &settings, &terminal],
+    )?;
+
+    let compress = MenuItem::with_id(app, "agent-compress", "压缩上下文", true, None::<&str>)?;
+    let background = MenuItem::with_id(app, "agent-background", "后台任务", true, None::<&str>)?;
+    let agent = Submenu::with_items(app, "Agent", true, &[&compress, &background])?;
+
+    let hide = MenuItem::with_id(app, "hide-window", "隐藏到托盘", true, None::<&str>)?;
+    let window_snapshot = MenuItem::with_id(app, "window-snapshot", "快照时间线", true, None::<&str>)?;
+    let window = Submenu::with_items(app, "窗口", true, &[&hide, &window_snapshot])?;
+
+    let setup = MenuItem::with_id(app, "help-setup", "安装与配置", true, None::<&str>)?;
+    let about = MenuItem::with_id(app, "help-about", "关于 Hermes Desktop", true, None::<&str>)?;
+    let help = Submenu::with_items(app, "帮助", true, &[&setup, &about])?;
+
+    let menu = Menu::with_items(app, &[&file, &edit, &view, &agent, &window, &help])?;
+    app.set_menu(menu)?;
+    Ok(())
+}
+
+fn setup_platform_window(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(win) = app.get_webview_window("main") {
+        #[cfg(not(target_os = "macos"))]
+        win.set_decorations(false)?;
+    }
     Ok(())
 }
 
@@ -183,9 +244,47 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .manage(AppState::new())
         .setup(|app| {
+            setup_platform_window(app)?;
+            setup_app_menu(app)?;
             setup_tray(app)?;
             setup_shortcuts(app)?;
             Ok(())
+        })
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "quit" => {
+                shutdown_children(app);
+                app.exit(0);
+            }
+            "hide-window" => {
+                if let Some(win) = app.get_webview_window("main") {
+                    win.hide().ok();
+                }
+            }
+            "agent-compress" => {
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.emit("app-menu-action", "show-shortcuts");
+                }
+            }
+            "agent-background" | "window-snapshot" => {
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.emit("app-menu-action", "toggle-snapshot");
+                }
+            }
+            "help-setup" => {
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.emit("app-menu-action", "open-dashboard");
+                }
+            }
+            "help-about" => {
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.emit("app-menu-action", "open-settings");
+                }
+            }
+            id => {
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.emit("app-menu-action", id.to_string());
+                }
+            }
         })
         .on_window_event(|window, event| match event {
             // 关闭按钮 → 隐藏到托盘，不退出进程
@@ -243,6 +342,7 @@ pub fn run() {
             commands::files::speak_text,
             commands::files::stop_speak,
             commands::tray::update_tray_status,
+            quit_app,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

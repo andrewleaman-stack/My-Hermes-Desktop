@@ -75,17 +75,6 @@ export default function TopBar({
 
   return (
     <div className="topbar">
-      {/* Logo */}
-      <div className="topbar-logo">
-        <span className="brand-mark" aria-hidden="true">
-          <Icon name="spark" size={15} />
-        </span>
-        <span className="topbar-logo-name">Hermes</span>
-        <span className="topbar-logo-sub">Desktop</span>
-      </div>
-
-      <div className="topbar-divider" />
-
       {/* Current session title */}
       <div className={`topbar-session-title ${savingTitle ? "saving" : ""}`}>
         {editingTitle ? (

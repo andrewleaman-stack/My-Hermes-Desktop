@@ -240,10 +240,31 @@ export default function ChatPage({ apiKeyConfigured = true }: { apiKeyConfigured
       handleNewSession();
     });
     const hotkeyHandler = () => handleNewSession();
+    const terminalHandler = () => setTerminalOpen((value) => !value);
+    const snapshotHandler = () => {
+      setSnapshotPanelOpen((value) => !value);
+      setFileTreeOpen(false);
+    };
+    const fileTreeHandler = () => {
+      setFileTreeOpen((value) => !value);
+      setSnapshotPanelOpen(false);
+    };
+    const stopHandler = () => {
+      const id = activeSessionIdRef.current;
+      if (id) invoke("kill_session", { sessionTag: id }).catch(() => {});
+    };
     window.addEventListener("new-session-hotkey", hotkeyHandler);
+    window.addEventListener("toggle-terminal", terminalHandler);
+    window.addEventListener("toggle-snapshot", snapshotHandler);
+    window.addEventListener("toggle-file-tree", fileTreeHandler);
+    window.addEventListener("stop-active-session", stopHandler);
     return () => {
       unlisten.then((fn) => fn());
       window.removeEventListener("new-session-hotkey", hotkeyHandler);
+      window.removeEventListener("toggle-terminal", terminalHandler);
+      window.removeEventListener("toggle-snapshot", snapshotHandler);
+      window.removeEventListener("toggle-file-tree", fileTreeHandler);
+      window.removeEventListener("stop-active-session", stopHandler);
     };
   }, [handleNewSession]);
 
