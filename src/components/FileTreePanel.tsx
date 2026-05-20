@@ -66,6 +66,21 @@ import toml from "react-syntax-highlighter/dist/esm/languages/prism/toml";
 import markdown from "react-syntax-highlighter/dist/esm/languages/prism/markdown";
 import bash from "react-syntax-highlighter/dist/esm/languages/prism/bash";
 import css from "react-syntax-highlighter/dist/esm/languages/prism/css";
+import java from "react-syntax-highlighter/dist/esm/languages/prism/java";
+import kotlin from "react-syntax-highlighter/dist/esm/languages/prism/kotlin";
+import swift from "react-syntax-highlighter/dist/esm/languages/prism/swift";
+import go from "react-syntax-highlighter/dist/esm/languages/prism/go";
+import ruby from "react-syntax-highlighter/dist/esm/languages/prism/ruby";
+import cpp from "react-syntax-highlighter/dist/esm/languages/prism/cpp";
+import csharp from "react-syntax-highlighter/dist/esm/languages/prism/csharp";
+import php from "react-syntax-highlighter/dist/esm/languages/prism/php";
+import scala from "react-syntax-highlighter/dist/esm/languages/prism/scala";
+import lua from "react-syntax-highlighter/dist/esm/languages/prism/lua";
+import powershell from "react-syntax-highlighter/dist/esm/languages/prism/powershell";
+import batch from "react-syntax-highlighter/dist/esm/languages/prism/batch";
+import docker from "react-syntax-highlighter/dist/esm/languages/prism/docker";
+import groovy from "react-syntax-highlighter/dist/esm/languages/prism/groovy";
+import sql from "react-syntax-highlighter/dist/esm/languages/prism/sql";
 
 SyntaxHighlighter.registerLanguage("typescript", ts);
 SyntaxHighlighter.registerLanguage("tsx", tsx);
@@ -79,6 +94,21 @@ SyntaxHighlighter.registerLanguage("toml", toml);
 SyntaxHighlighter.registerLanguage("markdown", markdown);
 SyntaxHighlighter.registerLanguage("bash", bash);
 SyntaxHighlighter.registerLanguage("css", css);
+SyntaxHighlighter.registerLanguage("java", java);
+SyntaxHighlighter.registerLanguage("kotlin", kotlin);
+SyntaxHighlighter.registerLanguage("swift", swift);
+SyntaxHighlighter.registerLanguage("go", go);
+SyntaxHighlighter.registerLanguage("ruby", ruby);
+SyntaxHighlighter.registerLanguage("cpp", cpp);
+SyntaxHighlighter.registerLanguage("csharp", csharp);
+SyntaxHighlighter.registerLanguage("php", php);
+SyntaxHighlighter.registerLanguage("scala", scala);
+SyntaxHighlighter.registerLanguage("lua", lua);
+SyntaxHighlighter.registerLanguage("powershell", powershell);
+SyntaxHighlighter.registerLanguage("batch", batch);
+SyntaxHighlighter.registerLanguage("docker", docker);
+SyntaxHighlighter.registerLanguage("groovy", groovy);
+SyntaxHighlighter.registerLanguage("sql", sql);
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -113,6 +143,20 @@ const EXT_LANG: Record<string, string> = {
   md: "markdown", mdx: "markdown",
   sh: "bash", zsh: "bash", bash: "bash",
   css: "css", scss: "css",
+  java: "java",
+  kt: "kotlin", kts: "kotlin",
+  swift: "swift",
+  go: "go",
+  rb: "ruby",
+  cpp: "cpp", cc: "cpp", cxx: "cpp", h: "cpp", hpp: "cpp",
+  cs: "csharp",
+  php: "php",
+  scala: "scala",
+  lua: "lua",
+  ps1: "powershell", psm1: "powershell", psd1: "powershell",
+  cmd: "batch", bat: "batch",
+  groovy: "groovy", gradle: "groovy",
+  sql: "sql",
 };
 
 const TEXT_EXTENSIONS = new Set([
@@ -120,6 +164,14 @@ const TEXT_EXTENSIONS = new Set([
   "toml", "md", "mdx", "sh", "zsh", "bash", "css", "scss",
   "html", "htm", "xml", "txt", "env", "lock", "sql", "graphql", "gql",
   "gitignore", "gitattributes", "editorconfig", "prettierrc", "eslintrc",
+  "java", "kt", "kts", "swift", "go", "rb",
+  "cpp", "cc", "cxx", "h", "hpp", "cs", "php", "scala", "lua",
+  "ps1", "psm1", "psd1", "cmd", "bat",
+  "groovy", "gradle",
+  "makefile", "cmake", "dockerfile",
+  "vue", "svelte", "astro",
+  "ini", "cfg", "conf", "properties",
+  "tf", "tfvars",
 ]);
 
 function getExt(name: string): string {
@@ -129,11 +181,20 @@ function getExt(name: string): string {
   return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
 }
 
+const SPECIAL_FILENAMES = new Set([
+  "dockerfile", "makefile", "gemfile", "rakefile", "procfile",
+  "vagrantfile", "jenkinsfile",
+]);
+
 function isTextFile(name: string): boolean {
+  if (SPECIAL_FILENAMES.has(name.toLowerCase())) return true;
   return TEXT_EXTENSIONS.has(getExt(name));
 }
 
 function getLang(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower === "dockerfile") return "docker";
+  if (lower === "makefile" || lower === "cmake") return "bash";
   return EXT_LANG[getExt(name)] ?? "text";
 }
 
@@ -820,7 +881,7 @@ function FilePreview({ path, content, onOpenSystem, onAddToChat }: {
             margin: 0,
             padding: "12px 8px",
             background: "transparent",
-            fontSize: "11.5px",
+            fontSize: "var(--file-tree-font-size, 11.5px)",
             lineHeight: "1.6",
           }}
           lineNumberStyle={{ opacity: 0.3, userSelect: "none", minWidth: "2.5em" }}
