@@ -222,6 +222,13 @@
       "acceptance": "点击麦克风按钮可录音，识别结果填入输入框；录音中按钮高亮闪烁；assistant 消息操作栏显示朗读按钮，点击调用 say 朗读文本内容",
       "depends_on": [],
       "passes": true
+    },
+    {
+      "id": "feat-215",
+      "description": "字体大小设置 — 设置页新增字体大小 section，含界面/终端/文件管理器三行，每行提供小/中/大三档选择；界面字体通过 data-ui-size 属性 + CSS 覆盖规则影响消息气泡和侧边栏；终端字体动态更新 xterm.js fontSize；文件管理器字体通过 CSS 变量 --file-tree-font-size 控制；三项均持久化到 localStorage",
+      "acceptance": "设置页字体大小 section 显示三行选择器；切换档位后对应区域字体立即变化；重启应用后字体设置保持",
+      "depends_on": [],
+      "passes": true
     }
   ]
 }

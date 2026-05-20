@@ -12,6 +12,7 @@ import KeyboardShortcutsPanel from "./components/KeyboardShortcutsPanel";
 import AppTitleBar from "./components/AppTitleBar";
 import type { AppMenuAction } from "./appMenu";
 import { useTheme } from "./hooks/useTheme";
+import { useFontSize } from "./hooks/useFontSize";
 import { detectPlatformKind } from "./utils/platform";
 
 const isMac = navigator.platform.toLowerCase().includes("mac");
@@ -32,6 +33,7 @@ function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   useTheme();
+  useFontSize();
   const isChat = location.pathname === "/";
   const platformKind = detectPlatformKind();
   const [checkingSetup, setCheckingSetup] = useState(true);

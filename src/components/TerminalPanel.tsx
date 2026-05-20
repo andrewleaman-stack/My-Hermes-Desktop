@@ -7,6 +7,7 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
 import Icon from "./Icon";
 import { useTerminalBg, xtermBackground } from "../hooks/useTerminalBg";
+import { useFontSize } from "../hooks/useFontSize";
 
 interface Props {
   ptyId: string;
@@ -23,6 +24,9 @@ export default function TerminalPanel({ ptyId, sessionId, onClose }: Props) {
   const { terminalBg } = useTerminalBg();
   const terminalBgRef = useRef(terminalBg);
   terminalBgRef.current = terminalBg;
+  const { terminalFontPx } = useFontSize();
+  const terminalFontPxRef = useRef(terminalFontPx);
+  terminalFontPxRef.current = terminalFontPx;
 
   const doClose = useCallback(() => {
     invoke("pty_close", { ptyId }).catch(() => {});
@@ -39,7 +43,7 @@ export default function TerminalPanel({ ptyId, sessionId, onClose }: Props) {
       cursorBlink: true,
       allowTransparency: true,
       fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-      fontSize: 13,
+      fontSize: terminalFontPxRef.current,
       lineHeight: 1.0,
       theme: {
         background: xtermBackground(terminalBgRef.current),
@@ -116,6 +120,13 @@ export default function TerminalPanel({ ptyId, sessionId, onClose }: Props) {
     if (!term) return;
     term.options.theme = { ...term.options.theme, background: xtermBackground(terminalBg) };
   }, [terminalBg]);
+
+  useEffect(() => {
+    const term = termRef.current;
+    if (!term) return;
+    term.options.fontSize = terminalFontPx;
+    fitAddonRef.current?.fit();
+  }, [terminalFontPx]);
 
   return (
     <div className="terminal-panel" data-terminal-bg={terminalBg}>

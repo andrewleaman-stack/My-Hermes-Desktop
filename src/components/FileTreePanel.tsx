@@ -278,7 +278,7 @@ export default function FileTreePanel({ initialPath, onClose, onAddToChat }: Pro
         </button>
         <span
           title={currentPath}
-          style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "12px", opacity: 0.65 }}
+          style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "var(--file-tree-font-size, 12px)", opacity: 0.65 }}
         >
           {toDisplayPath(currentPath)}
         </span>
@@ -421,7 +421,7 @@ function TreeRow({
               ? "var(--text-primary, #ddd)"
               : "var(--text-secondary, #aaa)",
             fontWeight: node.is_dir && isExpanded ? 600 : 400,
-            fontSize: "12px",
+            fontSize: "var(--file-tree-font-size, 12px)",
             textAlign: "left",
             overflow: "hidden",
             textOverflow: "ellipsis",

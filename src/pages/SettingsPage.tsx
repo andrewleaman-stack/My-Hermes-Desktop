@@ -8,6 +8,7 @@ import {
 } from "../components/chat/GuideBot";
 import { THEMES, useTheme, type Theme } from "../hooks/useTheme";
 import { TERMINAL_BGS, useTerminalBg, type TerminalBg } from "../hooks/useTerminalBg";
+import { FONT_SIZES, FONT_SIZE_LABELS, useFontSize, type FontSize } from "../hooks/useFontSize";
 
 const THEME_LABELS: Record<Theme, { name: string; description: string }> = {
   claude: { name: "Claude Noir", description: "温暖纸面、柔和边界" },
@@ -23,6 +24,12 @@ const TERMINAL_BG_LABELS: Record<TerminalBg, { name: string; description: string
   forest:  { name: "暗林",   description: "深邃祖母绿渐变" },
 };
 
+const FONT_SIZE_ROW_LABELS: Record<string, string> = {
+  ui: "界面",
+  terminal: "终端",
+  fileTree: "文件管理器",
+};
+
 const APPEARANCE_MOOD: Record<GuideBotAppearance, Parameters<typeof GuideBotAvatar>[0]["mood"]> = {
   classic: "blink",
   voxel: "ok",
@@ -36,6 +43,11 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { appearance, setAppearance } = useGuideBotAppearance();
   const { terminalBg, setTerminalBg } = useTerminalBg();
+  const {
+    uiFontSize, setUiFontSize,
+    terminalFontSize, setTerminalFontSize,
+    fileTreeFontSize, setFileTreeFontSize,
+  } = useFontSize();
 
   return (
     <div className="settings-page">
@@ -133,6 +145,41 @@ export default function SettingsPage() {
                 </span>
                 {terminalBg === bg && <Icon name="check" size={15} />}
               </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="settings-section">
+          <div className="settings-section-header">
+            <div>
+              <h2 className="settings-section-title ui-font">字体大小</h2>
+              <p className="settings-section-desc">调整界面、终端和文件管理器的文字大小。</p>
+            </div>
+          </div>
+
+          <div className="font-size-rows">
+            {(
+              [
+                { key: "ui",       label: FONT_SIZE_ROW_LABELS.ui,       value: uiFontSize,       set: setUiFontSize },
+                { key: "terminal", label: FONT_SIZE_ROW_LABELS.terminal, value: terminalFontSize, set: setTerminalFontSize },
+                { key: "fileTree", label: FONT_SIZE_ROW_LABELS.fileTree, value: fileTreeFontSize, set: setFileTreeFontSize },
+              ] as { key: string; label: string; value: FontSize; set: (v: FontSize) => void }[]
+            ).map(({ key, label, value, set }) => (
+              <div key={key} className="font-size-row">
+                <span className="font-size-row-label ui-font">{label}</span>
+                <div className="font-size-chips">
+                  {FONT_SIZES.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className={`font-size-chip ui-font${value === s ? " selected" : ""}`}
+                      onClick={() => set(s)}
+                    >
+                      {FONT_SIZE_LABELS[s]}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </section>
