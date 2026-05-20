@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { getWindowMenu, type AppMenuAction, type AppMenuSection } from "../appMenu";
 import type { PlatformKind } from "../utils/platform";
 import Icon from "./Icon";
+import logoUrl from "../assets/logos.png";
 
 interface Props {
   platform: PlatformKind;
@@ -67,7 +68,7 @@ export default function AppTitleBar({ platform, currentPath, onAction }: Props) 
   return (
     <div ref={rootRef} className={`app-titlebar app-titlebar-${platform}`} onMouseDown={handleMouseDown}>
       <div className="app-titlebar-left">
-        <div className="app-titlebar-brand" title="Hermes Desktop">
+        <div className="app-titlebar-brand" title="My Hermes Desktop">
           <span className="brand-mark app-titlebar-mark" aria-hidden="true">
             <Icon name="spark" size={13} />
           </span>
@@ -106,12 +107,17 @@ export default function AppTitleBar({ platform, currentPath, onAction }: Props) 
       </div>
 
       <div className="app-titlebar-center">
-        <span className="app-titlebar-context">hermes-desktop</span>
+        <span className="app-titlebar-context">My Hermes Desktop</span>
         <span className="app-titlebar-dot" />
         <span className="app-titlebar-context muted">{pageLabel(currentPath)}</span>
       </div>
 
       <div className="app-titlebar-actions">
+        <span className="app-titlebar-credit" aria-label="玄熵智能">
+          <img src={logoUrl} alt="" className="app-titlebar-credit-logo" />
+          <span className="app-titlebar-credit-text">玄熵智能</span>
+        </span>
+
         <button className="app-titlebar-icon-btn" title="新建会话" onClick={() => runAction("new-session")}>
           <Icon name="edit" size={13} />
         </button>

@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Hermes Desktop",
+  "productName": "My Hermes Desktop",
   "version": "0.1.0",
   "identifier": "com.hermesdesktop.app",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Hermes Desktop",
+        "title": "My Hermes Desktop",
         "width": 1280,
         "height": 800,
         "minWidth": 900,

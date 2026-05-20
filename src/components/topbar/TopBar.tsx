@@ -8,7 +8,9 @@ interface Props {
   streaming: boolean;
   status: HermesStatus | null;
   hermesVersion: string;
-  toolCallCount: number;
+  tokenDisplay: { input: string; output: string } | null;
+  showTools: boolean;
+  onToggleTools: () => void;
   sessionTitle: string | null;
   onOpenTerminal: () => void;
   onOpenSnapshot: () => void;
@@ -21,7 +23,9 @@ export default function TopBar({
   streaming,
   status,
   hermesVersion,
-  toolCallCount,
+  tokenDisplay,
+  showTools,
+  onToggleTools,
   sessionTitle,
   onOpenTerminal,
   onOpenSnapshot,
@@ -133,11 +137,15 @@ export default function TopBar({
 
       <div className="topbar-divider" />
 
-      {/* Tool call steps */}
-      <div className="status-pill">
-        <span className="label">Steps</span>
-        <span className="value">{toolCallCount > 0 ? toolCallCount : "—"}</span>
-      </div>
+      {/* Token usage */}
+      {tokenDisplay && (
+        <div className="status-pill" title="输入 / 输出 Token 估算">
+          <span className="label">Token</span>
+          <span className="value">{tokenDisplay.input}</span>
+          <span className="token-sep">/</span>
+          <span className="value muted">{tokenDisplay.output}</span>
+        </div>
+      )}
 
       {/* Cost */}
       {status?.cost && (
@@ -196,6 +204,16 @@ export default function TopBar({
           </span>
         </div>
       )}
+
+      {/* Tool calls toggle — subtle icon only */}
+      <button
+        className={`app-titlebar-icon-btn topbar-tools-toggle${showTools ? " active" : ""}`}
+        onClick={onToggleTools}
+        title={showTools ? "隐藏工具调用" : "显示工具调用"}
+        aria-pressed={showTools}
+      >
+        <Icon name="tool" size={13} />
+      </button>
     </div>
   );
 }

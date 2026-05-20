@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -30,49 +30,81 @@ function parseHistoryMessages(raw: unknown): Message[] {
   }
 
   const messages: Message[] = [];
+  // Maps tool_call_id → { msgIdx, blockIdx } for filling tool results
+  const toolCallLocations = new Map<string, { msgIdx: number; blockIdx: number }>();
+
   for (const item of items as Record<string, unknown>[]) {
     const role = item.role as string;
-    if (role !== "user" && role !== "assistant") continue;
 
-    let text = "";
-    const content = item.content;
-    if (typeof content === "string") {
-      text = content.trim();
-    } else if (Array.isArray(content)) {
-      text = (content as Record<string, unknown>[])
-        .filter((b) => b.type === "text")
-        .map((b) => String(b.text ?? ""))
-        .join("\n")
-        .trim();
+    if (role === "user" || role === "assistant") {
+      let text = "";
+      const content = item.content;
+      if (typeof content === "string") {
+        text = content.trim();
+      } else if (Array.isArray(content)) {
+        text = (content as Record<string, unknown>[])
+          .filter((b) => b.type === "text")
+          .map((b) => String(b.text ?? ""))
+          .join("\n")
+          .trim();
+      }
+
+      const imageAttachments = Array.isArray(item.image_attachments)
+        ? (item.image_attachments as unknown[]).filter((u): u is string => typeof u === "string")
+        : [];
+
+      const blocks: Message["blocks"] = [];
+      if (text) blocks.push({ type: "text", content: text });
+
+      if (role === "assistant" && Array.isArray(item.tool_calls)) {
+        const msgIdx = messages.length;
+        for (const tc of item.tool_calls as Record<string, unknown>[]) {
+          const fn = tc.function as Record<string, unknown> | undefined;
+          const blockIdx = blocks.length;
+          blocks.push({
+            type: "tool",
+            name: String(fn?.name ?? "tool"),
+            input: String(fn?.arguments ?? ""),
+            output: "",
+            outputDone: false,
+          });
+          const callId = tc.id as string;
+          if (callId) toolCallLocations.set(callId, { msgIdx, blockIdx });
+        }
+      }
+
+      for (const dataUrl of imageAttachments) {
+        blocks.push({ type: "image", dataUrl });
+      }
+
+      if (blocks.length === 0) continue;
+
+      const timestamp =
+        item.timestamp ?? item.created_at ?? item.createdAt ?? item.time ?? item.updated_at;
+
+      messages.push({
+        id: uid(),
+        role: role as "user" | "assistant",
+        blocks,
+        timestamp: typeof timestamp === "string" ? timestamp : "",
+        status: "done",
+      });
+    } else if (role === "tool") {
+      const toolCallId = item.tool_call_id as string;
+      const loc = toolCallLocations.get(toolCallId);
+      if (loc) {
+        const block = messages[loc.msgIdx]?.blocks[loc.blockIdx];
+        if (block?.type === "tool") {
+          const output = typeof item.content === "string"
+            ? item.content
+            : JSON.stringify(item.content);
+          messages[loc.msgIdx].blocks[loc.blockIdx] = { ...block, output, outputDone: true };
+        }
+        toolCallLocations.delete(toolCallId);
+      }
     }
-
-    const imageAttachments = Array.isArray(item.image_attachments)
-      ? (item.image_attachments as unknown[]).filter((u): u is string => typeof u === "string")
-      : [];
-
-    if (!text && imageAttachments.length === 0) continue;
-
-    const blocks: Message["blocks"] = [];
-    if (text) blocks.push({ type: "text", content: text });
-    for (const dataUrl of imageAttachments) {
-      blocks.push({ type: "image", dataUrl });
-    }
-
-    const timestamp =
-      item.timestamp ??
-      item.created_at ??
-      item.createdAt ??
-      item.time ??
-      item.updated_at;
-
-    messages.push({
-      id: uid(),
-      role: role as "user" | "assistant",
-      blocks,
-      timestamp: typeof timestamp === "string" ? timestamp : "",
-      status: "done",
-    });
   }
+
   return messages;
 }
 
@@ -107,6 +139,7 @@ export default function ChatPage({ apiKeyConfigured = true }: { apiKeyConfigured
   const [hermesVersion, setHermesVersion] = useState<string>("");
   const [workingDir, setWorkingDir] = useState<string | null>(() => localStorage.getItem("hermes_working_dir"));
   const [fileTreeOpen, setFileTreeOpen] = useState(false);
+  const [showTools, setShowTools] = useState<boolean>(() => localStorage.getItem("hermes_show_tools") === "true");
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [snapshotPanelOpen, setSnapshotPanelOpen] = useState(false);
   const [snapshotCreateCount, setSnapshotCreateCount] = useState(0);
@@ -120,8 +153,7 @@ export default function ChatPage({ apiKeyConfigured = true }: { apiKeyConfigured
   const [streamingSessions, setStreamingSessions] = useState<Set<string>>(new Set());
   const [sessionStatus, setSessionStatus] = useState<Record<string, HermesStatus>>({});
   const [sessionErrors, setSessionErrors] = useState<Record<string, string | null>>({});
-  const [sessionToolCallCounts, setSessionToolCallCounts] = useState<Record<string, number>>({});
-  const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "queued" | "done">>({});
+const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "queued" | "done">>({});
 
   // Refs
   const justFinishedRef = useRef<Record<string, boolean>>({});
@@ -138,7 +170,38 @@ export default function ChatPage({ apiKeyConfigured = true }: { apiKeyConfigured
   const streaming = activeSessionId ? streamingSessions.has(activeSessionId) : false;
   const status = activeSessionId ? (sessionStatus[activeSessionId] ?? null) : null;
   const error = activeSessionId ? (sessionErrors[activeSessionId] ?? null) : null;
-  const toolCallCount = activeSessionId ? (sessionToolCallCounts[activeSessionId] ?? 0) : 0;
+
+  const tokenDisplay = useMemo((): { input: string; output: string } | null => {
+    const msgs = activeSessionId ? (sessionMessages[activeSessionId] ?? []) : [];
+    if (msgs.length === 0) return null;
+    let inputChars = 0;
+    let outputChars = 0;
+    for (const msg of msgs) {
+      if (msg.role === "user") {
+        for (const block of msg.blocks) {
+          if (block.type === "text") inputChars += block.content.length;
+        }
+      } else {
+        for (const block of msg.blocks) {
+          if (block.type === "text" || block.type === "think") outputChars += block.content.length;
+          else if (block.type === "tool") {
+            outputChars += block.input.length;
+            inputChars += block.output.length;
+          }
+        }
+      }
+    }
+    const fmt = (n: number) => {
+      if (n < 100) return null;
+      if (n >= 1_000_000) return `~${(n / 1_000_000).toFixed(1)}M`;
+      if (n >= 1_000) return `~${(n / 1_000).toFixed(1)}K`;
+      return `~${n}`;
+    };
+    const inStr = fmt(Math.round(inputChars / 2));
+    const outStr = fmt(Math.round(outputChars / 2));
+    if (!inStr && !outStr) return null;
+    return { input: inStr ?? "—", output: outStr ?? "—" };
+  }, [activeSessionId, sessionMessages]);
 
   activeSessionIdRef.current = activeSessionId;
 
@@ -200,8 +263,6 @@ export default function ChatPage({ apiKeyConfigured = true }: { apiKeyConfigured
       delete next[id];
       return next;
     });
-    setSessionToolCallCounts((prev) => ({ ...prev, [id]: 0 }));
-
     const session = sessions.find((s) => s.id === id);
     if (session?.model) {
       setSessionStatus((prev) => ({
@@ -311,11 +372,6 @@ export default function ChatPage({ apiKeyConfigured = true }: { apiKeyConfigured
           return next;
         });
         setSessionErrors((prev) => {
-          const next = { ...prev };
-          delete next[id];
-          return next;
-        });
-        setSessionToolCallCounts((prev) => {
           const next = { ...prev };
           delete next[id];
           return next;
@@ -664,13 +720,6 @@ export default function ChatPage({ apiKeyConfigured = true }: { apiKeyConfigured
         const sessionId = chunk.session_id;
         if (!sessionId) return;
 
-        if (chunk.kind === "tool_name") {
-          setSessionToolCallCounts((prev) => ({
-            ...prev,
-            [sessionId]: (prev[sessionId] ?? 0) + 1,
-          }));
-        }
-
         setSessionMessages((prev) => {
           const msgs = [...(prev[sessionId] ?? [])];
           const lastAssistantIdx = [...msgs]
@@ -906,14 +955,6 @@ export default function ChatPage({ apiKeyConfigured = true }: { apiKeyConfigured
             next[realId] = e;
             return next;
           });
-          setSessionToolCallCounts((prev) => {
-            const c = prev[sessionId];
-            if (c === undefined) return prev;
-            const next = { ...prev };
-            delete next[sessionId];
-            next[realId] = c;
-            return next;
-          });
           setSessionBadges((prev) => {
             const b = prev[sessionId];
             if (!b) return prev;
@@ -958,13 +999,21 @@ export default function ChatPage({ apiKeyConfigured = true }: { apiKeyConfigured
         streaming={streaming}
         status={status}
         hermesVersion={hermesVersion}
-        toolCallCount={toolCallCount}
         sessionTitle={activeSession?.title ?? null}
         onOpenTerminal={() => setTerminalOpen(true)}
         onOpenSnapshot={() => {
             setSnapshotPanelOpen((v) => !v);
             setFileTreeOpen(false);
           }}
+        tokenDisplay={tokenDisplay}
+        showTools={showTools}
+        onToggleTools={() => {
+          setShowTools((v) => {
+            const next = !v;
+            localStorage.setItem("hermes_show_tools", String(next));
+            return next;
+          });
+        }}
         onSendMessage={handleSendMessage}
         onNewSession={handleNewSession}
         onRenameSession={handleRenameSession}
@@ -1075,6 +1124,7 @@ export default function ChatPage({ apiKeyConfigured = true }: { apiKeyConfigured
           onPtyWrite={handlePtyWrite}
           pendingInputAppend={pendingInputAppend}
           workingDir={workingDir}
+          showTools={showTools}
         />
       </div>
     </div>

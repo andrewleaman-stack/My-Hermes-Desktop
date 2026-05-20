@@ -66,7 +66,7 @@ export default function SettingsPage() {
           <div className="settings-section-header">
             <div>
               <h2 className="settings-section-title ui-font">外观风格</h2>
-              <p className="settings-section-desc">选择 Hermes Desktop 的整体视觉语言。</p>
+              <p className="settings-section-desc">选择 My Hermes Desktop 的整体视觉语言。</p>
             </div>
           </div>
 
@@ -199,6 +199,10 @@ export default function SettingsPage() {
           </button>
         </section>
       </div>
+
+      <footer className="settings-copyright ui-font">
+        © {new Date().getFullYear()} 深圳市玄熵智能科技有限责任公司
+      </footer>
     </div>
   );
 }

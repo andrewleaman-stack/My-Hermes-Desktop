@@ -4,6 +4,32 @@
 > - Session 开始时：只读最近 5 条，了解近况
 > - Session 结束时：在最前面追加新条目（不是末尾）
 
+[2026-05-20 19:25] FIX 工具显隐三项调整 — 默认改为关闭；纯工具消息整条隐藏（every tool block → return null）；按钮从大文字改为版本号右侧小图标（app-titlebar-icon-btn 样式）
+
+[2026-05-20 19:10] FIX 工具调用显隐快捷开关 — TopBar 新增「工具」按钮（激活高亮）；showTools state 持久化 localStorage；透传 ChatView→MessageBubble，tool block 条件渲染；默认显示
+
+[2026-05-20 18:50] FIX parseHistoryMessages 补全工具调用 — 之前 role:tool 全部丢弃；现在 assistant.tool_calls 生成 ToolCallBlock，role:tool 按 tool_call_id 回填 output；token 估算因此覆盖文件读取等工具结果；历史视图也能展示工具详情
+
+[2026-05-20 18:25] FIX Token 输入/输出分开估算 — user消息+tool结果=输入，assistant+think+tool调用参数=输出；TopBar 显示 ~3.2K / ~1.4K，输出侧淡色，hover tooltip 说明
+
+[2026-05-20 18:10] FIX Token 用量显示 — hermes 不输出 token 数；改为前端 useMemo 从 sessionMessages 内容长度估算（2 chars≈1 token）；有真实数据优先用真实的；>200 token 才显示，格式 ~12.3K；流式过程中实时更新
+
+[2026-05-20 17:50] DECISION Token 用量不显示原因 — tokensUsed 依赖 hermes status chunk 中的 X/Y 格式；deepseek-v4-flash 不输出该格式；duration/msgCount 来自 session_stat chunk 任意模型都有；待用户决策：降级显示 msgCount 或 token 显示 — 兜底
+
+[2026-05-20 17:40] FIX Steps → Token 用量 — 移除 toolCallCount 相关 state/prop/UI；改为读 status.tokensUsed，有数据才显示，无数据不占位
+
+[2026-05-20 17:30] DECISION Steps 计数器评估 — 存 React state 不持久化、页面刷新归零、纯对话不触发；对普通用户无实际意义；待用户决策：删除/改名/替换为更有意义指标
+
+[2026-05-20 17:20] FIX 标题栏中心区文字 — my-hermes-desktop 改为 My Hermes Desktop（正式大小写带空格）
+
+[2026-05-20 17:15] FIX 项目改名 → My Hermes Desktop — 7 处用户可见位置全部替换（tauri.conf.json/index.html/AppTitleBar/OnboardingPage/appMenu/SettingsPage/NOTICE）；package.json 等内部标识符保留不动
+
+[2026-05-20 17:00] DECISION 项目改名评估 — 用户提议改名为"My Hermes Desktop"；分析了 7 处用户可见改动 + 4 处内部标识符；建议考虑去掉"My"前缀，待用户确认后再执行
+
+[2026-05-20 16:45] FIX 开源协议 — 创建 LICENSE（Apache 2.0 全文）+ NOTICE（版权归属声明），法律层面强制衍生作品保留公司名称
+
+[2026-05-20 16:30] FIX 品牌版权归属 — 标题栏右侧加 logo+玄熵智能小字水印，设置页底部加深圳市玄熵智能科技有限责任公司全称；建议 Apache 2.0 + NOTICE 文件方案
+
 [2026-05-20 15:30] BUILD feat-217 技能行"解释"悬停按钮 — hover 出现"解释"按钮，点击向 hermes 发询问技能用途的消息 → sessions/2026-05-20-1530.md
 
 [2026-05-19 16:45] FIX startDragging() 权限缺失 — Tauri 2.x 所有 invoke 需在 capabilities 显式声明；补加 core:window:allow-start-dragging；静默拦截无报错是常见坑

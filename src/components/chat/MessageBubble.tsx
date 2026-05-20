@@ -170,6 +170,7 @@ interface Props {
   message: Message;
   isLastAssistant: boolean;
   streaming: boolean;
+  showTools?: boolean;
   onRetry: () => void;
 }
 
@@ -220,10 +221,13 @@ function toSpokenText(markdown: string): string {
   return text;
 }
 
-export default function MessageBubble({ message, isLastAssistant, streaming, onRetry }: Props) {
+export default function MessageBubble({ message, isLastAssistant, streaming, showTools = true, onRetry }: Props) {
   const [copied, setCopied] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const isUser = message.role === "user";
+
+  // 隐藏工具时，纯工具消息整条不渲染
+  if (!showTools && message.blocks.every((b) => b.type === "tool")) return null;
   const isStreaming = streaming && isLastAssistant && message.status === "streaming";
   const showCopy = !isUser && !isStreaming && message.status === "done";
   const showRetry = isLastAssistant && !streaming && message.status === "done";
@@ -364,7 +368,7 @@ export default function MessageBubble({ message, isLastAssistant, streaming, onR
                 return <ThinkBlock key={i} content={block.content} />;
               }
               if (block.type === "tool") {
-                return <ToolBlock key={i} block={block} />;
+                return showTools ? <ToolBlock key={i} block={block} /> : null;
               }
               if (block.type === "text") {
                 return (

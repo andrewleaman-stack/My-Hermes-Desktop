@@ -37,6 +37,7 @@ interface Props {
   pendingInputAppend?: { id: number; text: string } | null;
   onGoToDashboard?: () => void;
   workingDir?: string | null;
+  showTools?: boolean;
 }
 
 const SUPPORTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp"];
@@ -109,6 +110,7 @@ export default function ChatView({
   pendingInputAppend,
   onGoToDashboard,
   workingDir,
+  showTools = true,
 }: Props) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -539,6 +541,7 @@ export default function ChatView({
               message={msg}
               isLastAssistant={msg.id === lastAssistantId}
               streaming={streaming}
+              showTools={showTools}
               onRetry={onRetryLastMessage}
             />
           ))}

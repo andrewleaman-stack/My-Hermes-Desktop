@@ -103,7 +103,7 @@ export default function OnboardingPage({ setup, checking, onRetry, onContinue }:
           <Icon name="spark" size={30} />
         </div>
         <div className="onboarding-copy">
-          <p className="onboarding-kicker ui-font">Hermes Desktop</p>
+          <p className="onboarding-kicker ui-font">My Hermes Desktop</p>
           <h1 className="onboarding-title">开始使用 Hermes</h1>
           <p className="onboarding-subtitle">
             桌面端会先确认 Hermes CLI 可用。按官方步骤完成安装和配置后，就可以直接进入对话。

@@ -419,6 +419,29 @@ body {
   gap: 4px;
 }
 
+.app-titlebar-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  opacity: 0.45;
+  user-select: none;
+  pointer-events: none;
+}
+
+.app-titlebar-credit-logo {
+  width: 13px;
+  height: 13px;
+  object-fit: contain;
+  border-radius: 2px;
+}
+
+.app-titlebar-credit-text {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
 .app-titlebar-icon-btn {
   width: 28px;
   height: 26px;
@@ -1297,7 +1320,9 @@ body {
 }
 .status-pill .label { color: var(--muted-soft); }
 .status-pill .value { color: var(--body); }
+.status-pill .value.muted { color: var(--muted); }
 .status-pill .amber { color: var(--accent-amber); }
+.status-pill .token-sep { color: var(--muted-soft); font-size: 10px; }
 .status-icon { color: var(--muted-soft); }
 
 .topbar-spacer { flex: 1; }
@@ -2850,6 +2875,16 @@ body {
   color: #2b2622;
 }
 
+.settings-copyright {
+  padding: 12px 24px 18px;
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.5;
+  text-align: center;
+  user-select: none;
+  letter-spacing: 0.01em;
+}
+
 @media (max-width: 1060px) {
   .bot-appearance-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3732,6 +3767,14 @@ body {
   color: var(--ink);
   border-color: var(--primary-disabled);
   background: var(--surface-cream-strong);
+}
+.topbar-terminal-btn.active {
+  color: var(--primary);
+  border-color: var(--primary-disabled);
+  background: var(--surface-cream-strong);
+}
+.topbar-tools-toggle.active {
+  color: var(--primary);
 }
 
 /* ── Terminal Panel (dark surface) ── */

@@ -71,7 +71,7 @@ export const APP_MENU: AppMenuSection[] = [
     label: "帮助",
     items: [
       { label: "安装与配置", action: "open-dashboard" },
-      { label: "关于 Hermes Desktop", action: "open-settings" },
+      { label: "关于 My Hermes Desktop", action: "open-settings" },
     ],
   },
 ];
