@@ -337,6 +337,7 @@ pub fn run() {
             commands::background::bg_running_count,
             commands::files::list_dir,
             commands::files::read_text_file,
+            commands::files::save_upload,
             commands::files::get_home_dir,
             commands::files::open_path,
             commands::files::open_with_editor,

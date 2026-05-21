@@ -173,3 +173,21 @@ pub async fn read_text_file(path: String) -> Result<String, String> {
     }
     std::fs::read_to_string(p).map_err(|e| format!("Cannot read file: {e}"))
 }
+
+/// Copy a user-selected file into ~/.hermes/uploads/YYYY-MM-DD/ and return the destination path.
+/// The caller passes the source path (from Tauri file dialog); we handle the rest.
+#[tauri::command]
+pub async fn save_upload(src_path: String) -> Result<String, String> {
+    let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
+    let date = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let upload_dir = home.join(".hermes").join("uploads").join(&date);
+    std::fs::create_dir_all(&upload_dir).map_err(|e| format!("Cannot create upload dir: {e}"))?;
+    let filename = Path::new(&src_path)
+        .file_name()
+        .ok_or("Invalid source path")?
+        .to_string_lossy()
+        .to_string();
+    let dest = upload_dir.join(&filename);
+    std::fs::copy(&src_path, &dest).map_err(|e| format!("Cannot copy file: {e}"))?;
+    Ok(dest.to_string_lossy().to_string())
+}

@@ -20,6 +20,7 @@ export type IconName =
   | "mic"
   | "package"
   | "palette"
+  | "paperclip"
   | "refresh"
   | "scissors"
   | "search"
@@ -154,6 +155,11 @@ const paths: Record<IconName, JSX.Element> = {
       <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" />
       <path d="M4.4 7.7 12 12l7.6-4.3" />
       <path d="M12 12v8.6" />
+    </>
+  ),
+  paperclip: (
+    <>
+      <path d="M21.4 11.6 12.2 20.8a5.5 5.5 0 0 1-7.8-7.8L14.6 2.8a3.5 3.5 0 0 1 5 5L9.3 18a1.5 1.5 0 0 1-2.1-2.1l9.3-9.4" />
     </>
   ),
   palette: (

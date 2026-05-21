@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, KeyboardEvent, ClipboardEvent, DragEvent, useCallback } from "react";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
 import { Message } from "../types";
 import Icon from "./Icon";
 import GuideBot from "./chat/GuideBot";
@@ -12,6 +14,11 @@ import { RefItem } from "./chat/AtMentionMenu";
 interface AttachedImage {
   dataUrl: string;
   filename?: string;
+}
+
+interface AttachedFile {
+  name: string;
+  path: string;
 }
 
 interface Props {
@@ -41,6 +48,8 @@ interface Props {
 }
 
 const SUPPORTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp"];
+
+const ATTACHMENT_EXTENSIONS = ["pdf", "docx", "doc", "xlsx", "xls", "pptx", "ppt", "txt", "md", "csv", "png", "jpg", "jpeg", "gif", "webp", "bmp"];
 
 const DAILY_PROMPTS = [
   // 行动型 — 文件与整理
@@ -134,6 +143,7 @@ export default function ChatView({
   const [isTyping, setIsTyping] = useState(false);
 
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
   const [slashOpen, setSlashOpen] = useState(false);
@@ -225,6 +235,27 @@ export default function ChatView({
       return true;
     } catch {
       return false;
+    }
+  };
+
+  const handleAttachClick = async () => {
+    const selected = await openFileDialog({
+      multiple: true,
+      filters: [{ name: "Files", extensions: ATTACHMENT_EXTENSIONS }],
+    });
+    if (!selected) return;
+    const paths = Array.isArray(selected) ? selected : [selected];
+    for (const p of paths) {
+      try {
+        const dest = await invoke<string>("save_upload", { srcPath: p });
+        const name = dest.split("/").pop() ?? dest;
+        setAttachedFiles((prev) => {
+          if (prev.some((f) => f.path === dest)) return prev;
+          return [...prev, { name, path: dest }];
+        });
+      } catch (e) {
+        console.error("save_upload failed:", e);
+      }
     }
   };
 
@@ -367,7 +398,7 @@ export default function ChatView({
 
   const submit = () => {
     const rawText = textareaRef.current?.value.trim() ?? "";
-    if (!rawText && !attachedImage && selectedRefs.length === 0) return;
+    if (!rawText && !attachedImage && selectedRefs.length === 0 && attachedFiles.length === 0) return;
 
     const fileRefs = selectedRefs.filter((r) => r.type === "file");
     const skillRefs = selectedRefs.filter((r) => r.type === "skill");
@@ -376,7 +407,10 @@ export default function ChatView({
     const fileAppend = fileRefs
       .map((r) => `\n\n--- 文件: ${r.name} ---\n${r.content ?? "(内容不可用)"}`)
       .join("");
-    const payload = rawText + fileAppend;
+    const uploadAppend = attachedFiles
+      .map((f) => `\n\n[附件: ${f.path}]`)
+      .join("");
+    const payload = rawText + fileAppend + uploadAppend;
 
     const extraOpts = skillNames.length > 0 ? { skills: skillNames } : {};
 
@@ -393,6 +427,7 @@ export default function ChatView({
     }
     setIsTyping(false);
     setAttachedImage(null);
+    setAttachedFiles([]);
     setSelectedRefs([]);
   };
 
@@ -646,6 +681,25 @@ export default function ChatView({
           </div>
         )}
 
+        {attachedFiles.length > 0 && (
+          <div className="image-attachment-row">
+            {attachedFiles.map((f) => (
+              <div key={f.path} className="ref-chip ui-font">
+                <span className="ref-chip-icon">📎</span>
+                <span className="ref-chip-name">{f.name}</span>
+                <button
+                  type="button"
+                  className="image-attachment-remove ref-chip-remove"
+                  onClick={() => setAttachedFiles((prev) => prev.filter((x) => x.path !== f.path))}
+                  title="移除"
+                >
+                  <Icon name="close" size={10} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {attachedImage && (
           <div className="image-attachment-row">
             <div className="image-attachment">
@@ -741,6 +795,15 @@ export default function ChatView({
 
         <div className="input-hints ui-font">
           <div className="input-shortcuts">
+            <button
+              type="button"
+              className="bg-run-btn ui-font"
+              onClick={handleAttachClick}
+              title="添加附件（图片/PDF/Word/Excel/PPT/文本）"
+            >
+              <Icon name="paperclip" size={13} />
+              附件
+            </button>
             <button
               type="button"
               className="bg-run-btn ui-font"

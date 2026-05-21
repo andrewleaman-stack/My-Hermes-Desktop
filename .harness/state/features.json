@@ -236,6 +236,13 @@
       "acceptance": "点击 [@] 按钮或键入 @ 弹出菜单；菜单含文件和技能两组，可搜索；键盘和鼠标均可选择；选中后输入框上方出现 chip；可选多个文件和技能；发送时文件内容正确附加到消息，技能正确以 --skills 参数加载；chip 可单独删除",
       "depends_on": ["feat-209", "feat-210"],
       "passes": true
+    },
+    {
+      "id": "feat-217",
+      "description": "多附件上传 — 输入区工具栏新增「附件 📎」按钮；点击唤出 Tauri 文件选择器（支持 pdf/docx/xlsx/pptx/txt/md/图片）；支持多选，选中后在输入框上方以 chip 展示（文件名 + 类型图标 + × 删除）；图片类（拖拽/粘贴）保留现有 --image 路径，文件选择器选中的所有文件（含图片）统一写入 ~/.hermes/uploads/YYYY-MM-DD/ 目录并将绝对路径注入消息尾部，格式为 [附件: /path/to/file]；Rust 侧新增 save_upload(src_path) 命令负责复制文件到日期子目录并返回目标路径；暂不实现自动清理逻辑",
+      "acceptance": "点击附件按钮弹出文件选择器；可多选文件；选中后 chip 显示在输入框上方；chip 可单独删除；发送时文档路径正确注入消息文本；图片经由文件选择器添加时同样以路径注入（不走 data URL）；拖拽/粘贴图片仍走原有 --image 路径；上传文件保存在 ~/.hermes/uploads/YYYY-MM-DD/ 下",
+      "depends_on": [],
+      "passes": true
     }
   ]
 }
