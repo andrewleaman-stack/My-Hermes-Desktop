@@ -18,6 +18,19 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+function waitForUiPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame !== "function") {
+      window.setTimeout(resolve, 0);
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      window.setTimeout(resolve, 0);
+    });
+  });
+}
+
 function parseHistoryMessages(raw: unknown): Message[] {
   let items: unknown[];
   if (Array.isArray(raw)) {
@@ -653,6 +666,8 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
         delete next[sessionTag];
         return next;
       });
+
+      await waitForUiPaint();
 
       try {
         await invoke("send_message", {
