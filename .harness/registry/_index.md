@@ -4,6 +4,8 @@
 > - Session 开始时：只读最近 5 条，了解近况
 > - Session 结束时：在最前面追加新条目（不是末尾）
 
+[2026-05-22 POSTMORTEM] 回复终端延迟显示复盘 — 根因是 showTools 关闭时 `blocks.every(tool)` 误把空 streaming 占位当纯工具消息隐藏；沉淀排查顺序与代码规则 → docs/design/2026-05-22-terminal-visibility-postmortem.md
+
 [2026-05-22 FIX] 粘性滚动替换 smooth scroll 解决终端框慢出现 + 消息操作常驻低透明 + contextPct 接通 GuideBot
 
 [2026-05-22 FIX] Grounding 气泡改磨砂半透明背景（backdrop-filter blur），解决透明导致内容重叠视觉问题
