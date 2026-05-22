@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { flushSync } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -603,30 +604,6 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
         setSnapshotCreateCount((c) => c + 1);
       }
 
-      if (!realSessionId) {
-        setActiveSessionId(sessionTag);
-        // Insert a placeholder session entry so the new chat appears in the
-        // sidebar immediately. It will be migrated to the real id when the
-        // "new_session_id" chunk arrives, then replaced by loadSessions().
-        const placeholderTitle = text.trim().slice(0, 60);
-        const nowIso = new Date().toISOString();
-        setSessions((prev) =>
-          prev.some((s) => s.id === sessionTag)
-            ? prev
-            : [
-                {
-                  id: sessionTag,
-                  title: placeholderTitle,
-                  created_at: nowIso,
-                  updated_at: nowIso,
-                  message_count: 1,
-                },
-                ...prev,
-              ]
-        );
-        setSessionBadges((prev) => ({ ...prev, [sessionTag]: "running" }));
-      }
-
       const userBlocks: Message["blocks"] = [{ type: "text", content: text.trim() }];
       if (options?.image) {
         userBlocks.push({ type: "image", dataUrl: options.image, filename: options.imageFilename });
@@ -649,22 +626,48 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
         status: "streaming",
       };
 
-      setSessionMessages((prev) => ({
-        ...prev,
-        [sessionTag]: options?.hideUserMessage
-          ? [...(prev[sessionTag] ?? []), assistantMsg]
-          : [...(prev[sessionTag] ?? []), userMsg, assistantMsg],
-      }));
-      setStreamingSessions((prev) => new Set(prev).add(sessionTag));
-      setSessionBadges((prev) => {
-        const next = { ...prev };
-        delete next[sessionTag];
-        return next;
-      });
-      setSessionErrors((prev) => {
-        const next = { ...prev };
-        delete next[sessionTag];
-        return next;
+      flushSync(() => {
+        if (!realSessionId) {
+          setActiveSessionId(sessionTag);
+          // Insert a placeholder session entry so the new chat appears in the
+          // sidebar immediately. It will be migrated to the real id when the
+          // "new_session_id" chunk arrives, then replaced by loadSessions().
+          const placeholderTitle = text.trim().slice(0, 60);
+          const nowIso = new Date().toISOString();
+          setSessions((prev) =>
+            prev.some((s) => s.id === sessionTag)
+              ? prev
+              : [
+                  {
+                    id: sessionTag,
+                    title: placeholderTitle,
+                    created_at: nowIso,
+                    updated_at: nowIso,
+                    message_count: 1,
+                  },
+                  ...prev,
+                ]
+          );
+          setSessionBadges((prev) => ({ ...prev, [sessionTag]: "running" }));
+        }
+
+        setSessionMessages((prev) => ({
+          ...prev,
+          [sessionTag]: options?.hideUserMessage
+            ? [...(prev[sessionTag] ?? []), assistantMsg]
+            : [...(prev[sessionTag] ?? []), userMsg, assistantMsg],
+        }));
+        setStreamingSessions((prev) => new Set(prev).add(sessionTag));
+        setSessionBadges((prev) => {
+          const next = { ...prev };
+          delete next[sessionTag];
+          return next;
+        });
+        setSessionErrors((prev) => {
+          const next = { ...prev };
+          delete next[sessionTag];
+          return next;
+        });
       });
 
       await waitForUiPaint();

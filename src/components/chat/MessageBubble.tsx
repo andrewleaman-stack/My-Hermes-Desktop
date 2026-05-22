@@ -285,7 +285,7 @@ export default function MessageBubble({ message, isLastAssistant, streaming, sho
 
   // 隐藏工具时，纯工具消息整条不渲染
   if (!showTools && message.blocks.every((b) => b.type === "tool")) return null;
-  const isStreaming = streaming && isLastAssistant && message.status === "streaming";
+  const isStreaming = isLastAssistant && message.status === "streaming";
   const showCopy = !isUser && !isStreaming && message.status === "done";
   const showRetry = isLastAssistant && !streaming && message.status === "done";
 
