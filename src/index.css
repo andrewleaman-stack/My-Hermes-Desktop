@@ -5763,10 +5763,7 @@ html[data-ui-size="large"]  .session-item-meta  { font-size: 13px; }
 .grounding-btn:hover { color: var(--body); }
 
 .grounding-popover {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  z-index: 200;
+  z-index: 9999;
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);

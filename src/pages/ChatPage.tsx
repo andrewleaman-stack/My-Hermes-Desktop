@@ -158,6 +158,18 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
   // Memory state (for feat-211 / feat-213)
   const [memoryLoaded, setMemoryLoaded] = useState<boolean | null>(null);
 
+  // Goal active state (for TopBar button visibility)
+  const [goalActive, setGoalActive] = useState(() => {
+    try { return !!JSON.parse(localStorage.getItem("hermes-goal-state") ?? "null"); }
+    catch { return false; }
+  });
+
+  useEffect(() => {
+    const handler = (e: Event) => setGoalActive((e as CustomEvent<boolean>).detail);
+    window.addEventListener("goal-changed", handler);
+    return () => window.removeEventListener("goal-changed", handler);
+  }, []);
+
   // Refs
   const justFinishedRef = useRef<Record<string, boolean>>({});
   const prevStreamingRef = useRef<Set<string>>(new Set());
@@ -1034,6 +1046,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
         onSendMessage={handleSendMessage}
         onNewSession={handleNewSession}
         onRenameSession={handleRenameSession}
+        goalActive={goalActive}
       />
       <Sidebar
         sessions={sessions}

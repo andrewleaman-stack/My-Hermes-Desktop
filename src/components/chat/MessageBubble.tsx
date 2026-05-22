@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
@@ -182,27 +183,31 @@ function GroundingPopover({
   model,
   memoryLoaded,
   assistantIndex,
+  anchorRect,
   onClose,
 }: {
   model?: string | null;
   memoryLoaded?: boolean | null;
   assistantIndex?: number;
+  anchorRect: DOMRect;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose();
-      }
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [onClose]);
 
-  return (
-    <div className="grounding-popover" ref={ref}>
+  return createPortal(
+    <div
+      className="grounding-popover"
+      ref={ref}
+      style={{ position: "fixed", top: anchorRect.bottom + 4, left: anchorRect.left }}
+    >
       <div className="grounding-row">
         <span className="grounding-label">模型</span>
         <span className="grounding-value">{model ?? "未知"}</span>
@@ -219,7 +224,8 @@ function GroundingPopover({
           {memoryLoaded === true ? "已加载" : memoryLoaded === false ? "未配置" : "未知"}
         </span>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -273,7 +279,8 @@ function toSpokenText(markdown: string): string {
 export default function MessageBubble({ message, isLastAssistant, streaming, showTools = true, onRetry, model, memoryLoaded, assistantIndex }: Props) {
   const [copied, setCopied] = useState(false);
   const [speaking, setSpeaking] = useState(false);
-  const [groundingOpen, setGroundingOpen] = useState(false);
+  const [groundingAnchor, setGroundingAnchor] = useState<DOMRect | null>(null);
+  const groundingBtnRef = useRef<HTMLButtonElement>(null);
   const isUser = message.role === "user";
 
   // 隐藏工具时，纯工具消息整条不渲染
@@ -357,23 +364,29 @@ export default function MessageBubble({ message, isLastAssistant, streaming, sho
           <span style={{ fontSize: 10, color: "var(--error)" }}>error</span>
         )}
         {message.status === "done" && (
-          <div style={{ position: "relative" }}>
+          <>
             <button
+              ref={groundingBtnRef}
               className="grounding-btn ui-font"
-              onClick={() => setGroundingOpen((o) => !o)}
+              onClick={() =>
+                setGroundingAnchor((prev) =>
+                  prev ? null : groundingBtnRef.current!.getBoundingClientRect()
+                )
+              }
               title="查看上下文来源"
             >
               ⓘ
             </button>
-            {groundingOpen && (
+            {groundingAnchor && (
               <GroundingPopover
                 model={model}
                 memoryLoaded={memoryLoaded}
                 assistantIndex={assistantIndex}
-                onClose={() => setGroundingOpen(false)}
+                anchorRect={groundingAnchor}
+                onClose={() => setGroundingAnchor(null)}
               />
             )}
-          </div>
+          </>
         )}
         {(showCopy || showRetry) && (
           <div className="message-actions">

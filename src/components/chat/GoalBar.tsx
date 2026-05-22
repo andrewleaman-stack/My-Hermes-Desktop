@@ -30,13 +30,14 @@ export default function GoalBar({ streaming, onSend }: Props) {
   const [inputText, setInputText] = useState("");
   const prevStreamingRef = useRef(streaming);
 
-  // Persist goal to localStorage on every change
+  // Persist goal to localStorage on every change; notify parent
   useEffect(() => {
     if (goal) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(goal));
     } else {
       localStorage.removeItem(STORAGE_KEY);
     }
+    window.dispatchEvent(new CustomEvent("goal-changed", { detail: !!goal }));
   }, [goal]);
 
   // Count rounds: streaming true → false while active = 1 round
@@ -79,16 +80,15 @@ export default function GoalBar({ streaming, onSend }: Props) {
     setInputText("");
   };
 
-  if (!goal && !inputting) {
-    return (
-      <div className="goal-bar">
-        <button className="goal-bar-add ui-font" onClick={() => setInputting(true)}>
-          <span className="goal-bar-add-plus">+</span>
-          设置持久目标
-        </button>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const handler = () => {
+      if (!goal) setInputting(true);
+    };
+    window.addEventListener("open-goal-input", handler);
+    return () => window.removeEventListener("open-goal-input", handler);
+  }, [goal]);
+
+  if (!goal && !inputting) return null;
 
   if (inputting) {
     return (

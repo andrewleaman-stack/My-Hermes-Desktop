@@ -17,6 +17,7 @@ interface Props {
   onSendMessage: (text: string) => void;
   onNewSession: () => void;
   onRenameSession: (title: string) => Promise<boolean>;
+  goalActive?: boolean;
 }
 
 export default function TopBar({
@@ -32,6 +33,7 @@ export default function TopBar({
   onSendMessage,
   onNewSession,
   onRenameSession,
+  goalActive = false,
 }: Props) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
@@ -175,6 +177,18 @@ export default function TopBar({
       <ContextBar status={status} onCompress={handleCompress} />
 
       <div className="topbar-spacer" />
+
+      {/* Goal button — only shown when no active goal */}
+      {!goalActive && (
+        <button
+          className="topbar-terminal-btn"
+          onClick={() => window.dispatchEvent(new Event("open-goal-input"))}
+          title="设置持久目标"
+        >
+          <Icon name="flag" size={14} />
+          目标
+        </button>
+      )}
 
       {/* Snapshot button */}
       <button
