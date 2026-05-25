@@ -9,7 +9,7 @@
 
   /* ── helpers ─────────────────────────────────────────────── */
 
-  function setTheme(name) {
+  function setThemeDirect(name) {
     var sdk = window.__HERMES_PLUGIN_SDK__;
     if (sdk && sdk.api && typeof sdk.api.setTheme === "function") {
       sdk.api.setTheme(name).catch(function() {});
@@ -28,6 +28,48 @@
     }).catch(function() {});
   }
 
+  /**
+   * Wait until the target theme is available in the dashboard's theme list,
+   * then apply it.  This avoids the race where setTheme() bails out because
+   * userThemeDefs hasn't loaded yet.
+   */
+  function setThemeWhenReady(name, maxAttempts) {
+    maxAttempts = maxAttempts || 20;
+    var sdk = window.__HERMES_PLUGIN_SDK__;
+    if (!sdk || !sdk.api || typeof sdk.api.getThemes !== "function") {
+      // SDK not fully exposed yet — retry shortly.
+      if (maxAttempts > 0) {
+        setTimeout(function() { setThemeWhenReady(name, maxAttempts - 1); }, 250);
+      } else {
+        setThemeDirect(name);
+      }
+      return;
+    }
+
+    var attempts = 0;
+    function tryApply() {
+      sdk.api.getThemes().then(function(resp) {
+        var hasTheme = resp.themes && resp.themes.some(function(t) { return t.name === name; });
+        if (hasTheme) {
+          setThemeDirect(name);
+        } else if (++attempts < maxAttempts) {
+          setTimeout(tryApply, 300);
+        } else {
+          // Fallback: force via localStorage + API so the next reload picks it up.
+          localStorage.setItem("hermes-dashboard-theme", name);
+          setThemeDirect(name);
+        }
+      }).catch(function() {
+        if (++attempts < maxAttempts) {
+          setTimeout(tryApply, 300);
+        } else {
+          setThemeDirect(name);
+        }
+      });
+    }
+    tryApply();
+  }
+
   function requestCurrentTheme() {
     if (window.parent !== window) {
       window.parent.postMessage({ type: "hermes-theme-request" }, "*");
@@ -42,7 +84,7 @@
     var themeName = event.data.dashboardTheme || THEME_MAP[event.data.desktopTheme];
     if (!themeName) return;
 
-    setTheme(themeName);
+    setThemeWhenReady(themeName);
   });
 
   /* ── plugin registration ───────────────────────────────── */
