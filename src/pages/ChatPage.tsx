@@ -204,6 +204,8 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
   const pendingPtyCommandRef = useRef<string | null>(null);
   // Breaks the handleSlashCommand → handleRetryLastMessage → sendToSession → handleSlashCommand cycle
   const handleRetryRef = useRef<() => void>(() => {});
+  // Stable ref to current session status — lets handleSlashCommand read it without extra deps
+  const sessionStatusRef = useRef(sessionStatus);
 
   // Derived values for current active session
   const activeSession = activeSessionId ? sessions.find((s) => s.id === activeSessionId) : null;
@@ -253,6 +255,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
   }, [activeSessionId, sessionMessages]);
 
   activeSessionIdRef.current = activeSessionId;
+  sessionStatusRef.current = sessionStatus;
 
   const checkMemory = useCallback(async () => {
     try {
@@ -569,6 +572,21 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
   }, []);
 
 
+  const injectLocalMessage = useCallback((content: string) => {
+    if (!activeSessionId) return;
+    const msg: Message = {
+      id: uid(),
+      role: "assistant",
+      blocks: [{ type: "text", content }],
+      timestamp: new Date().toISOString(),
+      status: "done",
+    };
+    setSessionMessages((prev) => ({
+      ...prev,
+      [activeSessionId]: [...(prev[activeSessionId] ?? []), msg],
+    }));
+  }, [activeSessionId]);
+
   const handleBranchSession = useCallback(
     async (branchName: string | null) => {
       if (!activeSessionId) return;
@@ -637,6 +655,22 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
       if (prompt) void handleRunBackground(prompt);
       return true;
     }
+    if (cmd === "/status") {
+      const sid = activeSessionId ?? "—";
+      const st = sessionStatusRef.current[sid];
+      const lines = [
+        `**会话 ID**：\`${sid}\``,
+        st?.model ? `**模型**：${st.model}` : null,
+        st?.tokensUsed ? `**Token**：${st.tokensUsed}${st.tokensMax ? ` / ${st.tokensMax}` : ""}` : null,
+        st?.duration ? `**耗时**：${st.duration}` : null,
+      ].filter(Boolean).join("\n\n");
+      injectLocalMessage(lines || `**会话 ID**：\`${sid}\``);
+      return true;
+    }
+    if (cmd === "/save") {
+      injectLocalMessage("会话已自动保存。Hermes 在每次对话后自动持久化会话文件，无需手动保存。");
+      return true;
+    }
     if (cmd === "/branch") {
       if (!activeSessionId) return true;
       const name = text.trim().slice("/branch".length).trim() || null;
@@ -649,6 +683,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
     handleRenameSession,
     handleUndoLastTurn,
     handleRunBackground,
+    injectLocalMessage,
     activeSessionId,
     handleBranchSession,
   ]);
