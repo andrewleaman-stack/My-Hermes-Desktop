@@ -16,6 +16,18 @@
 | --- | --- |
 | ![Dashboard 管理面板](screenshot/iShot_2026-05-25_15.41.16.png) | ![设置中心](screenshot/iShot_2026-05-25_15.41.04.png) |
 
+| Windows 版本 |
+| --- |
+| ![Windows 版本界面](screenshot/hermes-desktop.exe_20260525_161326.png) |
+
+---
+
+## 平台支持
+
+- **macOS** — 主要支持平台，优先打磨原生桌面体验。
+- **Windows** — 桌面端可运行，但 Hermes CLI 仅支持在 WSL 环境下运行；请先在 WSL 中安装并配置 `hermes`。
+- **Linux** — Tauri 桌面版本理论上可支持，但当前尚未做详细测试。
+
 ---
 
 ## 功能概览
