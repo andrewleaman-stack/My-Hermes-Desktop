@@ -594,7 +594,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
     async (branchName: string | null) => {
       if (!activeSessionId) return;
       try {
-        const newId = await invoke<string>("fork_session", {
+        const newId = await invoke<string>("branch_session", {
           sessionId: activeSessionId,
           branchName: branchName || null,
         });
@@ -680,6 +680,10 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
       void handleBranchSession(name);
       return true;
     }
+    if (cmd === "/compress") {
+      handlePtyWrite("/compress");
+      return true;
+    }
     return false;
   }, [
     handleNewSession,
@@ -689,6 +693,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
     injectLocalMessage,
     activeSessionId,
     handleBranchSession,
+    handlePtyWrite,
   ]);
 
   const sendToSession = useCallback(
@@ -1313,7 +1318,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
           workingDir={workingDir}
           showTools={showTools}
           contextPct={contextPct}
-          onCompress={() => handleSendMessage("/compress")}
+          onCompress={() => handlePtyWrite("/compress")}
         />
       </div>
     </div>

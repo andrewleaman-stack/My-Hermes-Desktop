@@ -777,107 +777,86 @@ pub async fn delete_session(session_id: String) -> Result<(), String> {
     Ok(())
 }
 
-/// Register a branch session in hermes's SQLite state store so that
-/// `hermes chat --resume <branch_id>` can find it.
-fn register_in_state_db(new_id: &str, parent_id: &str, title: &str) -> Result<(), String> {
-    let db_path = match dirs::home_dir() {
-        Some(h) => h.join(".hermes").join("state.db"),
-        None => return Ok(()),
-    };
-    if !db_path.exists() {
-        return Ok(());
-    }
-
-    let conn = rusqlite::Connection::open(&db_path)
-        .map_err(|e| format!("无法打开 state.db: {e}"))?;
-
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs_f64();
-
-    // Copy model and message_count from the parent session
-    let (model, message_count): (Option<String>, i64) = conn
-        .query_row(
-            "SELECT model, message_count FROM sessions WHERE id = ?1",
-            rusqlite::params![parent_id],
-            |row| Ok((row.get(0)?, row.get(1).unwrap_or(0))),
-        )
-        .unwrap_or((None, 0));
-
-    conn.execute(
-        "INSERT OR IGNORE INTO sessions \
-         (id, source, parent_session_id, model, title, started_at, message_count) \
-         VALUES (?1, 'cli', ?2, ?3, ?4, ?5, ?6)",
-        rusqlite::params![new_id, parent_id, model, title, now, message_count],
-    )
-    .map_err(|e| format!("无法在 state.db 注册分支会话: {e}"))?;
-
-    Ok(())
-}
-
+/// Fork the current session by passing `/branch [name]` to hermes itself,
+/// then discover the newly created session by diffing the sessions directory.
+/// This avoids touching hermes's internal SQLite — hermes registers the branch
+/// in its own database during the chat call.
 #[tauri::command]
-pub async fn fork_session(
+pub async fn branch_session(
     session_id: String,
     branch_name: Option<String>,
 ) -> Result<String, String> {
     let home = hermes_home().ok_or("Cannot find home dir")?;
     let sessions_dir = home.join("sessions");
 
-    // Find the source session file
-    let src_path = session_file_candidates(&session_id)?
+    // Snapshot existing session files before branching
+    let before: std::collections::HashSet<String> = std::fs::read_dir(&sessions_dir)
         .into_iter()
-        .find(|p| p.exists())
-        .ok_or_else(|| format!("Session file not found for id: {session_id}"))?;
+        .flatten()
+        .flatten()
+        .filter_map(|e| e.file_name().into_string().ok())
+        .collect();
 
-    // Generate a unique branch ID from current timestamp (ms + subsec ns for uniqueness)
-    let d = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default();
-    let new_id = format!("branch-{:x}{:03x}", d.as_secs(), d.subsec_millis());
+    // Build the slash command string
+    let slash_cmd = match branch_name.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        Some(name) => format!("/branch {name}"),
+        None => "/branch".to_string(),
+    };
 
-    let is_jsonl = src_path.extension().map_or(false, |e| e == "jsonl");
-    let dest_path = sessions_dir.join(if is_jsonl {
-        format!("{new_id}.jsonl")
-    } else {
-        format!("{new_id}.json")
-    });
+    // Delegate to hermes — it creates the branch and registers it in its own DB
+    let out = hermes_command()
+        .args(["chat", "-q", &slash_cmd, "--resume", &session_id])
+        .output()
+        .map_err(|e| format!("Failed to start hermes: {e}"))?;
 
-    if is_jsonl {
-        std::fs::copy(&src_path, &dest_path).map_err(|e| e.to_string())?;
-    } else {
-        let content = std::fs::read_to_string(&src_path).map_err(|e| e.to_string())?;
-        let mut value: serde_json::Value =
-            serde_json::from_str(&content).map_err(|e| e.to_string())?;
-        if let serde_json::Value::Object(ref mut map) = value {
-            map.insert(
-                "session_id".into(),
-                serde_json::Value::String(new_id.clone()),
-            );
-            map.insert(
-                "last_updated".into(),
-                serde_json::Value::String(chrono::Local::now().naive_local().to_string()),
-            );
-        }
-        let new_content =
-            serde_json::to_string_pretty(&value).map_err(|e| e.to_string())?;
-        std::fs::write(&dest_path, format!("{new_content}\n")).map_err(|e| e.to_string())?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        return Err(if !stderr.is_empty() {
+            stderr
+        } else if !stdout.is_empty() {
+            stdout
+        } else {
+            "hermes /branch 失败".into()
+        });
     }
 
-    // Set a title for the branch
-    let title = branch_name
-        .as_deref()
-        .map(|s| s.trim())
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| "Branch".to_string());
+    // Discover which session file(s) appeared after the command ran
+    let after: std::collections::HashSet<String> = std::fs::read_dir(&sessions_dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|e| e.file_name().into_string().ok())
+        .collect();
 
-    let mut map = read_title_map();
-    map.insert(new_id.clone(), title.clone());
-    write_title_map(&map)?;
+    let new_id = after
+        .difference(&before)
+        .filter(|f| {
+            (f.ends_with(".json") || f.ends_with(".jsonl"))
+                && !f.starts_with("request_dump_")
+                && *f != "sessions.json"
+        })
+        .filter_map(|f| {
+            let stem = f.trim_end_matches(".jsonl").trim_end_matches(".json");
+            let id = stem.trim_start_matches("session_");
+            if id.is_empty() { None } else { Some(id.to_string()) }
+        })
+        .next()
+        .ok_or_else(|| {
+            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if stdout.is_empty() {
+                "hermes /branch 运行成功但未发现新会话文件".into()
+            } else {
+                format!("hermes /branch 运行成功但未发现新会话文件。输出：{stdout}")
+            }
+        })?;
 
-    // Register the branch in hermes's SQLite so --resume works
-    register_in_state_db(&new_id, &session_id, &title)?;
+    // Optionally set a display title in our title_map
+    if let Some(name) = branch_name.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        let mut map = read_title_map();
+        map.insert(new_id.clone(), name.to_string());
+        let _ = write_title_map(&map);
+    }
 
     Ok(new_id)
 }
