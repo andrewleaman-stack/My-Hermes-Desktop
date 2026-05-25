@@ -606,6 +606,11 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
       handleNewSession();
       return true;
     }
+    if (cmd === "/title") {
+      const name = text.trim().slice("/title".length).trim();
+      if (name) void handleRenameSession(name);
+      return true;
+    }
     if (cmd === "/branch") {
       if (!activeSessionId) return true;
       const name = text.trim().slice("/branch".length).trim() || null;
@@ -613,7 +618,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
       return true;
     }
     return false;
-  }, [handleNewSession, activeSessionId, handleBranchSession]);
+  }, [handleNewSession, handleRenameSession, activeSessionId, handleBranchSession]);
 
   const sendToSession = useCallback(
     async (
