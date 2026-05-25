@@ -594,8 +594,15 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
     if (!activeSessionId) return;
     try {
       await invoke("undo_last_turn", { sessionId: activeSessionId });
-      const raw = await invoke<unknown>("get_session_history", { sessionId: activeSessionId });
-      setSessionMessages((prev) => ({ ...prev, [activeSessionId]: parseHistoryMessages(raw) }));
+      // Directly trim UI state: remove last user message and everything after it,
+      // matching what undo_last_turn does to the file. get_session_history would
+      // call hermes sessions export (which reads its own state, not the modified file).
+      setSessionMessages((prev) => {
+        const msgs = prev[activeSessionId] ?? [];
+        const lastUserIdx = msgs.map((m, i) => ({ m, i })).reverse().find(({ m }) => m.role === "user")?.i;
+        if (lastUserIdx === undefined) return prev;
+        return { ...prev, [activeSessionId]: msgs.slice(0, lastUserIdx) };
+      });
     } catch (e) {
       setSessionErrors((prev) => ({ ...prev, [activeSessionId]: String(e) }));
     }
