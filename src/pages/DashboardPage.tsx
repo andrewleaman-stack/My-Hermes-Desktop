@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState(false);
   const lastSentRef = useRef<string | null>(null);
+  const pendingThemeRef = useRef<Theme | null>(null);
 
   /** Send the current desktop theme to the dashboard iframe via postMessage. */
   const syncTheme = useCallback((target: HTMLIFrameElement | null, t: Theme) => {
@@ -31,11 +32,28 @@ export default function DashboardPage() {
     if (!dashboardTheme) return;
     if (lastSentRef.current === dashboardTheme) return; // avoid duplicates
     lastSentRef.current = dashboardTheme;
+    pendingThemeRef.current = null;
     target.contentWindow.postMessage(
       { type: "hermes-theme-sync", desktopTheme: t, dashboardTheme },
       DASHBOARD_URL,
     );
   }, []);
+
+  // Listen for theme requests from the dashboard iframe (plugin may ask for
+  // current theme after it finishes loading).
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      if (event.data?.type === "hermes-theme-request") {
+        // Plugin is ready — send the pending theme if we have one, otherwise current.
+        const t = pendingThemeRef.current ?? theme;
+        syncTheme(iframeRef.current, t);
+        pendingThemeRef.current = null;
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [theme, syncTheme]);
 
   // Sync theme whenever it changes in the desktop app
   useEffect(() => {
@@ -140,7 +158,11 @@ export default function DashboardPage() {
       src={DASHBOARD_URL}
       title="Hermes Dashboard"
       sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-      onLoad={() => syncTheme(iframeRef.current, theme)}
+      onLoad={() => {
+        // Plugin may not be loaded yet — queue the theme.
+        // The plugin will send "hermes-theme-request" when ready.
+        pendingThemeRef.current = theme;
+      }}
     />
   );
 }
