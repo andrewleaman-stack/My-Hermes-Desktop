@@ -183,6 +183,34 @@ mod tests {
 
 // ─── Dashboard theme installer ───────────────────────────────────────────────
 
+/// On Windows, hermes lives in WSL — return the WSL home as a Windows UNC path
+/// (\\wsl.localhost\<distro>\home\<user>) so std::fs operations reach the right place.
+/// On other platforms, return the native home directory joined with ".hermes".
+fn get_hermes_home() -> Result<std::path::PathBuf, String> {
+    #[cfg(target_os = "windows")]
+    {
+        let output = std::process::Command::new("wsl")
+            .args(["--", "sh", "-c", "wslpath -w ~"])
+            .output()
+            .map_err(|e| format!("wsl_not_available:{e}"))?;
+        if !output.status.success() {
+            let err = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("wsl_path_failed:{err}"));
+        }
+        let win_path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if win_path.is_empty() {
+            return Err("wsl_path_empty".to_string());
+        }
+        Ok(std::path::PathBuf::from(win_path).join(".hermes"))
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        dirs::home_dir()
+            .ok_or_else(|| "cannot_determine_home".to_string())
+            .map(|h| h.join(".hermes"))
+    }
+}
+
 /// Install bundled dashboard themes and the desktop-theme-sync plugin into
 /// ~/.hermes/ so the embedded dashboard can load them as user themes.
 #[tauri::command]
@@ -193,8 +221,7 @@ pub async fn install_dashboard_themes(
         .path()
         .resource_dir()
         .map_err(|e| format!("resource_dir:{e}"))?;
-    let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
-    let hermes_home = home.join(".hermes");
+    let hermes_home = get_hermes_home()?;
 
     // Source paths inside the app bundle
     let themes_src = resource_dir.join("dashboard-themes");
@@ -247,8 +274,7 @@ pub async fn install_dashboard_themes(
 /// Query what dashboard themes and plugin files are currently installed.
 #[tauri::command]
 pub fn get_dashboard_theme_install_status() -> Result<DashboardThemeInstallStatus, String> {
-    let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
-    let hermes_home = home.join(".hermes");
+    let hermes_home = get_hermes_home()?;
     let themes_dir = hermes_home.join("dashboard-themes");
     let plugin_dir = hermes_home.join("plugins/desktop-theme-sync/dashboard");
 

@@ -4,6 +4,8 @@
 > - Session 开始时：只读最近 5 条，了解近况
 > - Session 结束时：在最前面追加新条目（不是末尾）
 
+[2026-05-25 FIX] 文件预览区 Windows 下无法选文本 — body 全局 user-select:none，WebView2 严格执行致选区始终 collapsed；FileTreePanel previewRef 加 userSelect:"text" 覆盖修复
+
 [2026-05-22 DECISION] feat-204 毛玻璃+主题深度打磨正式取消 — 测试效果不满意，成本高于收益；backlog.md 已记录；features.json 条目保留 passes=false
 
 [2026-05-22 DONE] feat-207 斜杠命令菜单 passes=true — SlashCommandMenu.tsx 已实现完整：15 条命令/5 分组/键盘导航/实时过滤/directSend，代码审查确认满足全部验收标准

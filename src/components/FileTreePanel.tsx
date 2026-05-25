@@ -813,7 +813,7 @@ function FilePreview({ path, content, onOpenSystem, onAddToChat }: {
         onMouseUp={updateSelectionAction}
         onKeyUp={updateSelectionAction}
         onScroll={() => setSelectionAction(null)}
-        style={{ flex: 1, overflow: "auto", position: "relative" }}
+        style={{ flex: 1, overflow: "auto", position: "relative", userSelect: "text" }}
       >
         {selectionAction && (
           <div
