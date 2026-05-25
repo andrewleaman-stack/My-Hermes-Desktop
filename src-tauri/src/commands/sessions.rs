@@ -777,6 +777,45 @@ pub async fn delete_session(session_id: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Register a branch session in hermes's SQLite state store so that
+/// `hermes chat --resume <branch_id>` can find it.
+fn register_in_state_db(new_id: &str, parent_id: &str, title: &str) -> Result<(), String> {
+    let db_path = match dirs::home_dir() {
+        Some(h) => h.join(".hermes").join("state.db"),
+        None => return Ok(()),
+    };
+    if !db_path.exists() {
+        return Ok(());
+    }
+
+    let conn = rusqlite::Connection::open(&db_path)
+        .map_err(|e| format!("无法打开 state.db: {e}"))?;
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs_f64();
+
+    // Copy model and message_count from the parent session
+    let (model, message_count): (Option<String>, i64) = conn
+        .query_row(
+            "SELECT model, message_count FROM sessions WHERE id = ?1",
+            rusqlite::params![parent_id],
+            |row| Ok((row.get(0)?, row.get(1).unwrap_or(0))),
+        )
+        .unwrap_or((None, 0));
+
+    conn.execute(
+        "INSERT OR IGNORE INTO sessions \
+         (id, source, parent_session_id, model, title, started_at, message_count) \
+         VALUES (?1, 'cli', ?2, ?3, ?4, ?5, ?6)",
+        rusqlite::params![new_id, parent_id, model, title, now, message_count],
+    )
+    .map_err(|e| format!("无法在 state.db 注册分支会话: {e}"))?;
+
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn fork_session(
     session_id: String,
@@ -834,8 +873,11 @@ pub async fn fork_session(
         .unwrap_or_else(|| "Branch".to_string());
 
     let mut map = read_title_map();
-    map.insert(new_id.clone(), title);
+    map.insert(new_id.clone(), title.clone());
     write_title_map(&map)?;
+
+    // Register the branch in hermes's SQLite so --resume works
+    register_in_state_db(&new_id, &session_id, &title)?;
 
     Ok(new_id)
 }
