@@ -65,8 +65,14 @@ export default function AppTitleBar({ platform, currentPath, onAction }: Props) 
     void withCurrentWindow("startDragging");
   };
 
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    const target = e.target as Element;
+    if (target.closest("button, input, a, [role='button']")) return;
+    void withCurrentWindow("toggleMaximize");
+  };
+
   return (
-    <div ref={rootRef} className={`app-titlebar app-titlebar-${platform}`} onMouseDown={handleMouseDown}>
+    <div ref={rootRef} className={`app-titlebar app-titlebar-${platform}`} onMouseDown={handleMouseDown} onDoubleClick={handleDoubleClick}>
       <div className="app-titlebar-left">
         <div className="app-titlebar-brand" title="My Hermes Desktop">
           <span className="brand-mark app-titlebar-mark" aria-hidden="true">
