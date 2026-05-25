@@ -32,6 +32,8 @@ fn build_tui_command(session_id: Option<&str>) -> Result<CommandBuilder, String>
     #[cfg(not(target_os = "windows"))]
     {
         let mut cmd = CommandBuilder::new(super::sessions::hermes_binary());
+        cmd.env("TERM", "xterm-256color");
+        cmd.env("COLORTERM", "truecolor");
         append_tui_args(&mut cmd, session_id);
         Ok(cmd)
     }

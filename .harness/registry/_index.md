@@ -4,6 +4,8 @@
 > - Session 开始时：只读最近 5 条，了解近况
 > - Session 结束时：在最前面追加新条目（不是末尾）
 
+[2026-05-25 17:00] FIX PTY 终端无颜色 — build_tui_command 未设置 TERM/COLORTERM，App Bundle 环境继承 TERM=dumb；注入 xterm-256color + truecolor 修复
+
 [2026-05-25 16:21] FIX README 增加 Windows 截图，并说明 Windows 仅支持 WSL 下运行 Hermes、Linux 未详细测试
 
 [2026-05-25 15:57] FIX README 增加界面预览截图区，引用 screenshot 下 4 张应用截图
