@@ -125,6 +125,8 @@
 
 <!-- 新条目追加到这里（上方） -->
 
+[2026-05-25 DONE] feat-208 分支会话 passes=true — fork_session Rust 命令复制 session 文件；ChatPage 拦截 /branch [name]；Sidebar hermes_branch_meta localStorage + ⎇ 图标标记
+
 [2026-05-22 15:46] FIX Windows 打包版点击 UI 弹出 wsl.exe 终端窗口 — 后台 Command 加 CREATE_NO_WINDOW；内嵌 Terminal 的 WSL PTY 改经 cmd.exe /D /Q /C 进入伪控制台
 
 [2026-05-22 14:25] FIX 回复终端面板延迟出现 — 提交后立即显示本地 streaming 终端占位；Rust 启动前后发 raw 状态并消费 stderr，避免等待 Hermes 第一条 stdout
