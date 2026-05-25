@@ -215,6 +215,17 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
   const status = activeSessionId ? (sessionStatus[activeSessionId] ?? null) : null;
   const error = activeSessionId ? (sessionErrors[activeSessionId] ?? null) : null;
 
+  // Branch sessions only exist on disk, not in hermes's SQLite store.
+  // Passing --resume for them causes "session not found" in TUI, so use null instead.
+  const tuiSessionId = (() => {
+    if (!activeSessionId) return null;
+    try {
+      const meta = JSON.parse(localStorage.getItem("hermes_branch_meta") || "{}");
+      if (meta[activeSessionId]) return null;
+    } catch {}
+    return activeSessionId;
+  })();
+
   const contextPct = useMemo(() => {
     if (!status?.tokensUsed || !status?.tokensMax) return undefined;
     const used = parseTokenCount(status.tokensUsed);
@@ -1223,7 +1234,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
           }}
         />
         {terminalOpen && (
-          <TerminalPanel ptyId={activePtyId.current} sessionId={activeSessionId} onClose={() => setTerminalOpen(false)} />
+          <TerminalPanel ptyId={activePtyId.current} sessionId={tuiSessionId} onClose={() => setTerminalOpen(false)} />
         )}
         {fileTreeOpen && (
           <FileTreePanel
