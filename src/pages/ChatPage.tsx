@@ -590,37 +590,6 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
     }));
   }, [activeSessionId]);
 
-  const handleBranchSession = useCallback(
-    async (branchName: string | null) => {
-      if (!activeSessionId) return;
-      try {
-        const newId = await invoke<string>("branch_session", {
-          sessionId: activeSessionId,
-          branchName: branchName || null,
-        });
-        // Persist branch relationship for sidebar marker
-        const key = "hermes_branch_meta";
-        const existing: Record<string, { parentId: string }> = JSON.parse(
-          localStorage.getItem(key) || "{}"
-        );
-        existing[newId] = { parentId: activeSessionId };
-        localStorage.setItem(key, JSON.stringify(existing));
-        // Refresh list then switch to the new branch session
-        await loadSessions();
-        setActiveSessionId(newId);
-        try {
-          const raw = await invoke<unknown>("get_session_history", { sessionId: newId });
-          setSessionMessages((prev) => ({ ...prev, [newId]: parseHistoryMessages(raw) }));
-        } catch {
-          // history will reload on next session switch
-        }
-      } catch (e) {
-        setSessionErrors((prev) => ({ ...prev, global: `分支创建失败: ${e}` }));
-      }
-    },
-    [activeSessionId, loadSessions]
-  );
-
   const handleUndoLastTurn = useCallback(async () => {
     if (!activeSessionId) return;
     try {
@@ -674,14 +643,8 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
       injectLocalMessage("会话已自动保存。Hermes 在每次对话后自动持久化会话文件，无需手动保存。");
       return true;
     }
-    if (cmd === "/branch") {
-      if (!activeSessionId) return true;
-      const name = text.trim().slice("/branch".length).trim() || null;
-      void handleBranchSession(name);
-      return true;
-    }
-    if (cmd === "/compress") {
-      handlePtyWrite("/compress");
+    if (cmd === "/branch" || cmd === "/compress") {
+      handlePtyWrite(text.trim());
       return true;
     }
     return false;
@@ -692,7 +655,6 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
     handleRunBackground,
     injectLocalMessage,
     activeSessionId,
-    handleBranchSession,
     handlePtyWrite,
   ]);
 
