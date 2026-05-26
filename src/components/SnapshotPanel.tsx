@@ -4,10 +4,12 @@ import Icon from "./Icon";
 
 interface Snapshot {
   id: string;
+  hermesId?: string;
   label: string;
   createdAt: string;
   sessionTitle: string;
   expanded: boolean;
+  status?: "saving" | "ok" | "error";
 }
 
 interface BackgroundTaskSummary {
@@ -168,18 +170,40 @@ export default function SnapshotPanel({
     return () => clearInterval(id);
   }, []);
 
-  function makeEntry(index: number, title: string): Snapshot {
+  function makeEntry(index: number, title: string, opts?: { hermesId?: string; status?: "saving" | "ok" | "error" }): Snapshot {
     return {
       id: makeId(),
+      hermesId: opts?.hermesId,
       label: `快照 ${index}`,
       createdAt: new Date().toISOString(),
       sessionTitle: title,
       expanded: false,
+      status: opts?.status ?? "ok",
     };
   }
 
-  const handleSave = () => {
-    onSend("/snapshot create");
+  const handleSave = async () => {
+    const localId = makeId();
+    const index = snapshots.length + 1;
+    const placeholder: Snapshot = {
+      id: localId,
+      label: `快照 ${index}`,
+      createdAt: new Date().toISOString(),
+      sessionTitle: sessionTitle,
+      expanded: false,
+      status: "saving",
+    };
+    setSnapshots((prev) => [placeholder, ...prev]);
+    try {
+      const hermesId = await invoke<string>("snapshot_create", { label: null });
+      setSnapshots((prev) =>
+        prev.map((s) => s.id === localId ? { ...s, hermesId, status: "ok" } : s)
+      );
+    } catch (e) {
+      setSnapshots((prev) =>
+        prev.map((s) => s.id === localId ? { ...s, status: "error" } : s)
+      );
+    }
   };
 
   const toggleExpand = (id: string) => {
@@ -188,12 +212,14 @@ export default function SnapshotPanel({
     );
   };
 
-  const handleRestore = (id: string) => {
-    if (confirmRestoreId === id) {
+  const handleRestore = (snap: Snapshot) => {
+    if (confirmRestoreId === snap.id) {
       setConfirmRestoreId(null);
-      onSend(`/snapshot restore ${id}`);
+      if (snap.hermesId) {
+        onSend(`/snapshot restore ${snap.hermesId}`);
+      }
     } else {
-      setConfirmRestoreId(id);
+      setConfirmRestoreId(snap.id);
       setConfirmDeleteId(null);
     }
   };
@@ -298,7 +324,7 @@ export default function SnapshotPanel({
 
           {/* Disclaimer */}
           <div className="snapshot-notice ui-font">
-            仅为本地日志记录，不校验快照文件是否仍存在
+            快照保存至 ~/.hermes/state-snapshots/
           </div>
 
           {/* List */}
@@ -323,8 +349,14 @@ export default function SnapshotPanel({
                       }}
                     />
                     <div className="snapshot-item-meta">
-                      <span className="snapshot-item-label ui-font">{snap.label}</span>
-                      <span className="snapshot-item-session ui-font">{snap.sessionTitle}</span>
+                      <span className="snapshot-item-label ui-font">
+                        {snap.label}
+                        {snap.status === "saving" && <span style={{ opacity: 0.5, marginLeft: 4 }}>保存中…</span>}
+                        {snap.status === "error" && <span style={{ color: "var(--danger, #e05)", marginLeft: 4 }}>失败</span>}
+                      </span>
+                      <span className="snapshot-item-session ui-font">
+                        {snap.hermesId ?? snap.sessionTitle}
+                      </span>
                     </div>
                     <span className="snapshot-item-time ui-font">
                       {formatDateTime(snap.createdAt)}
@@ -337,7 +369,7 @@ export default function SnapshotPanel({
                       {confirmRestoreId === snap.id && (
                         <div className="snapshot-confirm-row">
                           <span className="snapshot-confirm-label ui-font">确认恢复此快照？</span>
-                          <button className="snapshot-action-btn snapshot-action-confirm ui-font" onClick={() => handleRestore(snap.id)}>确认</button>
+                          <button className="snapshot-action-btn snapshot-action-confirm ui-font" onClick={() => handleRestore(snap)}>确认</button>
                           <button className="snapshot-action-btn ui-font" onClick={cancelConfirm}>取消</button>
                         </div>
                       )}
@@ -350,7 +382,11 @@ export default function SnapshotPanel({
                       )}
                       {!confirmRestoreId && !confirmDeleteId && (
                         <div className="snapshot-item-actions">
-                          <button className="snapshot-action-btn ui-font" onClick={() => handleRestore(snap.id)}>
+                          <button
+                            className="snapshot-action-btn ui-font"
+                            onClick={() => handleRestore(snap)}
+                            disabled={!snap.hermesId || snap.status !== "ok"}
+                          >
                             恢复
                           </button>
                           <button className="snapshot-action-btn ui-font" onClick={() => handleDelete(snap.id)}>

@@ -377,6 +377,7 @@ pub fn run() {
             commands::files::speak_text,
             commands::files::stop_speak,
             commands::files::check_memory_loaded,
+            commands::snapshot::snapshot_create,
             commands::tray::update_tray_status,
             quit_app,
         ])
