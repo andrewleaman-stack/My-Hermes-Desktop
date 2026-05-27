@@ -271,9 +271,16 @@ pub async fn send_message(
             let reader = BufReader::new(stderr);
             for line in reader.lines().map_while(Result::ok) {
                 let clean = strip_ansi(&line);
-                if !clean.trim().is_empty() {
-                    emit(&app_for_stderr, &session_for_stderr, "raw", &clean);
+                let t = clean.trim();
+                if t.is_empty() {
+                    continue;
                 }
+                // Suppress Python logging DEBUG/INFO lines: "HH:MM:SS - module - LEVEL - msg"
+                // WARNING and ERROR are kept so real problems surface.
+                if t.contains(" - DEBUG - ") || t.contains(" - INFO - ") {
+                    continue;
+                }
+                emit(&app_for_stderr, &session_for_stderr, "raw", &clean);
             }
         });
     }
