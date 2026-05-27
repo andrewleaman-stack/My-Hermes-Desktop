@@ -206,9 +206,8 @@ pub async fn send_message(
     skills: Option<Vec<String>>,
 ) -> Result<(), String> {
     // -q: single-query non-interactive mode.
-    // -v: verbose mode enables [thinking] prefix lines in stdout (reasoning tokens).
     // PYTHONUNBUFFERED=1 ensures Python flushes stdout on each write.
-    let mut args: Vec<String> = vec!["chat".into(), "-q".into(), message.clone(), "-v".into()];
+    let mut args: Vec<String> = vec!["chat".into(), "-q".into(), message.clone()];
     if let Some(ref id) = session_id {
         args.push("--resume".into());
         args.push(id.clone());
