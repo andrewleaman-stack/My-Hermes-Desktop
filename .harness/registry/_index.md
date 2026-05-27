@@ -4,6 +4,8 @@
 > - Session 开始时：只读最近 5 条，了解近况
 > - Session 结束时：在最前面追加新条目（不是末尾）
 
+[2026-05-27 FIX] 流式终端噪音四轮修复 — emit raw 移至所有过滤之后（footer/status/think/decorative），rawOutput 只收录最终文本行；think 行不再进 rawOutput，live terminal 内容与渲染文本块完全一致
+
 [2026-05-27 FIX] 流式终端噪音三轮修复 — 根因：-v 触发 Python verbose 日志全写 stderr；解法：stderr 线程只消费不转发（防止管道阻塞），rawOutput 完全屏蔽 stderr；同时移除之前加的过宽 HH:MM:SS 时间戳过滤（会误杀回复文本中的时间字符串）
 
 [2026-05-27 FIX] 流式终端 Python 日志噪音二轮过滤 — is_decorative 新增 " - DEBUG/INFO - " 关键词、HH:MM:SS 时间戳开头、provider=/base_url= 配置 dump；ChatPage 初始 rawOutput 占位改为空字符串
