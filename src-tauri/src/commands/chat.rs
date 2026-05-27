@@ -264,15 +264,17 @@ pub async fn send_message(
         map.insert(session_tag.clone(), child);
     }
 
-    // Consume stderr to prevent the child process from blocking on a full pipe.
-    // We do NOT forward stderr to rawOutput: -v mode causes Python's logging module
-    // to flood stderr with DEBUG/INFO lines (timestamps, tool registry checks, etc.)
-    // that are pure internal noise. Real errors surface via the response text in
-    // stdout and via the non-zero exit code check below.
     if let Some(stderr) = stderr {
+        let app_for_stderr = app.clone();
+        let session_for_stderr = session_tag.clone();
         std::thread::spawn(move || {
             let reader = BufReader::new(stderr);
-            for _ in reader.lines() {}
+            for line in reader.lines().map_while(Result::ok) {
+                let clean = strip_ansi(&line);
+                if !clean.trim().is_empty() {
+                    emit(&app_for_stderr, &session_for_stderr, "raw", &clean);
+                }
+            }
         });
     }
 
@@ -304,6 +306,10 @@ pub async fn send_message(
         let show_raw = !trimmed.is_empty();
         #[cfg(not(target_os = "windows"))]
         let show_raw = true;
+
+        if show_raw {
+            emit(&app, &session_tag, "raw", &clean);
+        }
 
         // ── Footer (session info after response) ──────────────────────────────
         if trimmed.starts_with("Resume this session with:") {
@@ -388,14 +394,6 @@ pub async fn send_message(
                 continue;
             }
             in_diff = false;
-        }
-
-        // Only lines that reach here are actual response text.
-        // Emit raw here (after all filters) so the live terminal shows exactly
-        // what will appear in the final rendered text blocks — no think lines,
-        // no decorative lines, no footer noise.
-        if show_raw {
-            emit(&app, &session_tag, "raw", &clean);
         }
 
         // Emit trimmed content so that the 4-space terminal box indent is removed.
