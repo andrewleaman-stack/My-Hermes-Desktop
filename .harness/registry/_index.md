@@ -4,6 +4,8 @@
 > - Session 开始时：只读最近 5 条，了解近况
 > - Session 结束时：在最前面追加新条目（不是末尾）
 
+[2026-05-27 FIX] stderr DEBUG/INFO 日志过滤 — 在 stderr 处理器内检测 " - DEBUG - " 和 " - INFO - " 子串并跳过；WARNING/ERROR 保留；不改 is_decorative 和 stdout 路径，避免误伤回复文本
+
 [2026-05-27 FIX] 终端输出还原至 eb887a0 之前 — emit raw 回到循环顶部无条件转发；stderr 全部非空行恢复转发；ChatPage 初始占位文字恢复；think 块/−v 等其余改动保持不动
 
 [2026-05-27 FIX] 流式终端噪音四轮修复 — emit raw 移至所有过滤之后（footer/status/think/decorative），rawOutput 只收录最终文本行；think 行不再进 rawOutput，live terminal 内容与渲染文本块完全一致
