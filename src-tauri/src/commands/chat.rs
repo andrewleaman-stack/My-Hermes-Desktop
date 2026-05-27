@@ -264,18 +264,15 @@ pub async fn send_message(
         map.insert(session_tag.clone(), child);
     }
 
+    // Consume stderr to prevent the child process from blocking on a full pipe.
+    // We do NOT forward stderr to rawOutput: -v mode causes Python's logging module
+    // to flood stderr with DEBUG/INFO lines (timestamps, tool registry checks, etc.)
+    // that are pure internal noise. Real errors surface via the response text in
+    // stdout and via the non-zero exit code check below.
     if let Some(stderr) = stderr {
-        let app_for_stderr = app.clone();
-        let session_for_stderr = session_tag.clone();
         std::thread::spawn(move || {
             let reader = BufReader::new(stderr);
-            for line in reader.lines().map_while(Result::ok) {
-                let clean = strip_ansi(&line);
-                let t = clean.trim();
-                if !t.is_empty() && !is_decorative(t) {
-                    emit(&app_for_stderr, &session_for_stderr, "raw", &clean);
-                }
-            }
+            for _ in reader.lines() {}
         });
     }
 
