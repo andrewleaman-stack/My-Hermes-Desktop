@@ -155,6 +155,8 @@
 
 <!-- 新条目追加到这里（上方） -->
 
+[2026-06-09 16:57] FIX 对比会话简化为双栏块布局 — 每轮仅保留左侧 Hermes 回答和右侧用户提问，移除漏斗图及重复问题摘要
+
 [2026-06-09 16:48] FIX 修复左右对比会话长内容重叠 — 移除对比面板消息组的百分比高度，让 Grid 行按回答内容自然撑开
 
 [2026-05-25 DONE] feat-208 分支会话 passes=true — fork_session Rust 命令复制 session 文件；ChatPage 拦截 /branch [name]；Sidebar hermes_branch_meta localStorage + ⎇ 图标标记
