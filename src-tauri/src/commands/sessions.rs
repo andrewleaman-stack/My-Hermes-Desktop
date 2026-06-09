@@ -555,76 +555,203 @@ fn read_session_info(
     )
 }
 
-#[tauri::command]
-pub async fn list_sessions() -> Result<Vec<Session>, String> {
-    let sessions_dir = match hermes_home() {
-        Some(h) => h.join("sessions"),
-        None => return Ok(vec![]),
+/// Load sessions from the SQLite database used by hermes ≥ v0.15.
+/// Returns an empty vec if the database doesn't exist or can't be opened.
+fn sessions_from_state_db(db_path: &std::path::Path) -> Vec<Session> {
+    let conn = match rusqlite::Connection::open_with_flags(
+        db_path,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    ) {
+        Ok(c) => c,
+        Err(_) => return vec![],
     };
 
-    // session files are named either `<id>.jsonl` or `session_<id>.json`
-    // files to skip: request_dump_*, sessions.json (platform metadata)
+    let sql = "
+        SELECT
+            s.id,
+            s.title,
+            s.model,
+            s.started_at,
+            COALESCE(s.ended_at, s.started_at) AS updated_at,
+            s.message_count,
+            s.estimated_cost_usd,
+            (SELECT content FROM messages
+             WHERE session_id = s.id AND role = 'user'
+             ORDER BY timestamp ASC LIMIT 1) AS first_user_msg,
+            (SELECT content FROM messages
+             WHERE session_id = s.id AND role = 'user'
+             ORDER BY timestamp DESC LIMIT 1) AS last_user_msg,
+            (SELECT COUNT(*) FROM messages
+             WHERE session_id = s.id AND role = 'user') AS user_msg_count
+        FROM sessions s
+        WHERE s.archived = 0
+        ORDER BY s.started_at DESC
+        LIMIT 500
+    ";
+
+    let mut stmt = match conn.prepare(sql) {
+        Ok(s) => s,
+        Err(_) => return vec![],
+    };
+
+    let unix_to_rfc3339 = |ts: f64| -> String {
+        chrono::DateTime::from_timestamp(ts as i64, 0)
+            .map(|dt: chrono::DateTime<chrono::Utc>| dt.to_rfc3339())
+            .unwrap_or_default()
+    };
+
+    let truncate80 = |s: String| -> String { s.chars().take(80).collect() };
+
+    let rows = stmt.query_map([], |row| {
+        let id: String = row.get(0)?;
+        let title: Option<String> = row.get(1)?;
+        let model: Option<String> = row.get(2)?;
+        let started_at: f64 = row.get(3)?;
+        let updated_at: f64 = row.get(4)?;
+        let message_count: Option<i64> = row.get(5)?;
+        let cost: Option<f64> = row.get(6)?;
+        let first_user_msg: Option<String> = row.get(7)?;
+        let last_user_msg: Option<String> = row.get(8)?;
+        let user_msg_count: i64 = row.get(9).unwrap_or(0);
+        Ok((
+            id,
+            title,
+            model,
+            started_at,
+            updated_at,
+            message_count,
+            cost,
+            first_user_msg,
+            last_user_msg,
+            user_msg_count,
+        ))
+    });
+
+    let rows = match rows {
+        Ok(r) => r,
+        Err(_) => return vec![],
+    };
+
+    rows.filter_map(|r| r.ok())
+        .map(
+            |(
+                id,
+                title,
+                model,
+                started_at,
+                updated_at,
+                message_count,
+                cost,
+                first_user_msg,
+                last_user_msg,
+                user_msg_count,
+            )| {
+                let display_title = title
+                    .filter(|t| !t.is_empty())
+                    .or_else(|| first_user_msg.clone().map(&truncate80))
+                    .unwrap_or_else(|| id.clone());
+
+                let last_message = if user_msg_count >= 2 {
+                    last_user_msg.map(&truncate80)
+                } else {
+                    None
+                };
+
+                Session {
+                    id,
+                    title: display_title,
+                    created_at: unix_to_rfc3339(started_at),
+                    updated_at: unix_to_rfc3339(updated_at),
+                    message_count: message_count.map(|c| c as u32),
+                    cost,
+                    model,
+                    last_message,
+                }
+            },
+        )
+        .collect()
+}
+
+#[tauri::command]
+pub async fn list_sessions() -> Result<Vec<Session>, String> {
+    let home = hermes_home();
     let mut by_id: std::collections::HashMap<String, Session> = std::collections::HashMap::new();
     let title_map = read_title_map();
 
-    if let Ok(entries) = std::fs::read_dir(&sessions_dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-
-            if filename.starts_with("request_dump_") {
-                continue;
+    // ── hermes ≥ v0.15: sessions live in state.db ──────────────────────────────
+    if let Some(ref h) = home {
+        let db_path = h.join("state.db");
+        if db_path.exists() {
+            for session in sessions_from_state_db(&db_path) {
+                let title = title_map.get(&session.id).cloned().unwrap_or(session.title.clone());
+                by_id.insert(session.id.clone(), Session { title, ..session });
             }
-            if filename == "sessions.json" {
-                continue;
-            }
+        }
+    }
 
-            if !path
-                .extension()
-                .map_or(false, |e| e == "json" || e == "jsonl")
-            {
-                continue;
-            }
+    // ── hermes < v0.15: sessions live as JSON/JSONL files ──────────────────────
+    // session files are named either `<id>.jsonl` or `session_<id>.json`
+    // files to skip: request_dump_*, sessions.json (platform metadata)
+    let sessions_dir = home.map(|h| h.join("sessions"));
+    if let Some(ref dir) = sessions_dir {
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
-            let meta = entry.metadata().ok();
-            let fs_updated = meta
-                .and_then(|m| m.modified().ok())
-                .and_then(|t| {
-                    t.duration_since(std::time::UNIX_EPOCH).ok().map(|d| {
-                        chrono::DateTime::<chrono::Utc>::from(
-                            std::time::UNIX_EPOCH + std::time::Duration::from_secs(d.as_secs()),
-                        )
-                        .to_rfc3339()
+                if filename.starts_with("request_dump_") {
+                    continue;
+                }
+                if filename == "sessions.json" {
+                    continue;
+                }
+                if !path
+                    .extension()
+                    .map_or(false, |e| e == "json" || e == "jsonl")
+                {
+                    continue;
+                }
+
+                let meta = entry.metadata().ok();
+                let fs_updated = meta
+                    .and_then(|m| m.modified().ok())
+                    .and_then(|t| {
+                        t.duration_since(std::time::UNIX_EPOCH).ok().map(|d| {
+                            chrono::DateTime::<chrono::Utc>::from(
+                                std::time::UNIX_EPOCH
+                                    + std::time::Duration::from_secs(d.as_secs()),
+                            )
+                            .to_rfc3339()
+                        })
                     })
-                })
-                .unwrap_or_default();
+                    .unwrap_or_default();
 
-            let (id, title, count, updated, model, last_message) =
-                read_session_info(&path, &fs_updated);
-            if id.is_empty() {
-                continue;
+                let (id, title, count, updated, model, last_message) =
+                    read_session_info(&path, &fs_updated);
+                if id.is_empty() {
+                    continue;
+                }
+
+                // Skip if already loaded from state.db (database is authoritative)
+                if by_id.contains_key(&id) {
+                    continue;
+                }
+
+                let title = title_map.get(&id).cloned().unwrap_or(title);
+                by_id.insert(
+                    id.clone(),
+                    Session {
+                        id,
+                        title,
+                        created_at: updated.clone(),
+                        updated_at: updated,
+                        message_count: Some(count),
+                        cost: None,
+                        model,
+                        last_message,
+                    },
+                );
             }
-
-            // Deduplicate: keep the entry with the higher message count
-            let title = title_map.get(&id).cloned().unwrap_or(title);
-            let entry_val = Session {
-                id: id.clone(),
-                title,
-                created_at: updated.clone(),
-                updated_at: updated,
-                message_count: Some(count),
-                cost: None,
-                model,
-                last_message,
-            };
-            by_id
-                .entry(id)
-                .and_modify(|existing| {
-                    if count > existing.message_count.unwrap_or(0) {
-                        *existing = entry_val.clone();
-                    }
-                })
-                .or_insert(entry_val);
         }
     }
 

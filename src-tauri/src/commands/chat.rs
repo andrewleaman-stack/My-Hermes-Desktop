@@ -286,6 +286,7 @@ pub async fn send_message(
 
     let reader = BufReader::new(stdout);
     let mut in_think = false;
+    let mut in_reasoning_box = false;
     let mut in_footer = false;
     let mut in_diff = false;
     let mut discovered_session_id: Option<String> = None;
@@ -319,10 +320,14 @@ pub async fn send_message(
 
         // ── Footer (session info after response) ──────────────────────────────
         if trimmed.starts_with("Resume this session with:") {
-            discovered_session_id = extract_resume_session_id(trimmed);
             in_footer = true;
         }
         if in_footer {
+            // The session ID lives on the "hermes --resume <id>" line that follows
+            // the "Resume this session with:" header, so keep trying until found.
+            if discovered_session_id.is_none() {
+                discovered_session_id = extract_resume_session_id(trimmed);
+            }
             if trimmed.starts_with("Duration:") || trimmed.starts_with("Messages:") {
                 emit(&app, &session_tag, "session_stat", trimmed);
             }
@@ -371,6 +376,24 @@ pub async fn send_message(
         }
         if in_think {
             if !trimmed.is_empty() {
+                emit(&app, &session_tag, "think", trimmed);
+            }
+            continue;
+        }
+
+        // ── Box-drawing Reasoning block: ┌─ Reasoning ─┐ ... └──────┘ ────────
+        // hermes ≥ v0.15 wraps thinking in box-drawing borders instead of
+        // [thinking] prefix or <think> tags.
+        if trimmed.starts_with('┌') {
+            in_reasoning_box = true;
+            emit(&app, &session_tag, "think_start", "");
+            continue;
+        }
+        if in_reasoning_box {
+            if trimmed.starts_with('└') {
+                in_reasoning_box = false;
+                emit(&app, &session_tag, "think_end", "");
+            } else if !trimmed.is_empty() {
                 emit(&app, &session_tag, "think", trimmed);
             }
             continue;
