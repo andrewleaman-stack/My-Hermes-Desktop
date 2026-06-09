@@ -2083,10 +2083,6 @@ body {
     color-mix(in srgb, var(--surface-card) 72%, transparent);
 }
 
-.compare-pane .message-group {
-  height: 100%;
-}
-
 .compare-pane .message-bubble.user {
   max-width: 100%;
   width: 100%;
@@ -2113,9 +2109,9 @@ body {
 }
 
 .compare-empty-answer {
-  height: 100%;
   min-height: 86px;
   display: flex;
+  align-self: stretch;
   align-items: center;
   justify-content: center;
   border: 1px dashed var(--hairline);
