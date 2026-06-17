@@ -4,8 +4,86 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
 import { invoke } from "@tauri-apps/api/core";
+import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import bashLang from "react-syntax-highlighter/dist/esm/languages/prism/bash";
+import jsLang from "react-syntax-highlighter/dist/esm/languages/prism/javascript";
+import tsLang from "react-syntax-highlighter/dist/esm/languages/prism/typescript";
+import jsonLang from "react-syntax-highlighter/dist/esm/languages/prism/json";
+import pyLang from "react-syntax-highlighter/dist/esm/languages/prism/python";
+import cssLang from "react-syntax-highlighter/dist/esm/languages/prism/css";
+import sqlLang from "react-syntax-highlighter/dist/esm/languages/prism/sql";
+import yamlLang from "react-syntax-highlighter/dist/esm/languages/prism/yaml";
+import jsxLang from "react-syntax-highlighter/dist/esm/languages/prism/jsx";
+import tsxLang from "react-syntax-highlighter/dist/esm/languages/prism/tsx";
+import dockerLang from "react-syntax-highlighter/dist/esm/languages/prism/docker";
+import mdLang from "react-syntax-highlighter/dist/esm/languages/prism/markdown";
+import tomlLang from "react-syntax-highlighter/dist/esm/languages/prism/toml";
 import { Message, ToolCallBlock } from "../../types";
 import Icon from "../Icon";
+
+// ─── Syntax Highlighting — language registration ──────────────────────────
+SyntaxHighlighter.registerLanguage("bash", bashLang);
+SyntaxHighlighter.registerLanguage("shell", bashLang);
+SyntaxHighlighter.registerLanguage("sh", bashLang);
+SyntaxHighlighter.registerLanguage("zsh", bashLang);
+SyntaxHighlighter.registerLanguage("javascript", jsLang);
+SyntaxHighlighter.registerLanguage("js", jsLang);
+SyntaxHighlighter.registerLanguage("typescript", tsLang);
+SyntaxHighlighter.registerLanguage("ts", tsLang);
+SyntaxHighlighter.registerLanguage("json", jsonLang);
+SyntaxHighlighter.registerLanguage("python", pyLang);
+SyntaxHighlighter.registerLanguage("py", pyLang);
+SyntaxHighlighter.registerLanguage("css", cssLang);
+SyntaxHighlighter.registerLanguage("sql", sqlLang);
+SyntaxHighlighter.registerLanguage("yaml", yamlLang);
+SyntaxHighlighter.registerLanguage("yml", yamlLang);
+SyntaxHighlighter.registerLanguage("jsx", jsxLang);
+SyntaxHighlighter.registerLanguage("tsx", tsxLang);
+SyntaxHighlighter.registerLanguage("docker", dockerLang);
+SyntaxHighlighter.registerLanguage("dockerfile", dockerLang);
+SyntaxHighlighter.registerLanguage("markdown", mdLang);
+SyntaxHighlighter.registerLanguage("md", mdLang);
+SyntaxHighlighter.registerLanguage("toml", tomlLang);
+
+/** Best-effort auto-detect language for code blocks without an explicit tag */
+function detectCodeLanguage(code: string): string {
+  const trimmed = code.trim();
+  const firstLine = trimmed.split("\n")[0].trim();
+  if (!firstLine) return "text";
+
+  // Shell / CLI commands
+  if (
+    /^[$❯#]/.test(firstLine) ||
+    /^(npm |git |cd |ls |cat |echo |export |rm |cp |mv |mkdir|chmod|sudo|brew|pnpm|yarn|npx|pip|pip3|cargo |go |rustc|deno|bun |which |curl |wget |docker |kubectl)/.test(
+      firstLine
+    )
+  ) {
+    return "bash";
+  }
+
+  // JSON-like
+  if (/^\s*[{[]/.test(trimmed) && /[{}\[\]:,"']/.test(trimmed) && !/\b(const|let|var|function|import from)\b/.test(trimmed)) {
+    return "json";
+  }
+
+  // JS / TS
+  if (/\b(const |let |var |function |import\s|export\s|=>|console\.|require\()/.test(trimmed)) {
+    return "javascript";
+  }
+
+  // Python
+  if (/\b(def |import |from |class |print\(|if __name__)/.test(trimmed)) {
+    return "python";
+  }
+
+  // SQL
+  if (/^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|FROM|WHERE)\b/i.test(firstLine)) {
+    return "sql";
+  }
+
+  return "text";
+}
 
 // ─── Think Block ──────────────────────────────────────────────────────────────
 
@@ -101,6 +179,32 @@ const mdComponents = {
     >
       {children}
     </a>
+  ),
+  pre: ({ children }: any) => {
+    // react-markdown only calls `pre` for fenced code blocks; child is always the code element
+    const child = (Array.isArray(children) ? children[0] : children) as any;
+    const className = child?.props?.className || "";
+    const match = /language-(\w+)/.exec(className);
+    const code = String(child?.props?.children ?? "").replace(/\n$/, "");
+    const lang = match?.[1] ?? detectCodeLanguage(code);
+    return (
+      <SyntaxHighlighter
+        style={vscDarkPlus}
+        language={lang || "text"}
+        PreTag="div"
+        customStyle={{
+          margin: "10px 0",
+          borderRadius: "var(--radius-lg)",
+          fontSize: "12.5px",
+          padding: "14px 16px",
+        }}
+      >
+        {code}
+      </SyntaxHighlighter>
+    );
+  },
+  code: ({ className, children }: any) => (
+    <code className={className}>{children}</code>
   ),
 };
 

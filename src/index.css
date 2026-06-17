@@ -4229,13 +4229,12 @@ body {
 .md-content p:last-child { margin: 0; }
 .md-content hr { border: none; border-top: 1px solid var(--hairline); margin: 16px 0; }
 .md-content code {
-  background: var(--surface-card);
-  border: 1px solid var(--hairline);
+  background: rgba(20, 20, 19, 0.07);
   border-radius: 4px;
   padding: 1px 5px;
   font-size: 12.5px;
   font-family: var(--font-mono);
-  color: var(--primary);
+  color: var(--body-strong);
 }
 .md-content pre {
   background: var(--surface-dark);
