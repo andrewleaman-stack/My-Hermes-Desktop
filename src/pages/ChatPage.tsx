@@ -167,6 +167,12 @@ function parseHistoryMessages(raw: unknown): Message[] {
   return messages;
 }
 
+function formatTokenCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
 function parseTokenCount(s: string): number {
   const m = s.match(/^([\d.]+)([KMB]?)$/i);
   if (!m) return 0;
@@ -270,11 +276,14 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
   const tuiSessionId = activeSessionId;
 
   const contextPct = useMemo(() => {
+    if (typeof status?.contextPercent === "number") {
+      return Math.min(1, status.contextPercent / 100);
+    }
     if (!status?.tokensUsed || !status?.tokensMax) return undefined;
     const used = parseTokenCount(status.tokensUsed);
     const max  = parseTokenCount(status.tokensMax);
     return max > 0 ? Math.min(1, used / max) : undefined;
-  }, [status?.tokensUsed, status?.tokensMax]);
+  }, [status?.contextPercent, status?.tokensUsed, status?.tokensMax]);
 
   const tokenDisplay = useMemo((): { input: string; output: string } | null => {
     const msgs = activeSessionId ? (sessionMessages[activeSessionId] ?? []) : [];
@@ -348,7 +357,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
     checkMemory();
   }, [activeSessionId]);
 
-  // 同步 streaming 状态到系统托盘图标
+  // Sync streaming state to the tray icon
   useEffect(() => {
     const status = streamingSessions.size > 0 ? "running" : "idle";
     invoke("update_tray_status", { status }).catch(() => {});
@@ -415,7 +424,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
     });
   }, [activeSessionId]);
 
-  // 监听托盘"新建会话"菜单项 + 全局快捷键 Cmd+N（必须在 handleNewSession 定义之后）
+  // Listen for the tray "New Session" menu item and global Cmd+N hotkey after handleNewSession is defined
   useEffect(() => {
     const unlisten = listen("new-session-from-tray", () => {
       handleNewSession();
@@ -449,7 +458,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
     };
   }, [handleNewSession]);
 
-  // 后台任务完成通知 → 刷新会话列表并跳转
+  // Background task completion notification → refresh the session list and navigate
   useEffect(() => {
     const unlisten = listen<{ task_id: string; session_id: string | null; status: string }>(
       "bg-task-done",
@@ -549,7 +558,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
 
   const handlePtyWrite = useCallback((data: string) => {
     if (!terminalOpen) {
-      // 自动打开终端，缓存命令等 TUI 就绪后执行
+      // Open the terminal automatically and cache the command until the TUI is ready
       pendingPtyCommandRef.current = data;
       setTerminalOpen(true);
       return;
@@ -557,7 +566,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
     writeToPty(data);
   }, [terminalOpen, writeToPty]);
 
-  // 终端刚打开且有待发命令时，监听 PTY 输出，500ms 静默后认为 TUI 就绪再发送
+  // When the terminal just opened with a pending command, watch PTY output and send after 500ms of quiet
   useEffect(() => {
     if (!terminalOpen || !pendingPtyCommandRef.current) return;
 
@@ -572,18 +581,18 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
       sent = true;
       if (unlistenFn) { unlistenFn(); unlistenFn = null; }
       clearTimeout(fallback);
-      // 检测到 ready 后稍等 100ms 再发，确保 TUI 完全稳定
+      // After detecting readiness, wait 100ms before sending so the TUI is stable
       setTimeout(() => writeToPty(cmd), 100);
     };
 
-    // 检测 TUI 状态栏出现 "ready" 字样即视为就绪
+    // Treat "ready" in the TUI status bar as readiness
     listen<string>(`pty:${activePtyId.current}`, (event) => {
       if (event.payload.includes("ready")) {
         sendCmd();
       }
     }).then((u) => { unlistenFn = u; });
 
-    // 兜底：8s 内无论如何都发
+    // Fallback: send after 8s regardless
     const fallback = setTimeout(sendCmd, 8000);
 
     return () => {
@@ -602,7 +611,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
       setSnapshotPanelTab("background");
       setSnapshotPanelOpen(true);
     } catch (e) {
-      setSessionErrors((prev) => ({ ...prev, global: `后台任务启动失败: ${e}` }));
+      setSessionErrors((prev) => ({ ...prev, global: `Background task failed to start: ${e}` }));
     }
   }, []);
 
@@ -689,16 +698,16 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
       const sid = activeSessionId ?? "—";
       const st = sessionStatusRef.current[sid];
       const lines = [
-        `**会话 ID**：\`${sid}\``,
-        st?.model ? `**模型**：${st.model}` : null,
+        `**Session ID**: \`${sid}\``,
+        st?.model ? `**Model**: ${st.model}` : null,
         st?.tokensUsed ? `**Token**：${st.tokensUsed}${st.tokensMax ? ` / ${st.tokensMax}` : ""}` : null,
-        st?.duration ? `**耗时**：${st.duration}` : null,
+        st?.duration ? `**Duration**: ${st.duration}` : null,
       ].filter(Boolean).join("\n\n");
-      injectLocalMessage(lines || `**会话 ID**：\`${sid}\``);
+      injectLocalMessage(lines || `**Session ID**: \`${sid}\``);
       return true;
     }
     if (cmd === "/save") {
-      injectLocalMessage("会话已自动保存。Hermes 在每次对话后自动持久化会话文件，无需手动保存。");
+      injectLocalMessage("Session saved automatically. Hermes persists each conversation after every exchange, so manual saves are not needed.");
       return true;
     }
     if (cmd === "/branch" || cmd === "/compress") {
@@ -764,7 +773,6 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
         id: assistantId,
         role: "assistant",
         blocks: [],
-        rawOutput: "Starting Hermes...\nLaunching agent process...",
         timestamp: new Date().toISOString(),
         status: "streaming",
       };
@@ -847,7 +855,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
         });
       }
     },
-    [streamingSessions, handleSlashCommand]
+    [streamingSessions, handleSlashCommand, workingDir]
   );
 
   // Auto-send queued messages when a session finishes
@@ -953,7 +961,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
             case "text": {
               const last = blocks[blocks.length - 1];
               if (last?.type === "text") {
-                const next = last.content + "\n" + chunk.content;
+                const next = last.content + chunk.content;
                 blocks[blocks.length - 1] = {
                   ...last,
                   content: next.replace(/\n{3,}/g, "\n\n"),
@@ -1052,6 +1060,11 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
             if (activeSessionIdRef.current === sessionId) return bPrev;
             return { ...bPrev, [sessionId]: "done" };
           });
+          setSessionStatus((sPrev) => {
+            const current = sPrev[sessionId];
+            if (!current?.activity) return sPrev;
+            return { ...sPrev, [sessionId]: { ...current, activity: undefined } };
+          });
 
           // Streaming accumulates text by line-trim + chunk-stitch, which loses
           // code-block indentation and splits markdown across blocks when tool
@@ -1099,6 +1112,51 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
               ...prev,
               [sessionId]: { ...(prev[sessionId] ?? ({} as HermesStatus)), ...parsed } as HermesStatus,
             }));
+          }
+        }
+
+        // Structured stats from the persistent gateway's session.info events
+        if (chunk.kind === "status_json") {
+          try {
+            const s = JSON.parse(chunk.content) as {
+              model?: string;
+              context_used?: number;
+              context_max?: number;
+              context_percent?: number;
+            };
+            setSessionStatus((prev) => {
+              const current = prev[sessionId] ?? ({} as HermesStatus);
+              const next: HermesStatus = { ...current };
+              if (s.model) next.model = s.model;
+              if (typeof s.context_used === "number" && s.context_used > 0) {
+                next.tokensUsed = formatTokenCount(s.context_used);
+              }
+              if (typeof s.context_max === "number" && s.context_max > 0) {
+                next.tokensMax = formatTokenCount(s.context_max);
+              }
+              if (typeof s.context_percent === "number") {
+                next.contextPercent = s.context_percent;
+              }
+              return { ...prev, [sessionId]: next };
+            });
+          } catch {
+            // malformed payload — keep last known status
+          }
+        }
+
+        // Transient gateway activity (context compression progress, etc.)
+        if (chunk.kind === "gateway_status") {
+          try {
+            const s = JSON.parse(chunk.content) as { kind?: string; text?: string };
+            const isBusy = s.kind === "compacting" || s.kind === "compressing";
+            setSessionStatus((prev) => {
+              const current = prev[sessionId] ?? ({} as HermesStatus);
+              const activity = isBusy ? (s.text || "Compressing context…") : undefined;
+              if ((current.activity ?? undefined) === activity) return prev;
+              return { ...prev, [sessionId]: { ...current, activity } };
+            });
+          } catch {
+            // malformed payload — ignore
           }
         }
 
@@ -1286,7 +1344,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
             onSend={handleSendMessage}
             onClose={() => setSnapshotPanelOpen(false)}
             externalCreateCount={snapshotCreateCount}
-            sessionTitle={activeSession?.title ?? "未命名会话"}
+            sessionTitle={activeSession?.title ?? "Untitled session"}
             initialTab={snapshotPanelTab}
             onBgCountChange={setBgRunningCount}
           />
@@ -1295,11 +1353,11 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
           <div className="config-guide-card">
             <span className="config-guide-icon">⚠</span>
             <div className="config-guide-body">
-              <div className="config-guide-title">尚未配置 API Key</div>
-              <div className="config-guide-desc">Hermes 需要至少一个 Provider 的 API Key 才能运行。</div>
+              <div className="config-guide-title">API key not configured</div>
+              <div className="config-guide-desc">Hermes needs at least one provider API key to run.</div>
             </div>
             <button className="config-guide-btn" onClick={() => navigate("/dashboard")}>
-              去配置
+              Configure
             </button>
           </div>
         )}

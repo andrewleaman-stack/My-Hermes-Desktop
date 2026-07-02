@@ -64,6 +64,8 @@ export interface StreamChunk {
     | "tool_output"
     | "tool_output_end"
     | "status"
+    | "status_json"
+    | "gateway_status"
     | "session_stat"
     | "done"
     | "error"
@@ -83,4 +85,8 @@ export interface HermesStatus {
   duration: string;
   msgCount: string;
   raw: string;
+  /** Exact context usage 0–100 from the gateway; preferred over parsing token strings. */
+  contextPercent?: number;
+  /** Transient gateway activity, e.g. a context-compression progress line. */
+  activity?: string;
 }

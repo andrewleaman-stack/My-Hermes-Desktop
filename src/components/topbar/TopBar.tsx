@@ -121,7 +121,7 @@ export default function TopBar({
               <button
                 className="topbar-title-edit-btn"
                 onClick={startTitleEdit}
-                title="编辑当前会话标题"
+                title="Edit current session title"
               >
                 <Icon name="edit" size={12} />
               </button>
@@ -135,10 +135,12 @@ export default function TopBar({
       {/* Agent state */}
       <div className="status-pill">
         <div
-          className={`hermes-indicator ${streaming ? "streaming" : "idle"}`}
-          title={streaming ? "Agent is running..." : "Ready"}
+          className={`hermes-indicator ${streaming || status?.activity ? "streaming" : "idle"}`}
+          title={status?.activity ?? (streaming ? "Agent is running..." : "Ready")}
         />
-        <span className="label">{streaming ? "Running" : "Ready"}</span>
+        <span className="label">
+          {status?.activity ? "Compressing…" : streaming ? "Running" : "Ready"}
+        </span>
       </div>
 
       <div className="topbar-divider" />
@@ -150,7 +152,7 @@ export default function TopBar({
 
       {/* Token usage */}
       {tokenDisplay && (
-        <div className="status-pill" title="输入 / 输出 Token 估算">
+        <div className="status-pill" title="Input / output token estimate">
           <span className="label">Token</span>
           <span className="value">{tokenDisplay.input}</span>
           <span className="token-sep">/</span>
@@ -196,10 +198,10 @@ export default function TopBar({
         <button
           className="topbar-terminal-btn"
           onClick={() => window.dispatchEvent(new Event("open-goal-input"))}
-          title="设置持久目标"
+          title="Set persistent goal"
         >
           <Icon name="flag" size={14} />
-          目标
+          Goal
         </button>
       )}
 
@@ -207,17 +209,17 @@ export default function TopBar({
       <button
         className="topbar-terminal-btn"
         onClick={onOpenSnapshot}
-        title="快照时间线"
+        title="Snapshot Timeline"
       >
         <Icon name="timer" size={14} />
-        快照
+        Snapshots
       </button>
 
       {/* Terminal button */}
       <button
         className="topbar-terminal-btn"
         onClick={onOpenTerminal}
-        title="打开 Hermes 交互终端（支持 slash 命令）"
+        title="Open the Hermes interactive terminal (supports slash commands)"
       >
         <Icon name="terminal" size={14} />
         Terminal
@@ -236,7 +238,7 @@ export default function TopBar({
       <button
         className={`app-titlebar-icon-btn topbar-tools-toggle${showThink ? " active" : ""}`}
         onClick={onToggleThink}
-        title={showThink ? "隐藏思考过程" : "显示思考过程"}
+        title={showThink ? "Hide reasoning" : "Show reasoning"}
         aria-pressed={showThink}
       >
         <Icon name="brain" size={13} />
@@ -246,7 +248,7 @@ export default function TopBar({
       <button
         className={`app-titlebar-icon-btn topbar-tools-toggle${showTools ? " active" : ""}`}
         onClick={onToggleTools}
-        title={showTools ? "隐藏工具调用" : "显示工具调用"}
+        title={showTools ? "Hide tool calls" : "Show tool calls"}
         aria-pressed={showTools}
       >
         <Icon name="tool" size={13} />
@@ -256,8 +258,8 @@ export default function TopBar({
       <button
         className={`app-titlebar-icon-btn topbar-tools-toggle${repliesCollapsed ? " active" : ""}`}
         onClick={onToggleRepliesCollapsed}
-        title={repliesCollapsed ? "展开全部 Hermes 回复" : "折叠全部 Hermes 回复"}
-        aria-label={repliesCollapsed ? "展开全部 Hermes 回复" : "折叠全部 Hermes 回复"}
+        title={repliesCollapsed ? "Expand all Hermes replies" : "Collapse all Hermes replies"}
+        aria-label={repliesCollapsed ? "Expand all Hermes replies" : "Collapse all Hermes replies"}
         aria-pressed={repliesCollapsed}
       >
         <Icon name="chevronRight" size={13} />

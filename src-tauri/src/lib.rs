@@ -5,6 +5,7 @@ use tauri::{AppHandle, Emitter, Manager};
 pub mod commands;
 pub mod stream;
 
+
 // ─── Shared Data Types ────────────────────────────────────────────────────────
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -25,7 +26,8 @@ pub struct Session {
 pub struct StreamChunk {
     /// "text" | "think" | "think_start" | "think_end"
     /// "tool_name" | "tool_input" | "tool_output" | "tool_output_end"
-    /// "status" | "session_stat" | "new_session_id" | "done" | "error"
+    /// "status" | "status_json" | "gateway_status" | "session_stat"
+    /// "new_session_id" | "done" | "error"
     pub kind: String,
     pub content: String,
     pub session_id: String,
@@ -73,6 +75,7 @@ impl AppState {
 }
 
 fn shutdown_children(app: &AppHandle) {
+    commands::chat::shutdown_gateway();
     let state = app.state::<AppState>();
     if let Some(mut child) = state.dashboard_child.lock().unwrap().take() {
         child.kill().ok();
@@ -127,10 +130,10 @@ fn setup_tray(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     };
 
-    let open = MenuItem::with_id(app, "open", "打开 Hermes Desktop", true, None::<&str>)?;
-    let new_session = MenuItem::with_id(app, "new_session", "新建会话", true, None::<&str>)?;
+    let open = MenuItem::with_id(app, "open", "Open Hermes Desktop", true, None::<&str>)?;
+    let new_session = MenuItem::with_id(app, "new_session", "New Session", true, None::<&str>)?;
     let sep = PredefinedMenuItem::separator(app)?;
-    let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
     let menu = Menu::with_items(app, &[&open, &new_session, &sep, &quit])?;
 
@@ -138,7 +141,7 @@ fn setup_tray(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         .icon(app.default_window_icon().unwrap().clone())
         .tooltip("Hermes Desktop")
         .menu(&menu)
-        // 左键单击切换窗口显示/隐藏
+        // Left-click to toggle the window visibility
         .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {
@@ -173,7 +176,7 @@ fn setup_tray(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             "quit" => {
-                // 退出前 kill 后台进程
+                // Kill background processes before quitting
                 shutdown_children(app);
                 app.exit(0);
             }
@@ -187,28 +190,28 @@ fn setup_tray(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 fn setup_app_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 
-    let new_session = MenuItem::with_id(app, "new-session", "新建会话", true, Some("CmdOrCtrl+N"))?;
-    let snapshot = MenuItem::with_id(app, "toggle-snapshot", "保存快照 / 快照时间线", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "退出 Hermes Desktop", true, Some("CmdOrCtrl+Q"))?;
+    let new_session = MenuItem::with_id(app, "new-session", "New Session", true, Some("CmdOrCtrl+N"))?;
+    let snapshot = MenuItem::with_id(app, "toggle-snapshot", "Save Snapshot / Snapshot Timeline", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit Hermes Desktop", true, Some("CmdOrCtrl+Q"))?;
     let file_sep = PredefinedMenuItem::separator(app)?;
-    let file = Submenu::with_items(app, "文件", true, &[&new_session, &snapshot, &file_sep, &quit])?;
+    let file = Submenu::with_items(app, "Files", true, &[&new_session, &snapshot, &file_sep, &quit])?;
 
     // Standard edit items — these register the native ⌘C/⌘V/⌘X/⌘A/⌘Z/⌘⇧Z
     // accelerators. Without them in a custom menu, copy/paste/etc. stop working
     // in the webview on macOS.
-    let undo = PredefinedMenuItem::undo(app, Some("撤销"))?;
-    let redo = PredefinedMenuItem::redo(app, Some("重做"))?;
+    let undo = PredefinedMenuItem::undo(app, Some("Undo"))?;
+    let redo = PredefinedMenuItem::redo(app, Some("Redo"))?;
     let edit_sep1 = PredefinedMenuItem::separator(app)?;
-    let cut = PredefinedMenuItem::cut(app, Some("剪切"))?;
-    let copy = PredefinedMenuItem::copy(app, Some("复制"))?;
-    let paste = PredefinedMenuItem::paste(app, Some("粘贴"))?;
-    let select_all = PredefinedMenuItem::select_all(app, Some("全选"))?;
+    let cut = PredefinedMenuItem::cut(app, Some("Cut"))?;
+    let copy = PredefinedMenuItem::copy(app, Some("Copy"))?;
+    let paste = PredefinedMenuItem::paste(app, Some("Paste"))?;
+    let select_all = PredefinedMenuItem::select_all(app, Some("Select All"))?;
     let edit_sep2 = PredefinedMenuItem::separator(app)?;
-    let stop_agent = MenuItem::with_id(app, "stop-agent", "停止运行", true, None::<&str>)?;
-    let shortcuts = MenuItem::with_id(app, "show-shortcuts", "快捷键", true, Some("CmdOrCtrl+/"))?;
+    let stop_agent = MenuItem::with_id(app, "stop-agent", "Stop Running", true, None::<&str>)?;
+    let shortcuts = MenuItem::with_id(app, "show-shortcuts", "Shortcuts", true, Some("CmdOrCtrl+/"))?;
     let edit = Submenu::with_items(
         app,
-        "编辑",
+        "Edit",
         true,
         &[
             &undo,
@@ -224,30 +227,30 @@ fn setup_app_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>
         ],
     )?;
 
-    let chat = MenuItem::with_id(app, "open-chat", "对话", true, None::<&str>)?;
-    let memory = MenuItem::with_id(app, "open-memory", "记忆", true, None::<&str>)?;
-    let files = MenuItem::with_id(app, "open-files", "文件树", true, None::<&str>)?;
-    let dashboard = MenuItem::with_id(app, "open-dashboard", "管理面板", true, None::<&str>)?;
-    let settings = MenuItem::with_id(app, "open-settings", "设置", true, None::<&str>)?;
-    let terminal = MenuItem::with_id(app, "toggle-terminal", "终端", true, None::<&str>)?;
+    let chat = MenuItem::with_id(app, "open-chat", "Chat", true, None::<&str>)?;
+    let memory = MenuItem::with_id(app, "open-memory", "Memory", true, None::<&str>)?;
+    let files = MenuItem::with_id(app, "open-files", "File Tree", true, None::<&str>)?;
+    let dashboard = MenuItem::with_id(app, "open-dashboard", "Dashboard", true, None::<&str>)?;
+    let settings = MenuItem::with_id(app, "open-settings", "Settings", true, None::<&str>)?;
+    let terminal = MenuItem::with_id(app, "toggle-terminal", "Terminal", true, None::<&str>)?;
     let view = Submenu::with_items(
         app,
-        "查看",
+        "View",
         true,
         &[&chat, &memory, &files, &dashboard, &settings, &terminal],
     )?;
 
-    let compress = MenuItem::with_id(app, "agent-compress", "压缩上下文", true, None::<&str>)?;
-    let background = MenuItem::with_id(app, "agent-background", "后台任务", true, None::<&str>)?;
+    let compress = MenuItem::with_id(app, "agent-compress", "Compress Context", true, None::<&str>)?;
+    let background = MenuItem::with_id(app, "agent-background", "Background Tasks", true, None::<&str>)?;
     let agent = Submenu::with_items(app, "Agent", true, &[&compress, &background])?;
 
-    let hide = MenuItem::with_id(app, "hide-window", "隐藏到托盘", true, None::<&str>)?;
-    let window_snapshot = MenuItem::with_id(app, "window-snapshot", "快照时间线", true, None::<&str>)?;
-    let window = Submenu::with_items(app, "窗口", true, &[&hide, &window_snapshot])?;
+    let hide = MenuItem::with_id(app, "hide-window", "Hide to Tray", true, None::<&str>)?;
+    let window_snapshot = MenuItem::with_id(app, "window-snapshot", "Snapshot Timeline", true, None::<&str>)?;
+    let window = Submenu::with_items(app, "Window", true, &[&hide, &window_snapshot])?;
 
-    let setup = MenuItem::with_id(app, "help-setup", "安装与配置", true, None::<&str>)?;
-    let about = MenuItem::with_id(app, "help-about", "关于 Hermes Desktop", true, None::<&str>)?;
-    let help = Submenu::with_items(app, "帮助", true, &[&setup, &about])?;
+    let setup = MenuItem::with_id(app, "help-setup", "Setup & Configuration", true, None::<&str>)?;
+    let about = MenuItem::with_id(app, "help-about", "About Hermes Desktop", true, None::<&str>)?;
+    let help = Submenu::with_items(app, "Help", true, &[&setup, &about])?;
 
     let menu = Menu::with_items(app, &[&file, &edit, &view, &agent, &window, &help])?;
     app.set_menu(menu)?;
@@ -255,9 +258,9 @@ fn setup_app_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>
 }
 
 fn setup_platform_window(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-    if let Some(win) = app.get_webview_window("main") {
+    if let Some(_win) = app.get_webview_window("main") {
         #[cfg(not(target_os = "macos"))]
-        win.set_decorations(false)?;
+        _win.set_decorations(false)?;
     }
     Ok(())
 }
@@ -317,12 +320,12 @@ pub fn run() {
             }
         })
         .on_window_event(|window, event| match event {
-            // 关闭按钮 → 隐藏到托盘，不退出进程
+            // Close button hides to tray instead of exiting
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 window.hide().unwrap();
                 api.prevent_close();
             }
-            // 进程真正退出时（app.exit() 触发）kill dashboard
+            // When the process actually exits (triggered by app.exit()), kill the dashboard
             tauri::WindowEvent::Destroyed => {
                 let state = tauri::Manager::state::<AppState>(window);
                 let child = state.dashboard_child.lock().unwrap().take();
@@ -382,6 +385,8 @@ pub fn run() {
             commands::snapshot::snapshot_create,
             commands::tray::update_tray_status,
             quit_app,
+            commands::settings::load_guide_bot_settings,
+            commands::settings::save_guide_bot_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
