@@ -3,32 +3,44 @@ import { useCallback, useEffect, useState } from "react";
 import Icon from "../components/Icon";
 import {
   GUIDE_BOT_APPEARANCES,
+  GUIDE_BOT_DISPLAYS,
+  GUIDE_BOT_SIZES,
   GuideBotAvatar,
   type GuideBotAppearance,
+  type GuideBotDisplay,
+  type GuideBotSize,
   useGuideBotAppearance,
+  useGuideBotDisplay,
+  useGuideBotSize,
 } from "../components/chat/GuideBot";
-import { THEMES, useTheme, type Theme } from "../hooks/useTheme";
+import { MODES, THEMES, useTheme, type Mode, type Theme } from "../hooks/useTheme";
 import { TERMINAL_BGS, useTerminalBg, type TerminalBg } from "../hooks/useTerminalBg";
 import { FONT_SIZES, FONT_SIZE_LABELS, useFontSize, type FontSize } from "../hooks/useFontSize";
 
 const THEME_LABELS: Record<Theme, { name: string; description: string }> = {
-  claude: { name: "Claude Noir", description: "温暖纸面、柔和边界" },
-  apple: { name: "Apple", description: "系统感、轻背景、蓝色强调" },
-  warp: { name: "Warp", description: "暖深色、终端气质" },
+  claude: { name: "Claude Noir", description: "Warm paper surface with soft edges" },
+  apple: { name: "Apple", description: "System-native feel, light background, blue accents" },
+  warp: { name: "Warp", description: "Warm dark mode with a terminal feel" },
+};
+
+const MODE_LABELS: Record<Mode, string> = {
+  auto: "Auto",
+  light: "Light",
+  dark: "Dark",
 };
 
 const TERMINAL_BG_LABELS: Record<TerminalBg, { name: string; description: string }> = {
-  dark:    { name: "暗夜",   description: "经典深色，对比度最佳" },
-  glass:   { name: "毛玻璃", description: "半透明霜化效果" },
-  ocean:   { name: "深海",   description: "蓝紫渐变星云感" },
-  sunset:  { name: "暮色",   description: "深红紫幽暗渐变" },
-  forest:  { name: "暗林",   description: "深邃祖母绿渐变" },
+  dark:    { name: "Dark",    description: "Classic dark mode with the best contrast" },
+  glass:   { name: "Glass",   description: "Translucent frosted-glass effect" },
+  ocean:   { name: "Ocean",   description: "Blue-purple nebula gradient" },
+  sunset:  { name: "Sunset",  description: "Deep red-purple dusk gradient" },
+  forest:  { name: "Forest",  description: "Deep emerald forest gradient" },
 };
 
 const FONT_SIZE_ROW_LABELS: Record<string, string> = {
-  ui: "界面",
-  terminal: "终端",
-  fileTree: "文件管理器",
+  ui: "Interface",
+  terminal: "Terminal",
+  fileTree: "File manager",
 };
 
 const APPEARANCE_MOOD: Record<GuideBotAppearance, Parameters<typeof GuideBotAvatar>[0]["mood"]> = {
@@ -37,6 +49,7 @@ const APPEARANCE_MOOD: Record<GuideBotAppearance, Parameters<typeof GuideBotAvat
   anime: "typing",
   cyber: "alert",
   pod: "heartbeat",
+  "april-v4": "smug",
 };
 
 // ─── Dashboard Theme Installer sub-component ─────────────────────────────────
@@ -97,9 +110,9 @@ function DashboardThemeInstaller() {
     <div className="dashboard-theme-installer">
       <div className="settings-row">
         <div className="settings-row-label">
-          <span className="ui-font">安装 Dashboard 主题包</span>
+          <span className="ui-font">Install Dashboard theme pack</span>
           <span className="settings-row-desc">
-            一键安装 Claude / Apple / Warp 三套主题及同步插件到 ~/.hermes/
+            Install the Claude, Apple, and Warp themes plus the sync plugin into ~/.hermes/
           </span>
         </div>
         <button
@@ -111,16 +124,16 @@ function DashboardThemeInstaller() {
           {isInstalling ? (
             <>
               <span className="btn-spinner" />
-              安装中…
+              Installing…
             </>
           ) : status?.installed ? (
             <>
-              重新安装
+              Reinstall
               <Icon name="refresh" size={15} />
             </>
           ) : (
             <>
-              安装
+              Install
               <Icon name="package" size={15} />
             </>
           )}
@@ -131,19 +144,19 @@ function DashboardThemeInstaller() {
       {installError && (
         <div className="install-result-card install-error">
           <Icon name="alert" size={16} />
-          <span>安装失败：{installError}</span>
+          <span>Install failed: {installError}</span>
         </div>
       )}
       {installResult && (
         <div className="install-result-card install-success">
           <div className="install-result-header">
             <Icon name="check" size={16} />
-            <span>安装成功</span>
+            <span>Installed successfully</span>
           </div>
           <div className="install-result-body">
             {installResult.themes_installed.length > 0 && (
               <div className="install-result-group">
-                <span className="install-result-label">主题文件</span>
+                <span className="install-result-label">Theme files</span>
                 <ul className="install-result-list">
                   {installResult.themes_installed.map((f) => (
                     <li key={f}>{f}</li>
@@ -154,7 +167,7 @@ function DashboardThemeInstaller() {
             )}
             {installResult.plugin_files_installed.length > 0 && (
               <div className="install-result-group">
-                <span className="install-result-label">插件文件</span>
+                <span className="install-result-label">Plugin files</span>
                 <ul className="install-result-list">
                   {installResult.plugin_files_installed.map((f) => (
                     <li key={f}>{f}</li>
@@ -165,7 +178,7 @@ function DashboardThemeInstaller() {
             )}
             {installResult.skipped.length > 0 && (
               <div className="install-result-group">
-                <span className="install-result-label">跳过（源文件缺失）</span>
+                <span className="install-result-label">Skipped (source files missing)</span>
                 <ul className="install-result-list">
                   {installResult.skipped.map((f) => (
                     <li key={f}>{f}</li>
@@ -183,14 +196,14 @@ function DashboardThemeInstaller() {
           <div className="install-status-header">
             <Icon name="package" size={14} />
             <span className="ui-font">
-              {status.installed ? "已安装内容" : "尚未安装"}
+              {status.installed ? "Installed content" : "Not installed yet"}
             </span>
           </div>
           {status.installed && (
             <div className="install-status-body">
               {status.themes.length > 0 && (
                 <div className="install-status-group">
-                  <span className="install-status-label">主题</span>
+                  <span className="install-status-label">Themes</span>
                   <div className="install-status-tags">
                     {status.themes.map((t) => (
                       <span key={t} className="install-status-tag">{t}</span>
@@ -200,7 +213,7 @@ function DashboardThemeInstaller() {
               )}
               {status.plugin_files.length > 0 && (
                 <div className="install-status-group">
-                  <span className="install-status-label">插件</span>
+                  <span className="install-status-label">Plugins</span>
                   <div className="install-status-tags">
                     {status.plugin_files.map((f) => (
                       <span key={f} className="install-status-tag">{f}</span>
@@ -218,8 +231,10 @@ function DashboardThemeInstaller() {
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, mode, setMode } = useTheme();
   const { appearance, setAppearance } = useGuideBotAppearance();
+  const { size: guideBotSize, setSize: setGuideBotSize } = useGuideBotSize();
+  const { display: guideBotDisplay, setDisplay: setGuideBotDisplay } = useGuideBotDisplay();
   const { terminalBg, setTerminalBg } = useTerminalBg();
   const {
     uiFontSize, setUiFontSize,
@@ -235,7 +250,7 @@ export default function SettingsPage() {
         </span>
         <div>
           <div className="settings-page-title ui-font">Settings</div>
-          <div className="settings-page-subtitle">界面外观、引导和 Composer Guide</div>
+          <div className="settings-page-subtitle">Appearance, onboarding, and Composer Guide</div>
         </div>
       </div>
 
@@ -243,8 +258,8 @@ export default function SettingsPage() {
         <section className="settings-section">
           <div className="settings-section-header">
             <div>
-              <h2 className="settings-section-title ui-font">外观风格</h2>
-              <p className="settings-section-desc">选择 My Hermes Desktop 的整体视觉语言。</p>
+              <h2 className="settings-section-title ui-font">Appearance style</h2>
+              <p className="settings-section-desc">Choose the overall visual language for My Hermes Desktop.</p>
             </div>
           </div>
 
@@ -274,8 +289,37 @@ export default function SettingsPage() {
         <section className="settings-section">
           <div className="settings-section-header">
             <div>
-              <h2 className="settings-section-title ui-font">Dashboard 主题</h2>
-              <p className="settings-section-desc">将 Dashboard 管理界面的主题与 Desktop 保持同步。</p>
+              <h2 className="settings-section-title ui-font">Color mode</h2>
+              <p className="settings-section-desc">
+                Light, dark, or follow the system. Warp is always dark.
+              </p>
+            </div>
+          </div>
+
+          <div className="font-size-rows">
+            <div className="font-size-row">
+              <span className="font-size-row-label ui-font">Mode</span>
+              <div className="font-size-chips">
+                {MODES.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    className={`font-size-chip ui-font${mode === item ? " selected" : ""}`}
+                    onClick={() => setMode(item as Mode)}
+                  >
+                    {MODE_LABELS[item]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="settings-section">
+          <div className="settings-section-header">
+            <div>
+              <h2 className="settings-section-title ui-font">Dashboard Themes</h2>
+              <p className="settings-section-desc">Keep Dashboard admin themes synchronized with Desktop.</p>
             </div>
           </div>
 
@@ -285,8 +329,8 @@ export default function SettingsPage() {
         <section className="settings-section">
           <div className="settings-section-header">
             <div>
-              <h2 className="settings-section-title ui-font">机器人形象</h2>
-              <p className="settings-section-desc">选择输入区引导机器人的外观。</p>
+              <h2 className="settings-section-title ui-font">Bot appearance</h2>
+              <p className="settings-section-desc">Choose the guide bot appearance in the composer.</p>
             </div>
           </div>
 
@@ -314,8 +358,55 @@ export default function SettingsPage() {
         <section className="settings-section">
           <div className="settings-section-header">
             <div>
-              <h2 className="settings-section-title ui-font">终端背景</h2>
-              <p className="settings-section-desc">自定义 TUI 终端面板的背景风格。</p>
+              <h2 className="settings-section-title ui-font">April size</h2>
+              <p className="settings-section-desc">Scale April in the composer. Medium is the current default.</p>
+            </div>
+          </div>
+
+          <div className="font-size-rows guide-bot-size-rows">
+            <div className="font-size-row">
+              <span className="font-size-row-label ui-font">Avatar</span>
+              <div className="font-size-chips guide-bot-size-chips">
+                {GUIDE_BOT_SIZES.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`font-size-chip ui-font${guideBotSize === item.id ? " selected" : ""}`}
+                    onClick={() => setGuideBotSize(item.id as GuideBotSize)}
+                    title={item.description}
+                  >
+                    {item.name}
+                  </button>
+                ))}
+              </div>
+              <span className="guide-bot-size-preview">
+                <GuideBotAvatar mood="smug" appearance="april-v4" size={guideBotSize} />
+              </span>
+            </div>
+            <div className="font-size-row">
+              <span className="font-size-row-label ui-font">Display</span>
+              <div className="font-size-chips guide-bot-size-chips">
+                {GUIDE_BOT_DISPLAYS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`font-size-chip ui-font${guideBotDisplay === item.id ? " selected" : ""}`}
+                    onClick={() => setGuideBotDisplay(item.id as GuideBotDisplay)}
+                    title={item.description}
+                  >
+                    {item.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="settings-section">
+          <div className="settings-section-header">
+            <div>
+              <h2 className="settings-section-title ui-font">Terminal background</h2>
+              <p className="settings-section-desc">Customize the TUI terminal panel background.</p>
             </div>
           </div>
 
@@ -341,8 +432,8 @@ export default function SettingsPage() {
         <section className="settings-section">
           <div className="settings-section-header">
             <div>
-              <h2 className="settings-section-title ui-font">字体大小</h2>
-              <p className="settings-section-desc">调整界面、终端和文件管理器的文字大小。</p>
+              <h2 className="settings-section-title ui-font">Font size</h2>
+              <p className="settings-section-desc">Adjust text size for the interface, terminal, and file manager.</p>
             </div>
           </div>
 
@@ -375,22 +466,22 @@ export default function SettingsPage() {
 
         <section className="settings-section settings-guide-section">
           <div>
-            <h2 className="settings-section-title ui-font">使用引导</h2>
-            <p className="settings-section-desc">重新查看安装、配置和进入对话流程。</p>
+            <h2 className="settings-section-title ui-font">Onboarding</h2>
+            <p className="settings-section-desc">Review installation, configuration, and getting into chat.</p>
           </div>
           <button
             type="button"
             className="settings-primary-btn ui-font"
             onClick={() => navigate("/onboarding")}
           >
-            查看引导页
+            View onboarding
             <Icon name="chevronRight" size={15} />
           </button>
         </section>
       </div>
 
       <footer className="settings-copyright ui-font">
-        © {new Date().getFullYear()} 深圳市玄熵智能科技有限责任公司
+        © {new Date().getFullYear()} Beacon AI
       </footer>
     </div>
   );

@@ -78,6 +78,57 @@
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(20, 20, 19, 0.08);
   --shadow-md: 0 4px 16px rgba(20, 20, 19, 0.10);
+
+  color-scheme: light;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Claude Dark — warm graphite canvas, cream ink, terracotta accent.
+   Applies when data-mode="dark" and no other theme overrides it (source order:
+   the Apple and Warp blocks below win their tie-breaks; Warp is dark-only).
+   ───────────────────────────────────────────────────────────────────────────── */
+[data-mode="dark"] {
+  /* Surface */
+  --canvas:                #1a1915;
+  --surface-soft:          #21201c;
+  --surface-card:          #282622;
+  --surface-cream-strong:  #312e29;
+  --surface-dark:          #141312;
+  --surface-dark-elevated: #1f1d1b;
+  --surface-dark-soft:     #181715;
+
+  /* Text */
+  --ink:          #f5f0e8;
+  --body-strong:  #e9e3d7;
+  --body:         #d6d0c3;
+  --muted:        #a29d92;
+  --muted-soft:   #837e74;
+  --on-dark:      #faf9f5;
+  --on-dark-soft: #a09d96;
+
+  /* Brand — terracotta lifted slightly for dark contrast */
+  --primary:          #d98d70;
+  --primary-active:   #e5a289;
+  --primary-disabled: #3b352f;
+  --primary-glow:     rgba(217, 141, 112, 0.16);
+
+  /* Borders */
+  --hairline:      #34312b;
+  --hairline-soft: #2b2924;
+  --hairline-dark: #3d3a34;
+
+  /* Semantic — brightened for dark backgrounds */
+  --success: #6fc584;
+  --warning: #dcaf35;
+  --error:   #d9605c;
+
+  /* Shadows — darker and stronger on dark canvases */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55);
+
+  --inline-code-bg: rgba(250, 249, 245, 0.09);
+
+  color-scheme: dark;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -123,6 +174,55 @@
   --accent-amber: #ff9f0a;
 
   /* Think / Tool inherit dark tokens — just dark surface changes */
+
+  color-scheme: light;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Apple Dark — system grays, Apple dark-mode blue
+   ───────────────────────────────────────────────────────────────────────────── */
+[data-theme="apple"][data-mode="dark"] {
+  /* Surface */
+  --canvas:                #1c1c1e;
+  --surface-soft:          #2c2c2e;
+  --surface-card:          #2c2c2e;
+  --surface-cream-strong:  #3a3a3c;
+  --surface-dark:          #111112;
+  --surface-dark-elevated: #232325;
+  --surface-dark-soft:     #1a1a1c;
+
+  /* Text */
+  --ink:          #f5f5f7;
+  --body-strong:  #f5f5f7;
+  --body:         #e5e5ea;
+  --muted:        #98989d;
+  --muted-soft:   #7c7c80;
+  --on-dark:      #ffffff;
+  --on-dark-soft: #cccccc;
+
+  /* Brand — Apple dark-mode blue */
+  --primary:          #0a84ff;
+  --primary-active:   #409cff;
+  --primary-disabled: #3a3a3c;
+  --primary-glow:     rgba(10, 132, 255, 0.16);
+
+  /* Borders */
+  --hairline:      #38383a;
+  --hairline-soft: #2c2c2e;
+  --hairline-dark: #48484a;
+
+  /* Semantic */
+  --success: #30d158;
+  --warning: #ffd60a;
+  --error:   #ff453a;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
+
+  --inline-code-bg: rgba(255, 255, 255, 0.10);
+
+  color-scheme: dark;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -170,11 +270,15 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.30);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.40);
 
+  --inline-code-bg: rgba(247, 245, 240, 0.09);
+
   /* Tighter radii per Warp brand language */
   --radius-xs: 2px;
   --radius:    4px;
   --radius-lg: 6px;
   --radius-xl: 12px;
+
+  color-scheme: dark;
 }
 
 /* Warp: primary fill is off-white — button labels must be dark */
@@ -2426,6 +2530,81 @@ body {
   filter: blur(0.5px);
 }
 
+.guide-bot-avatar-april-v4 {
+  --guide-bot-v4-size: 50px;
+  width: var(--guide-bot-v4-size);
+  height: var(--guide-bot-v4-size);
+  flex: 0 0 var(--guide-bot-v4-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: guide-bot-float 4.8s ease-in-out infinite;
+}
+
+.guide-bot-avatar-april-v4.guide-bot-size-small { --guide-bot-v4-size: 38px; }
+.guide-bot-avatar-april-v4.guide-bot-size-medium { --guide-bot-v4-size: 50px; }
+.guide-bot-avatar-april-v4.guide-bot-size-large { --guide-bot-v4-size: 64px; }
+.guide-bot-avatar-april-v4.guide-bot-size-x-large { --guide-bot-v4-size: 82px; }
+
+.guide-bot-v4-frame {
+  position: relative;
+  width: var(--guide-bot-v4-size);
+  height: var(--guide-bot-v4-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guide-bot-v4-img {
+  width: var(--guide-bot-v4-size);
+  height: var(--guide-bot-v4-size);
+  object-fit: contain;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
+.guide-bot-avatar-april-v4.guide-bot-sleep .guide-bot-v4-frame {
+  transform-origin: 50% 100%;
+  animation: guide-bot-v4-breathe 3.4s ease-in-out infinite;
+}
+
+.guide-bot-v4-zzz {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 18px;
+  height: 22px;
+  pointer-events: none;
+}
+
+.guide-bot-v4-zzz span {
+  position: absolute;
+  color: #c9b487;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  text-shadow: 0 1px 2px rgba(20, 20, 19, 0.22);
+  animation: guide-bot-v4-zfloat 2.4s ease-in-out infinite;
+}
+
+.guide-bot-v4-zzz span:nth-child(1) { left: 0; bottom: 0; animation-delay: 0s; }
+.guide-bot-v4-zzz span:nth-child(2) { left: 6px; bottom: 4px; animation-delay: 0.8s; }
+.guide-bot-v4-zzz span:nth-child(3) { left: 12px; bottom: 8px; animation-delay: 1.6s; }
+
+@keyframes guide-bot-v4-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(2.5px) scale(0.99); }
+}
+
+@keyframes guide-bot-v4-zfloat {
+  0% { opacity: 0; transform: translate(-2px, 7px) scale(0.6); }
+  22% { opacity: 1; }
+  72% { opacity: 1; }
+  100% { opacity: 0; transform: translate(9px, -16px) scale(1.15); }
+}
+
 .guide-bot-avatar-voxel .guide-bot-head {
   left: 2px;
   top: 5px;
@@ -2631,7 +2810,9 @@ body {
 .guide-bot-error .guide-face-eyes,
 .guide-bot-typing .guide-face-eyes,
 .guide-bot-alert .guide-face-eyes,
-.guide-bot-success .guide-face-eyes {
+.guide-bot-success .guide-face-eyes,
+.guide-bot-tool .guide-face-eyes,
+.guide-bot-waiting .guide-face-eyes {
   display: none;
 }
 
@@ -2642,7 +2823,9 @@ body {
 .guide-bot-error .guide-face-error,
 .guide-bot-typing .guide-face-typing,
 .guide-bot-alert .guide-face-alert,
-.guide-bot-success .guide-face-success {
+.guide-bot-success .guide-face-success,
+.guide-bot-tool .guide-face-tool,
+.guide-bot-waiting .guide-face-waiting {
   display: flex;
 }
 
@@ -2801,6 +2984,37 @@ body {
   animation: guide-bot-success-glow 1.5s ease-out;
 }
 
+.guide-face-tool {
+  font-size: 13px;
+  font-weight: 900;
+  color: #86f7ff;
+  text-shadow: 0 0 10px rgba(134, 247, 255, 0.9);
+  animation: guide-bot-ok-pop 1.4s ease-in-out infinite;
+}
+
+.guide-bot-tool .guide-bot-screen {
+  border-color: rgba(134, 247, 255, 0.72);
+  box-shadow:
+    0 0 0 1px rgba(6, 16, 18, 0.96),
+    0 0 14px rgba(134, 247, 255, 0.28),
+    inset 0 0 12px rgba(134, 247, 255, 0.14);
+}
+
+.guide-face-waiting {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  animation: guide-bot-breathe 1.4s ease-in-out infinite;
+}
+
+.guide-bot-waiting .guide-bot-screen {
+  border-color: rgba(255, 196, 107, 0.62);
+  box-shadow:
+    0 0 0 1px rgba(6, 16, 18, 0.96),
+    0 0 14px rgba(255, 196, 107, 0.24),
+    inset 0 0 12px rgba(255, 196, 107, 0.12);
+}
+
 .guide-bot-bubble {
   min-width: 0;
   max-width: min(680px, calc(100% - 58px));
@@ -2871,6 +3085,85 @@ body {
 
 [data-theme="warp"] .guide-bot-action:hover {
   color: #2b2622;
+}
+
+/* ── Companion display — large April at the right end of the composer row,
+      comic speech bubble beside her. Stays in normal flow (the input area
+      grows to fit her) so she never covers chat content. ── */
+.guide-bot-display-companion {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+  align-items: flex-end;
+  gap: 2px;
+  padding-top: 2px;
+}
+
+.guide-bot-display-companion .guide-bot-avatar-april-v4 {
+  --guide-bot-v4-size: 128px;
+}
+
+.guide-bot-display-companion .guide-bot-bubble {
+  position: relative;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 340px;
+  min-width: 140px;
+  margin-bottom: 52px;
+  margin-right: -4px;
+  background: var(--surface-card);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  border-bottom-right-radius: 4px;
+  padding: 10px 14px;
+  box-shadow: var(--shadow-md);
+  animation: guide-bubble-pop 0.18s ease-out;
+}
+
+/* Speech-bubble tail pointing at April */
+.guide-bot-display-companion .guide-bot-bubble::after {
+  content: "";
+  position: absolute;
+  right: -7px;
+  bottom: 14px;
+  width: 12px;
+  height: 12px;
+  background: var(--surface-card);
+  border-right: 1px solid var(--hairline);
+  border-top: 1px solid var(--hairline);
+  transform: rotate(45deg);
+}
+
+.guide-bot-display-companion .guide-bot-text {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--body);
+  white-space: normal;
+  overflow-wrap: break-word;
+  max-height: 120px;
+  overflow: hidden;
+}
+
+/* Dark canvases: the dock bubble's white-gradient sheen washes out — use a
+   flat raised surface instead. Placed after the Apple/Warp bubble overrides
+   so the dark variant wins the tie-break. */
+[data-mode="dark"] .guide-bot-bubble {
+  background: var(--surface-card);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+}
+
+@keyframes guide-bubble-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+
+/* Dark canvases: subtle light rim keeps April's dark linework readable */
+[data-mode="dark"] .guide-bot-v4-img,
+[data-theme="warp"] .guide-bot-v4-img {
+  filter: drop-shadow(0 0 1px rgba(250, 249, 245, 0.4));
 }
 
 @keyframes guide-bot-float {
@@ -2981,11 +3274,207 @@ body {
   .guide-face-pulse span,
   .guide-face-alert-eye,
   .guide-face-success,
+  .guide-face-tool,
+  .guide-face-waiting,
   .guide-bot-alert .guide-bot-screen,
   .guide-bot-alert .guide-bot-antenna::before,
   .guide-bot-success .guide-bot-screen {
     animation: none;
   }
+}
+
+/* ── Composer Guide Bot: richer status/action chrome ── */
+.guide-bot-avatar-button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 14px;
+}
+
+.guide-bot-avatar-button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.guide-bot-eyebrow {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--primary-glow);
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.guide-bot-timer {
+  flex-shrink: 0;
+  color: var(--muted-soft);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding-left: 2px;
+}
+
+.guide-bot-action-danger {
+  border-color: rgba(224, 92, 92, 0.35);
+  background: rgba(224, 92, 92, 0.12);
+  color: #c44d4d;
+}
+
+.guide-bot-action-danger:hover {
+  border-color: #c44d4d;
+  background: #c44d4d;
+  color: #fff;
+}
+
+.guide-bot-action-primary {
+  border-color: var(--primary);
+  background: var(--primary-glow);
+}
+
+.guide-bot-mode-toggle {
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted-soft);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.guide-bot-mode-toggle:hover {
+  border-color: var(--hairline);
+  color: var(--primary);
+}
+
+.guide-bot-compact {
+  min-height: 34px;
+}
+
+.guide-bot-compact .guide-bot-avatar-button {
+  width: 36px;
+  height: 30px;
+  overflow: visible;
+}
+
+.guide-bot-compact .guide-bot-avatar {
+  transform: scale(0.72);
+  transform-origin: left center;
+}
+
+.guide-bot-compact .guide-bot-bubble {
+  min-height: 28px;
+  padding: 4px 8px;
+  gap: 6px;
+}
+
+.guide-bot-compact .guide-bot-text {
+  max-width: 360px;
+}
+
+.guide-bot-auto.guide-bot-compact .guide-bot-bubble {
+  opacity: 0.92;
+}
+
+.guide-bot-inspecting {
+  position: relative;
+  z-index: 4;
+}
+
+.guide-bot-inspector {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 10px);
+  width: min(460px, calc(100vw - 42px));
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.64), rgba(255,255,255,0.20)),
+    var(--canvas);
+  box-shadow: var(--shadow-lg);
+  padding: 12px;
+  color: var(--body);
+  backdrop-filter: blur(18px);
+}
+
+.guide-bot-inspector::after {
+  content: "";
+  position: absolute;
+  left: 20px;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  transform: rotate(45deg);
+  border-right: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--canvas);
+}
+
+.guide-bot-inspector-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.guide-bot-inspector-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.guide-bot-inspector-subtitle {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.guide-bot-inspector-close {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  background: var(--surface-soft);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.guide-bot-inspector-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 12px;
+  padding: 10px;
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+  font-size: 11px;
+}
+
+.guide-bot-inspector-grid span {
+  color: var(--muted-soft);
+}
+
+.guide-bot-inspector-grid strong {
+  color: var(--ink);
+  font-weight: 650;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guide-bot-inspector-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
 }
 
 /* ── Settings ── */
@@ -3053,6 +3542,70 @@ body {
   border-radius: var(--radius-lg);
   background: var(--surface-soft);
   padding: 16px;
+}
+
+.settings-subsection {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+
+.settings-subsection-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+
+.guide-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.guide-mode-card {
+  min-height: 78px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--canvas);
+  color: var(--body);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+
+.guide-mode-card:hover {
+  border-color: var(--primary-disabled);
+  transform: translateY(-1px);
+}
+
+.guide-mode-card.selected {
+  border-color: var(--primary);
+  background: var(--primary-glow);
+}
+
+.guide-mode-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.guide-mode-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.guide-mode-desc {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted);
 }
 
 .settings-section-header {
@@ -4229,7 +4782,7 @@ body {
 .md-content p:last-child { margin: 0; }
 .md-content hr { border: none; border-top: 1px solid var(--hairline); margin: 16px 0; }
 .md-content code {
-  background: rgba(20, 20, 19, 0.07);
+  background: var(--inline-code-bg, rgba(20, 20, 19, 0.07));
   border-radius: 4px;
   padding: 1px 5px;
   font-size: 12.5px;
@@ -4401,7 +4954,7 @@ body {
 }
 
 /* ── Terminal Background Variants ── */
-/* glass：面板框用深色，body 挂鲜艳渐变作底色，xterm 画 52% 暗膜叠上去 */
+/* glass: use a dark panel frame, a vivid body gradient, and a 52% dark xterm overlay for depth */
 .terminal-panel[data-terminal-bg="glass"] {
   background: #0b1020;
 }
@@ -4950,7 +5503,7 @@ body {
   height: 100% !important;
 }
 
-/* xterm.js 通过 JS inline style 写入 viewport 背景色，用 !important 覆盖 */
+/* xterm.js writes viewport background through inline JS styles; override it with !important */
 .terminal-panel[data-terminal-bg="glass"]  .xterm-viewport,
 .terminal-panel[data-terminal-bg="ocean"]  .xterm-viewport,
 .terminal-panel[data-terminal-bg="sunset"] .xterm-viewport,
@@ -4958,7 +5511,7 @@ body {
   background-color: transparent !important;
 }
 
-/* 把渐变/毛玻璃挂在 body 上（紧贴 canvas，能透出来） */
+/* Attach gradients/glass to body so they sit behind the canvas and show through */
 .terminal-panel[data-terminal-bg="glass"] .terminal-panel-body {
   background: rgba(10, 14, 24, 0.0);
 }
@@ -5803,7 +6356,7 @@ body {
   to   { opacity: 1; }
 }
 
-/* ── Config Guide Card (API Key 未配置) ── */
+/* ── Config Guide Card (API Key Not Configured) ── */
 .config-guide-card {
   display: flex;
   align-items: center;
@@ -5854,7 +6407,7 @@ body {
   color: #fff;
 }
 
-/* ── Error Card (结构化错误 + Dashboard 跳转) ── */
+/* Error Card (structured error + Dashboard jump) */
 .error-card {
   margin: 8px 16px;
   padding: 10px 14px;
@@ -6162,3 +6715,62 @@ html[data-ui-size="large"]  .session-item-meta  { font-size: 13px; }
 .bg-step-error  .bg-step-icon { color: var(--error); }
 .bg-step-pending .bg-step-icon { color: var(--muted-soft); }
 .bg-step-pending .bg-step-label { color: var(--muted); }
+
+/* ── April Chibi avatar sprite ── */
+.guide-bot-avatar-april-chibi {
+  width: 64px;
+  height: 64px;
+  background-image: url("./src/assets/images/guidebot/april-chibi.png");
+  background-repeat: no-repeat;
+  animation: blink 4s steps(2) infinite;
+}
+.guide-bot-avatar-april-chibi.guide-bot-idle { --bg-y: 0; }
+.guide-bot-avatar-april-chibi.guide-bot-thinking { --bg-y: -64px; }
+.guide-bot-avatar-april-chibi.guide-bot-responding { --bg-y: -128px; }
+.guide-bot-avatar-april-chibi.guide-bot-tool { --bg-y: -192px; }
+.guide-bot-avatar-april-chibi.guide-bot-sleep { --bg-y: -256px; }
+/* Apply vertical position via background-position y */
+.guide-bot-avatar-april-chibi.guide-bot-idle,
+.guide-bot-avatar-april-chibi.guide-bot-thinking,
+.guide-bot-avatar-april-chibi.guide-bot-responding,
+.guide-bot-avatar-april-chibi.guide-bot-tool,
+.guide-bot-avatar-april-chibi.guide-bot-sleep {
+  background-position: 0 var(--bg-y);
+}
+@keyframes blink {
+  0% { background-position: 0 var(--bg-y); }
+  100% { background-position: -64px var(--bg-y); }
+}
+
+/* ── April Chibi avatar sprite ── */
+.guide-bot-avatar-april-chibi {
+  width: 64px;
+  height: 64px;
+  background-image: url("./src/assets/images/guidebot/april-chibi.png");
+  background-repeat: no-repeat;
+  background-position: 0 var(--bg-y);
+  animation: blink 4s steps(2) infinite;
+}
+.guide-bot-avatar-april-chibi.guide-bot-idle { --bg-y: 0; }
+.guide-bot-avatar-april-chibi.guide-bot-thinking { --bg-y: -64px; }
+.guide-bot-avatar-april-chibi.guide-bot-responding { --bg-y: -128px; }
+.guide-bot-avatar-april-chibi.guide-bot-tool { --bg-y: -192px; }
+.guide-bot-avatar-april-chibi.guide-bot-sleep { --bg-y: -256px; }
+@keyframes blink {
+  0% { background-position: 0 var(--bg-y); }
+  100% { background-position: -64px var(--bg-y); }
+}
+
+
+.guide-bot-size-rows .font-size-row {
+  align-items: center;
+}
+
+.guide-bot-size-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  min-height: 86px;
+  margin-left: auto;
+}
