@@ -167,21 +167,21 @@ export default function RefPickerPanel({ workingDir, onSelect, onClose, onAsk }:
           onClick={() => setTab("file")}
           type="button"
         >
-          文件
+          Files
         </button>
         <button
           className={`ref-picker-tab${tab === "skill" ? " active" : ""}`}
           onClick={() => setTab("skill")}
           type="button"
         >
-          技能
+          Skills
         </button>
         <div className="ref-picker-search-wrap">
           <Icon name="search" size={12} className="ref-picker-search-icon" />
           <input
             ref={searchRef}
             className="ref-picker-search"
-            placeholder={tab === "file" ? "搜索文件..." : "搜索技能..."}
+            placeholder={tab === "file" ? "Search files..." : "Search skills..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -239,7 +239,7 @@ export default function RefPickerPanel({ workingDir, onSelect, onClose, onAsk }:
                     className="ref-picker-dir-nav"
                     onClick={() => { setCurrentPath(d.path); setSearch(""); }}
                     type="button"
-                    title="进入目录"
+                    title="Open directory"
                   >
                     <span className="ref-picker-row-icon">📁</span>
                     <span className="ref-picker-row-name">{d.name}</span>
@@ -249,9 +249,9 @@ export default function RefPickerPanel({ workingDir, onSelect, onClose, onAsk }:
                     className="ref-picker-dir-ref"
                     onClick={() => handleDirSelect(d)}
                     type="button"
-                    title="引用此目录"
+                    title="Reference this directory"
                   >
-                    引用
+                    Reference
                   </button>
                 </div>
               );
@@ -273,7 +273,7 @@ export default function RefPickerPanel({ workingDir, onSelect, onClose, onAsk }:
               );
             })}
             {filteredFiles.length === 0 && (
-              <div className="ref-picker-empty ui-font">无匹配文件</div>
+              <div className="ref-picker-empty ui-font">No matching files</div>
             )}
           </div>
         </>
@@ -289,7 +289,7 @@ export default function RefPickerPanel({ workingDir, onSelect, onClose, onAsk }:
               onClick={() => setCategoryFilter(null)}
               type="button"
             >
-              全部 ({skills.length})
+              All ({skills.length})
             </button>
             {categories.map((cat) => {
               const count = skills.filter((s) => s.category === cat).length;
@@ -309,7 +309,7 @@ export default function RefPickerPanel({ workingDir, onSelect, onClose, onAsk }:
           {/* Skill list */}
           <div className="ref-picker-list" ref={listRef}>
             {!skillsLoaded && (
-              <div className="ref-picker-empty ui-font">加载技能列表...</div>
+              <div className="ref-picker-empty ui-font">Loading skills...</div>
             )}
             {skillsLoaded && filteredSkills.map((skill, i) => (
               <div
@@ -336,20 +336,20 @@ export default function RefPickerPanel({ workingDir, onSelect, onClose, onAsk }:
                   <button
                     className="ref-picker-skill-explain"
                     type="button"
-                    title="让 Hermes 解释这个技能"
+                    title="Ask Hermes to explain this skill"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onAsk(`请介绍一下 hermes 的「${skill.name}」技能，它的主要用途是什么，能帮我做哪些事情？用简短的中文回答`);
+                      onAsk(`Please introduce the Hermes skill '${skill.name}'. What is it mainly for, and what can it help me do? Answer briefly in English.`);
                       onClose();
                     }}
                   >
-                    解释
+                    Explain
                   </button>
                 )}
               </div>
             ))}
             {skillsLoaded && filteredSkills.length === 0 && (
-              <div className="ref-picker-empty ui-font">无匹配技能</div>
+              <div className="ref-picker-empty ui-font">No matching skills</div>
             )}
           </div>
         </>

@@ -1,29 +1,15 @@
-## 改动说明
+## Summary
 
-<!-- 简洁描述这个 PR 做了什么，以及为什么 -->
+<!-- Briefly describe what this PR changes and why. -->
 
-## 改动类型
+## Change Type
 
-- [ ] Bug 修复
-- [ ] 新功能
-- [ ] 重构（无功能变化）
-- [ ] 文档更新
-- [ ] 其他：
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Refactor with no behavior change
+- [ ] Documentation update
+- [ ] Other:
 
-## 测试方法
+## Verification
 
-<!-- 描述如何验证这个改动是否正确 -->
-
-1. 
-2. 
-
-## 截图（UI 变化必填）
-
-<!-- 如有界面变化，请附上前后对比截图 -->
-
-## Checklist
-
-- [ ] 代码通过 `npx tsc --noEmit` 类型检查
-- [ ] 代码通过 `npm test`
-- [ ] 没有引入多余的 import / 未使用变量
-- [ ] UI 变化已附截图
+<!-- List tests, builds, or manual checks performed. -->

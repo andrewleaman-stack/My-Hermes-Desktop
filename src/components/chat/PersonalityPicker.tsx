@@ -6,50 +6,50 @@ interface Personality {
   name: string;
   icon: IconName;
   description: string;
-  /** 用于切换时发送给模型的自然语言提示词（一次性进程模式下，slash 命令不会被 CLI 路由，必须改用自然语言）*/
+  /** Natural-language prompt sent to the model when switching personalities. In single-process mode, slash commands are not routed by the CLI, so natural language is required.*/
   prompt: string;
 }
 
 const PERSONALITIES: Personality[] = [
   {
-    id: "helpful", name: "助手", icon: "bot",
-    description: "均衡、专业，默认人格",
-    prompt: "从现在起请恢复默认的助手风格回答接下来的对话：均衡、专业、信息密度适中。",
+    id: "helpful", name: "Assistant", icon: "bot",
+    description: "Balanced, professional, default personality",
+    prompt: "From now on, answer the next messages in the default assistant style: balanced, professional, and moderately information-dense.",
   },
   {
-    id: "concise", name: "简洁", icon: "scissors",
-    description: "极简回复，少废话",
-    prompt: "从现在起请以极简风格回答接下来的对话：直接给结论，不寒暄，不复述问题，能一句说清绝不两句。",
+    id: "concise", name: "Concise", icon: "scissors",
+    description: "Minimal replies, less fluff",
+    prompt: "From now on, answer the next messages in a minimal style: give the conclusion directly, no greetings, no restating the question, and never use two sentences when one will do.",
   },
   {
-    id: "mentor", name: "导师", icon: "graduation",
-    description: "耐心引导，提问式启发",
-    prompt: "从现在起请以导师风格回答接下来的对话：耐心引导、用反问启发我自己思考、不要直接给出最终答案。",
+    id: "mentor", name: "Mentor", icon: "graduation",
+    description: "Patient guidance with Socratic prompts",
+    prompt: "From now on, answer the next messages in a mentor style: guide patiently, use questions to help me think, and avoid giving the final answer immediately.",
   },
   {
-    id: "engineer", name: "工程师", icon: "code",
-    description: "直击代码与实现细节",
-    prompt: "从现在起请以高级工程师风格回答接下来的对话：直接讨论代码、实现细节与可执行步骤，必要时给出代码块，避免空话。",
+    id: "engineer", name: "Engineer", icon: "code",
+    description: "Focused on code and implementation details",
+    prompt: "From now on, answer the next messages in a senior engineer style: discuss code, implementation details, and executable steps directly. Include code blocks when useful and avoid empty talk.",
   },
   {
-    id: "scholar", name: "学者", icon: "book",
-    description: "严谨、引经据典",
-    prompt: "从现在起请以学者风格回答接下来的对话：严谨、引用来源（可标注 [来源]）、给出原理与背景，避免主观断言。",
+    id: "scholar", name: "Scholar", icon: "book",
+    description: "Rigorous and source-aware",
+    prompt: "From now on, answer the next messages in a scholar style: be rigorous, cite sources when possible using [source], explain principles and background, and avoid unsupported claims.",
   },
   {
-    id: "creative", name: "创意", icon: "palette",
-    description: "天马行空、富有想象力",
-    prompt: "从现在起请以创意者风格回答接下来的对话：天马行空、敢于发散、给出多个非常规视角，鼓励比喻和类比。",
+    id: "creative", name: "Creative", icon: "palette",
+    description: "Imaginative and divergent",
+    prompt: "From now on, answer the next messages in a creative style: think divergently, offer multiple unconventional angles, and use metaphors and analogies.",
   },
   {
-    id: "skeptic", name: "质疑者", icon: "search",
-    description: "挑战假设、找漏洞",
-    prompt: "从现在起请以质疑者风格回答接下来的对话：先挑战我的假设、列出反例与潜在风险，再给建议。",
+    id: "skeptic", name: "Skeptic", icon: "search",
+    description: "Challenges assumptions and finds holes",
+    prompt: "From now on, answer the next messages in a skeptic style: challenge my assumptions first, list counterexamples and risks, then give recommendations.",
   },
   {
-    id: "pirate", name: "海盗", icon: "flag",
-    description: "海盗腔调，趣味放松",
-    prompt: "从现在起请以海盗腔调回答接下来的对话：风格粗犷诙谐，多用航海术语和 'Arrr'，但回答内容仍要正确。",
+    id: "pirate", name: "Pirate", icon: "flag",
+    description: "Pirate voice, playful and relaxed",
+    prompt: "From now on, answer the next messages in a pirate voice: rough, funny, full of nautical terms and 'Arrr', while keeping the content correct.",
   },
 ];
 
@@ -118,18 +118,18 @@ export default function PersonalityPicker({ onSend }: Props) {
       <button
         className="personality-trigger"
         onClick={() => setOpen((o) => !o)}
-        title={`当前人格：${currentPersona.name}`}
-        aria-label="切换人格"
+        title={`Current personality: ${currentPersona.name}`}
+        aria-label="Switch personality"
       >
         <span className="personality-trigger-icon">
           <Icon name={currentPersona.icon} size={13} />
         </span>
-        <span>人格</span>
+        <span>Personality</span>
       </button>
 
       {open && (
         <div className="personality-popover">
-          <div className="personality-popover-header ui-font">选择人格</div>
+          <div className="personality-popover-header ui-font">Choose Personality</div>
           <div className="personality-grid">
             {PERSONALITIES.map((p) => (
               <button
@@ -149,7 +149,7 @@ export default function PersonalityPicker({ onSend }: Props) {
             ))}
           </div>
           <div className="personality-popover-hint">
-            当前 <span>{currentPersona.name}</span>
+            Current <span>{currentPersona.name}</span>
           </div>
         </div>
       )}
@@ -161,7 +161,7 @@ export default function PersonalityPicker({ onSend }: Props) {
           <button
             className="personality-current-clear"
             onClick={reset}
-            title="重置为默认"
+            title="Reset to default"
           >
             <Icon name="close" size={11} />
           </button>

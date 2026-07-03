@@ -2,12 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 const LEVELS = [
-  { value: "none", label: "关闭" },
-  { value: "minimal", label: "最低" },
-  { value: "low", label: "低" },
-  { value: "medium", label: "中" },
-  { value: "high", label: "高" },
-  { value: "xhigh", label: "最高" },
+  { value: "none", label: "Off" },
+  { value: "minimal", label: "Minimal" },
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "xhigh", label: "Highest" },
 ] as const;
 
 interface Props {
@@ -51,15 +51,15 @@ export default function ReasoningPicker({ onNewSession }: Props) {
       });
   };
 
-  const label = LEVELS.find((l) => l.value === currentLevel)?.label ?? "中";
+  const label = LEVELS.find((l) => l.value === currentLevel)?.label ?? "Medium";
 
   return (
     <div className="reasoning-picker" ref={ref}>
       <button
         className="app-titlebar-icon-btn"
         onClick={() => setOpen((o) => !o)}
-        title={`思考强度：${label}`}
-        aria-label="切换思考强度"
+        title={`Reasoning effort：${label}`}
+        aria-label="SwitchReasoning effort"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -67,7 +67,7 @@ export default function ReasoningPicker({ onNewSession }: Props) {
       </button>
 
       {open && (
-        <div className="reasoning-picker-dropdown" role="listbox" aria-label="思考强度">
+        <div className="reasoning-picker-dropdown" role="listbox" aria-label="Reasoning effort">
           {LEVELS.map(({ value, label }) => (
             <button
               key={value}

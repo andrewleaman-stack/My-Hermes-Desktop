@@ -135,8 +135,8 @@ export default function TerminalPanel({ ptyId, sessionId, onClose }: Props) {
           <Icon name="terminal" size={14} />
           Hermes TUI
         </span>
-        <span className="terminal-panel-hint">交互式 TUI，会接入当前会话</span>
-        <button className="terminal-panel-close" onClick={doClose} title="关闭终端">
+        <span className="terminal-panel-hint">Interactive TUI, attached to the current session</span>
+        <button className="terminal-panel-close" onClick={doClose} title="Close Terminal">
           <Icon name="close" size={14} />
         </button>
       </div>

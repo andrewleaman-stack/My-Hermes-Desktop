@@ -100,7 +100,7 @@ pub async fn open_with_editor(path: String, editor: String) -> Result<(), String
             return std::process::Command::new("open")
                 .args(["-a", app, &path])
                 .spawn()
-                .map_err(|e| format!("无法打开 {app}：{e}（确认已安装该应用）"))
+                .map_err(|e| format!("Unable to open {app}：{e}（confirm the app is installed）"))
                 .map(|_| ());
         }
         // Fallback: try via login shell (picks up /usr/local/bin etc.)
@@ -108,7 +108,7 @@ pub async fn open_with_editor(path: String, editor: String) -> Result<(), String
         std::process::Command::new("/bin/zsh")
             .args(["-l", "-c", &shell_cmd])
             .spawn()
-            .map_err(|e| format!("命令 '{cmd}' 未找到：{e}"))?;
+            .map_err(|e| format!("Command '{cmd}' not found：{e}"))?;
     }
 
     #[cfg(not(target_os = "macos"))]

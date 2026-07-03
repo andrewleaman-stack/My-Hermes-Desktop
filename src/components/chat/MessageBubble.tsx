@@ -241,7 +241,7 @@ function getTerminalLineTone(line: string): TerminalLineTone {
 }
 
 function renderTerminalContent(content: string, error: boolean) {
-  const text = content || "Starting Hermes...";
+  const text = content || "Hermes reported an error.";
   return text.split("\n").map((line, index, lines) => (
     <span
       key={`${index}-${line.slice(0, 16)}`}
@@ -314,19 +314,19 @@ function GroundingPopover({
       style={{ position: "fixed", top: anchorRect.bottom + 4, left: anchorRect.left }}
     >
       <div className="grounding-row">
-        <span className="grounding-label">模型</span>
-        <span className="grounding-value">{model ?? "未知"}</span>
+        <span className="grounding-label">Model</span>
+        <span className="grounding-value">{model ?? "Unknown"}</span>
       </div>
       {assistantIndex !== undefined && (
         <div className="grounding-row">
-          <span className="grounding-label">消息序号</span>
-          <span className="grounding-value">第 {assistantIndex} 条回复</span>
+          <span className="grounding-label">Message #</span>
+          <span className="grounding-value">Reply #{assistantIndex}</span>
         </div>
       )}
       <div className="grounding-row">
-        <span className="grounding-label">个人记忆</span>
+        <span className="grounding-label">Personal Memory</span>
         <span className={`grounding-value ${memoryLoaded ? "ctx-memory-ok" : "ctx-memory-none"}`}>
-          {memoryLoaded === true ? "已加载" : memoryLoaded === false ? "未配置" : "未知"}
+          {memoryLoaded === true ? "Loaded" : memoryLoaded === false ? "Not Configured" : "Unknown"}
         </span>
       </div>
     </div>,
@@ -360,7 +360,7 @@ function messageToMarkdown(message: Message): string {
 
 function toSpokenText(markdown: string): string {
   let text = markdown
-    .replace(/```[\s\S]*?```/g, "（代码块已省略）")
+    .replace(/```[\s\S]*?```/g, "(code block omitted)")
     .replace(/`[^`\n]+`/g, (m) => m.slice(1, -1))
     .replace(/^#{1,6}\s+/gm, "")
     .replace(/\*\*([^*]+)\*\*/g, "$1")
@@ -376,7 +376,7 @@ function toSpokenText(markdown: string): string {
 
   const words = text.split(/\s+/);
   if (words.length > 150) {
-    text = words.slice(0, 150).join(" ") + "……内容已截断";
+    text = words.slice(0, 150).join(" ") + "... content truncated";
   }
   return text;
 }
@@ -389,10 +389,11 @@ export default function MessageBubble({ message, isLastAssistant, streaming, sho
   const isUser = message.role === "user";
 
   const isStreaming = isLastAssistant && message.status === "streaming";
-  const isLiveTerminal = !isUser && (isStreaming || message.status === "error");
+  const isLiveTerminal = !isUser && message.status === "error";
   // A message is "invisible" when every block it contains is hidden by the
-  // current showTools / showThink settings. Live terminal and error messages
-  // must always show so the user sees streaming output and errors.
+  // current showTools / showThink settings. Error messages must always show;
+  // normal startup/progress noise should stay as a simple thinking state, not
+  // a fake terminal window that makes the app look like it is booting DOS.
   const allBlocksHidden =
     message.blocks.length > 0 &&
     message.blocks.every((b) => {
@@ -486,7 +487,7 @@ export default function MessageBubble({ message, isLastAssistant, streaming, sho
                   prev ? null : groundingBtnRef.current!.getBoundingClientRect()
                 )
               }
-              title="查看上下文来源"
+              title="View context sources"
             >
               ⓘ
             </button>
@@ -504,25 +505,25 @@ export default function MessageBubble({ message, isLastAssistant, streaming, sho
         {(showCopy || showRetry) && (
           <div className="message-actions">
             {showRetry && (
-              <button className="message-action-btn" onClick={onRetry} title="重试这一轮">
+              <button className="message-action-btn" onClick={onRetry} title="Retry this round">
                 <Icon name="refresh" size={12} />
-                重试
+                Retry
               </button>
             )}
             {showCopy && (
               <button
                 className={`message-action-btn${speaking ? " speaking" : ""}`}
                 onClick={speakMessage}
-                title={speaking ? "点击停止朗读" : "朗读回复"}
+                title={speaking ? "Click to stop reading aloud" : "Read response aloud"}
               >
                 <Icon name="volume" size={12} />
-                {speaking ? "停止" : "朗读"}
+                {speaking ? "Stop" : "Read Aloud"}
               </button>
             )}
             {showCopy && (
-              <button className="message-action-btn" onClick={copyMarkdown} title="复制为 Markdown">
+              <button className="message-action-btn" onClick={copyMarkdown} title="Copy as Markdown">
                 <Icon name="copy" size={12} />
-                {copied ? "已复制" : "复制"}
+                {copied ? "Copied" : "Copy"}
               </button>
             )}
           </div>

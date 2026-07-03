@@ -24,7 +24,7 @@ fn build_tui_command(session_id: Option<&str>) -> Result<CommandBuilder, String>
     #[cfg(target_os = "windows")]
     {
         let Some(wsl_path) = super::sessions::wsl_hermes_path() else {
-            return Err("WSL 中未找到 hermes，请先在 WSL 里安装并确认 `bash -l -c \"command -v hermes\"` 能找到它".into());
+            return Err("WSL Hermes was not found in WSL. Install it in WSL first and confirm `bash -l -c \"command -v hermes\"` can find it".into());
         };
         return Ok(build_wsl_tui_command(wsl_path, session_id));
     }

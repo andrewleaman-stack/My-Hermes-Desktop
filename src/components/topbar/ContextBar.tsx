@@ -64,27 +64,27 @@ export default function ContextBar({ status, onCompress }: Props) {
       <button
         className={`compress-btn${highlight ? " highlight" : ""}`}
         onClick={() => setPopoverOpen((o) => !o)}
-        title="压缩上下文"
+        title="Compress Context"
       >
         <Icon name="spark" size={12} />
-        压缩
+        Compress
       </button>
 
       {/* Popover */}
       {popoverOpen && (
         <div className="compress-popover">
-          <div className="compress-popover-title ui-font">压缩上下文</div>
+          <div className="compress-popover-title ui-font">Compress Context</div>
           <input
             className="compress-input"
-            placeholder="压缩焦点（可留空，全量压缩）"
+            placeholder="Compression focus (optional; leave blank for full compression)"
             value={focusText}
             onChange={(e) => setFocusText(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleCompress(); if (e.key === "Escape") setPopoverOpen(false); }}
             autoFocus
           />
           <div className="compress-popover-actions">
-            <button className="btn-cancel ui-font" onClick={() => setPopoverOpen(false)}>取消</button>
-            <button className="btn-confirm ui-font" onClick={handleCompress}>立即压缩</button>
+            <button className="btn-cancel ui-font" onClick={() => setPopoverOpen(false)}>Cancel</button>
+            <button className="btn-confirm ui-font" onClick={handleCompress}>Compress Now</button>
           </div>
         </div>
       )}

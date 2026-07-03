@@ -97,7 +97,7 @@ export default function GoalBar({ streaming, onSend }: Props) {
         <input
           autoFocus
           className="goal-input ui-font"
-          placeholder="描述你的持久目标..."
+          placeholder="Describe your persistent goal..."
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           onKeyDown={(e) => {
@@ -106,7 +106,7 @@ export default function GoalBar({ streaming, onSend }: Props) {
           }}
         />
         <button className="goal-action-btn ui-font" onClick={handleConfirm}>
-          确认
+          Confirm
         </button>
         <button className="goal-icon-btn" onClick={cancelInput}>
           <Icon name="close" size={12} />
@@ -122,7 +122,7 @@ export default function GoalBar({ streaming, onSend }: Props) {
       <button
         className="goal-icon-btn goal-toggle"
         onClick={() => setCollapsed((c) => !c)}
-        title={collapsed ? "展开" : "折叠"}
+        title={collapsed ? "Expand" : "Collapse"}
       >
         <Icon
           name="chevronRight"
@@ -142,20 +142,20 @@ export default function GoalBar({ streaming, onSend }: Props) {
         <div className="goal-controls">
           {goal.status === "active" ? (
             <button className="goal-action-btn ui-font" onClick={handlePause}>
-              暂停
+              Pause
             </button>
           ) : (
             <button className="goal-action-btn goal-action-resume ui-font" onClick={handleResume}>
-              恢复
+              Resume
             </button>
           )}
           <button className="goal-action-btn goal-action-clear ui-font" onClick={handleClear}>
-            清除
+            Clear
           </button>
         </div>
       )}
 
-      <span className="goal-rounds ui-font">{goal.rounds} 轮</span>
+      <span className="goal-rounds ui-font">{goal.rounds} rounds</span>
     </div>
   );
 }

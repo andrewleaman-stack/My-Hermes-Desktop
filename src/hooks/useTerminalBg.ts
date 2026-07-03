@@ -8,9 +8,9 @@ const STORAGE_KEY = "hermes-terminal-bg";
 
 export function xtermBackground(bg: TerminalBg): string {
   if (bg === "dark") return "#0d1117";
-  // glass：半透明暗膜叠在渐变底色上，透出底色产生深度感
+  // glass: a translucent dark overlay sits on the gradient background to create depth
   if (bg === "glass") return "rgba(13, 17, 23, 0.52)";
-  // 其他渐变模式：全透明，渐变直接透出
+  // other gradient modes: fully transparent so the gradient shows through directly
   return "rgba(0, 0, 0, 0)";
 }
 

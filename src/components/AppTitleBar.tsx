@@ -119,15 +119,15 @@ export default function AppTitleBar({ platform, currentPath, onAction }: Props) 
       </div>
 
       <div className="app-titlebar-actions">
-        <span className="app-titlebar-credit" aria-label="玄熵智能">
+        <span className="app-titlebar-credit" aria-label="Beacon AI">
           <img src={logoUrl} alt="" className="app-titlebar-credit-logo" />
-          <span className="app-titlebar-credit-text">玄熵智能</span>
+          <span className="app-titlebar-credit-text">Beacon AI</span>
         </span>
 
-        <button className="app-titlebar-icon-btn" title="新建会话" onClick={() => runAction("new-session")}>
+        <button className="app-titlebar-icon-btn" title="New Session" onClick={() => runAction("new-session")}>
           <Icon name="edit" size={13} />
         </button>
-        <button className="app-titlebar-icon-btn" title="快照时间线" onClick={() => runAction("toggle-snapshot")}>
+        <button className="app-titlebar-icon-btn" title="Snapshot Timeline" onClick={() => runAction("toggle-snapshot")}>
           <Icon name="timer" size={13} />
         </button>
         <button className="app-titlebar-icon-btn" title="Terminal" onClick={() => runAction("toggle-terminal")}>

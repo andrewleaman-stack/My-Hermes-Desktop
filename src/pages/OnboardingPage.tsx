@@ -63,7 +63,7 @@ export default function OnboardingPage({ setup, checking, onRetry, onContinue }:
     setPathResult(null);
     try {
       const version = await invoke<string>("set_hermes_path", { path: customPath.trim() });
-      setPathResult({ ok: true, msg: `已保存，检测到 ${version}` });
+      setPathResult({ ok: true, msg: `Saved; detected ${version}` });
       window.setTimeout(() => onRetry(), 800);
     } catch (e) {
       setPathResult({ ok: false, msg: String(e) });
@@ -79,7 +79,7 @@ export default function OnboardingPage({ setup, checking, onRetry, onContinue }:
       setCopiedCommand(kind);
       window.setTimeout(() => setCopiedCommand(null), 1800);
     } else {
-      setTerminalError("复制失败，请手动选择安装命令复制。");
+      setTerminalError("Copy failed. Select and copy the install command manually.");
     }
   };
 
@@ -94,7 +94,7 @@ export default function OnboardingPage({ setup, checking, onRetry, onContinue }:
 
   const providerText = setup?.configured_providers.length
     ? setup.configured_providers.join(" / ")
-    : "尚未检测到";
+    : "Not detected yet";
 
   return (
     <div className="onboarding-page">
@@ -104,29 +104,29 @@ export default function OnboardingPage({ setup, checking, onRetry, onContinue }:
         </div>
         <div className="onboarding-copy">
           <p className="onboarding-kicker ui-font">My Hermes Desktop</p>
-          <h1 className="onboarding-title">开始使用 Hermes</h1>
+          <h1 className="onboarding-title">Get Started with Hermes</h1>
           <p className="onboarding-subtitle">
-            桌面端会先确认 Hermes CLI 可用。按官方步骤完成安装和配置后，就可以直接进入对话。
+            The desktop app first checks that the Hermes CLI is available. Complete the official install and configuration steps, then you can start chatting.
           </p>
         </div>
       </section>
 
-      <section className="onboarding-steps" aria-label="首次使用引导">
+      <section className="onboarding-steps" aria-label="First-run guide">
         <article className="onboarding-step active">
           <div className="onboarding-step-index">1</div>
           <div className="onboarding-step-body">
-            <h2>安装 Hermes CLI</h2>
-            <p>运行安装命令。完成后回到这里重新检测。</p>
+            <h2>Install Hermes CLI</h2>
+            <p>Run the install command. When it finishes, come back here and check again.</p>
             <div className="onboarding-command">
               <code>{INSTALL_CMD}</code>
               <button className="guide-copy-btn ui-font" onClick={() => copyCommand("install", INSTALL_CMD)}>
                 {copiedCommand === "install" && <Icon name="check" size={12} />}
-                {copiedCommand === "install" ? "已复制" : "复制"}
+                {copiedCommand === "install" ? "Copied" : "Copy"}
               </button>
             </div>
             <button className="onboarding-secondary-btn ui-font" onClick={() => openTerminal("open_install_terminal")}>
               <Icon name="terminal" size={14} />
-              在终端中打开
+              Open in Terminal
             </button>
             {terminalError && <p className="onboarding-error">{terminalError}</p>}
           </div>
@@ -135,23 +135,23 @@ export default function OnboardingPage({ setup, checking, onRetry, onContinue }:
         <article className="onboarding-step">
           <div className="onboarding-step-index">2</div>
           <div className="onboarding-step-body">
-            <h2>配置 Hermes</h2>
+            <h2>Configure Hermes</h2>
             <p>
-              安装完成后运行官方配置向导，选择 provider、模型和 API Key。
+              After installation, run the official configuration wizard and choose a provider, model, and API key.
             </p>
             <div className="onboarding-command">
               <code>{SETUP_CMD}</code>
               <button className="guide-copy-btn ui-font" onClick={() => copyCommand("setup", SETUP_CMD)}>
                 {copiedCommand === "setup" && <Icon name="check" size={12} />}
-                {copiedCommand === "setup" ? "已复制" : "复制"}
+                {copiedCommand === "setup" ? "Copied" : "Copy"}
               </button>
             </div>
             <button className="onboarding-secondary-btn ui-font" onClick={() => openTerminal("open_setup_terminal")}>
               <Icon name="terminal" size={14} />
-              打开配置向导
+              Open Configuration Wizard
             </button>
             <div className="onboarding-status-row">
-              <span>当前检测</span>
+              <span>Current Check</span>
               <strong>{providerText}</strong>
             </div>
           </div>
@@ -160,28 +160,28 @@ export default function OnboardingPage({ setup, checking, onRetry, onContinue }:
         <article className="onboarding-step">
           <div className="onboarding-step-index">3</div>
           <div className="onboarding-step-body">
-            <h2>进入对话</h2>
-            <p>检测到 Hermes 后会自动进入主界面。之后启动应用时会直接打开对话。</p>
+            <h2>Enter Chat</h2>
+            <p>After Hermes is detected, the app enters the main interface automatically. Future launches open Chat directly.</p>
             <div className={`onboarding-check ${setup?.installed ? "ok" : ""}`}>
               {setup?.installed ? <Icon name="check" size={14} /> : <Icon name="alert" size={14} />}
-              <span>{setup?.installed ? `已安装 ${setup.version}` : setup?.error || "等待检测"}</span>
+              <span>{setup?.installed ? `Installed ${setup.version}` : setup?.error || "Waiting for check"}</span>
             </div>
 
-            {/* 手动指定路径 — 仅在检测失败时显示 */}
+            {/* Manual path entry; shown only when detection fails */}
             {setup && !setup.installed && (
               <div className="onboarding-custom-path">
                 <button
                   className="onboarding-link-btn ui-font"
                   onClick={() => setShowPathInput((v) => !v)}
                 >
-                  {showPathInput ? "收起" : "手动指定 hermes 路径"}
+                  {showPathInput ? "Collapse" : "Specify Hermes path manually"}
                 </button>
                 {showPathInput && (
                   <div className="onboarding-path-row">
                     <input
                       className="onboarding-path-input ui-font"
                       type="text"
-                      placeholder="例：/usr/local/bin/hermes 或 ~/.hermes/bin/hermes"
+                      placeholder="Example: /usr/local/bin/hermes or ~/.hermes/bin/hermes"
                       value={customPath}
                       onChange={(e) => setCustomPath(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && saveCustomPath()}
@@ -192,7 +192,7 @@ export default function OnboardingPage({ setup, checking, onRetry, onContinue }:
                       onClick={saveCustomPath}
                       disabled={pathSaving || !customPath.trim()}
                     >
-                      {pathSaving ? "验证中…" : "验证并保存"}
+                      {pathSaving ? "Verifying..." : "Verify and Save"}
                     </button>
                   </div>
                 )}
@@ -213,11 +213,11 @@ export default function OnboardingPage({ setup, checking, onRetry, onContinue }:
           onClick={setup?.installed && onContinue ? onContinue : onRetry}
           disabled={checking}
         >
-          {checking ? "检测中..." : setup?.installed && onContinue ? "进入对话" : "我已完成，重新检测"}
+          {checking ? "Checking..." : setup?.installed && onContinue ? "Enter Chat" : "I finished; check again"}
         </button>
         {!setup?.installed && onContinue && (
           <button className="onboarding-skip-btn ui-font" onClick={onContinue}>
-            跳过检测，直接进入
+            Skip check and enter directly
           </button>
         )}
       </div>

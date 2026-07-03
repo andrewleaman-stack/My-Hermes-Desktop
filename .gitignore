@@ -1,48 +1,27 @@
-# 依赖
+# Dependencies
 node_modules/
 
-# 构建产物
+# Build output
 dist/
-dist-ssr/
+build/
 
-# Vite 缓存
+# Vite cache
 .vite/
 
-# TypeScript 构建信息
+# TypeScript build info
 *.tsbuildinfo
 
-# Tauri 构建产物
+# Tauri build output
 src-tauri/target/
-src-tauri/gen/
 
-# 环境变量
+# Environment variables
 .env
-.env.local
-.env.*.local
+.env.*
 
-# 编辑器
+# Editors
+.DS_Store
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# 日志
-logs/
+# Logs
 *.log
-npm-debug.log*
-
-# 运行时数据
-*.pid
-*.seed
-
-# 临时文件
-.tmp/
-.temp/
-temp/
-.codebase-memory/
-spike/

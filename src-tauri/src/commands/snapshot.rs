@@ -16,7 +16,7 @@ pub async fn snapshot_create(label: Option<String>) -> Result<String, String> {
 
     let output = cmd
         .output()
-        .map_err(|e| format!("无法启动 hermes: {e}"))?;
+        .map_err(|e| format!("Unable to start Hermes: {e}"))?;
 
     let stdout = String::from_utf8_lossy(&output.stdout);
 
@@ -32,8 +32,8 @@ pub async fn snapshot_create(label: Option<String>) -> Result<String, String> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("hermes backup 失败: {stderr}"));
+        return Err(format!("hermes backup failed: {stderr}"));
     }
 
-    Err(format!("无法从输出中解析快照 ID: {stdout}"))
+    Err(format!("Unable to parse snapshot ID from output: {stdout}"))
 }

@@ -199,6 +199,35 @@ pub fn hermes_home() -> Option<std::path::PathBuf> {
     dirs::home_dir().map(|h| h.join(".hermes"))
 }
 
+fn hermes_config_file(command: &str, fallback_name: &str) -> Option<std::path::PathBuf> {
+    let out = hermes_command().args(["config", command]).output().ok()?;
+    if out.status.success() {
+        let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if !path.is_empty() {
+            return Some(std::path::PathBuf::from(path));
+        }
+    }
+    hermes_home().map(|home| home.join(fallback_name))
+}
+
+/// Active Hermes config file. Uses the Hermes CLI as the source of truth so
+/// profile-scoped installs resolve to ~/.hermes/profiles/<name>/config.yaml.
+pub fn hermes_config_path() -> Option<std::path::PathBuf> {
+    hermes_config_file("path", "config.yaml")
+}
+
+/// Active Hermes env file. Uses the Hermes CLI as the source of truth so
+/// profile-scoped installs resolve to ~/.hermes/profiles/<name>/.env.
+pub fn hermes_env_path() -> Option<std::path::PathBuf> {
+    hermes_config_file("env-path", ".env")
+}
+
+pub fn active_hermes_home() -> Option<std::path::PathBuf> {
+    hermes_config_path()
+        .and_then(|path| path.parent().map(|parent| parent.to_path_buf()))
+        .or_else(hermes_home)
+}
+
 /// Resolve the hermes binary path.
 /// macOS .app bundles only get a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin),
 /// so we check known install locations first, then fall back to the login shell.
@@ -323,15 +352,15 @@ pub async fn set_hermes_path(path: String) -> Result<String, String> {
     };
 
     if !std::path::Path::new(&expanded).exists() {
-        return Err(format!("路径不存在：{expanded}"));
+        return Err(format!("Path does not exist：{expanded}"));
     }
 
     // Quick smoke-test: hermes version
     let mut cmd = std::process::Command::new(&expanded);
     hide_command_window(cmd.arg("version"));
-    let out = cmd.output().map_err(|e| format!("无法执行：{e}"))?;
+    let out = cmd.output().map_err(|e| format!("Unable to execute：{e}"))?;
     if !out.status.success() {
-        return Err("路径有效但执行 hermes version 失败，请确认是正确的 hermes 二进制".to_string());
+        return Err("The path exists, but `hermes version` failed. Confirm this is the correct Hermes binary".to_string());
     }
 
     // Persist
@@ -944,7 +973,7 @@ pub async fn branch_session(
         } else if !stdout.is_empty() {
             stdout
         } else {
-            "hermes /branch 失败".into()
+            "hermes /branch failed".into()
         });
     }
 
@@ -972,9 +1001,9 @@ pub async fn branch_session(
         .ok_or_else(|| {
             let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
             if stdout.is_empty() {
-                "hermes /branch 运行成功但未发现新会话文件".into()
+                "hermes /branch ran successfully but no new session file was found".into()
             } else {
-                format!("hermes /branch 运行成功但未发现新会话文件。输出：{stdout}")
+                format!("hermes /branch ran successfully but no new session file was found。Output：{stdout}")
             }
         })?;
 

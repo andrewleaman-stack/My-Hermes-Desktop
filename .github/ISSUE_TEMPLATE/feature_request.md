@@ -1,23 +1,16 @@
 ---
-name: 功能建议
-about: 提出新功能或改进想法
-title: "[Feature] "
-labels: enhancement
-assignees: ''
+name: Feature Request
+about: Suggest a new feature or improvement
 ---
 
-## 功能描述
+## Feature Description
 
-<!-- 简洁地描述你想要的功能 -->
+<!-- Briefly describe the feature you want. -->
 
-## 使用场景
+## Use Case
 
-<!-- 描述你在什么情况下需要这个功能，以及它能解决什么问题 -->
+<!-- Describe when you need it and what problem it solves. -->
 
-## 期望交互
+## Expected Interaction
 
-<!-- 描述用户应该怎么触发这个功能，以及期望的结果 -->
-
-## 备注
-
-<!-- 参考截图、相关 Issue、其他应用的类似实现等（可选） -->
+<!-- Describe how users should trigger it and what should happen. -->

@@ -28,50 +28,50 @@ export interface AppMenuSection {
 
 export const APP_MENU: AppMenuSection[] = [
   {
-    label: "文件",
+    label: "Files",
     items: [
-      { label: "新建会话", action: "new-session", shortcut: "Ctrl+N" },
-      { label: "保存快照", action: "toggle-snapshot" },
-      { label: "退出", action: "quit" },
+      { label: "New Session", action: "new-session", shortcut: "Ctrl+N" },
+      { label: "Save Snapshot", action: "toggle-snapshot" },
+      { label: "Quit", action: "quit" },
     ],
   },
   {
-    label: "编辑",
+    label: "Edit",
     items: [
-      { label: "停止运行", action: "stop-agent" },
-      { label: "快捷键", action: "show-shortcuts", shortcut: "Ctrl+/" },
+      { label: "Stop Running", action: "stop-agent" },
+      { label: "Shortcuts", action: "show-shortcuts", shortcut: "Ctrl+/" },
     ],
   },
   {
-    label: "查看",
+    label: "View",
     items: [
-      { label: "对话", action: "open-chat" },
-      { label: "记忆", action: "open-memory" },
-      { label: "文件树", action: "open-files" },
-      { label: "管理面板", action: "open-dashboard" },
-      { label: "设置", action: "open-settings" },
-      { label: "终端", action: "toggle-terminal" },
+      { label: "Chat", action: "open-chat" },
+      { label: "Memory", action: "open-memory" },
+      { label: "File Tree", action: "open-files" },
+      { label: "Dashboard", action: "open-dashboard" },
+      { label: "Settings", action: "open-settings" },
+      { label: "Terminal", action: "toggle-terminal" },
     ],
   },
   {
     label: "Agent",
     items: [
-      { label: "压缩上下文", action: "show-shortcuts" },
-      { label: "后台任务", action: "toggle-snapshot" },
+      { label: "Compress Context", action: "show-shortcuts" },
+      { label: "Background Tasks", action: "toggle-snapshot" },
     ],
   },
   {
-    label: "窗口",
+    label: "Window",
     items: [
-      { label: "隐藏到托盘", action: "hide-window" },
-      { label: "快照时间线", action: "toggle-snapshot" },
+      { label: "Hide to Tray", action: "hide-window" },
+      { label: "Snapshot Timeline", action: "toggle-snapshot" },
     ],
   },
   {
-    label: "帮助",
+    label: "Help",
     items: [
-      { label: "安装与配置", action: "open-dashboard" },
-      { label: "关于 My Hermes Desktop", action: "open-settings" },
+      { label: "Setup & Configuration", action: "open-dashboard" },
+      { label: "About My Hermes Desktop", action: "open-settings" },
     ],
   },
 ];

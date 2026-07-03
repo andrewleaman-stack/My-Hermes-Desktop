@@ -176,7 +176,7 @@ pub async fn bg_start(
             }
         }
 
-        // 任务运行超过 30 秒时推送原生通知并通知前端导航
+        // Push a native notification and notify frontend navigation when a task runs longer than 30 seconds
         if elapsed_secs >= 30 {
             let short_prompt = if prompt_clone.chars().count() > 40 {
                 let truncated: String = prompt_clone.chars().take(40).collect();
@@ -185,9 +185,9 @@ pub async fn bg_start(
                 prompt_clone.clone()
             };
             let title = if final_status == "done" {
-                "Hermes 后台任务完成"
+                "Hermes background task completed"
             } else {
-                "Hermes 后台任务失败"
+                "Hermes background task failed"
             };
 
             use tauri_plugin_notification::NotificationExt;

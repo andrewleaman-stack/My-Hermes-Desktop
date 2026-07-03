@@ -43,7 +43,7 @@ fn normalize_dashboard_error(stderr: &str) -> String {
         || message.contains("--skip-build was passed but no web dist found")
     {
         return format!(
-            "dashboard_dependency_missing:WSL 中的 Hermes Dashboard 前端未构建，且 npm 不可用。请在 WSL 终端执行：cd ~/.hermes/hermes-agent/web && npm install && npm run build。原始错误：{message}"
+            "dashboard_dependency_missing:The Hermes Dashboard frontend in WSL has not been built, and npm is unavailable. Run this in a WSL terminal：cd ~/.hermes/hermes-agent/web && npm install && npm run build。Original error：{message}"
         );
     }
 

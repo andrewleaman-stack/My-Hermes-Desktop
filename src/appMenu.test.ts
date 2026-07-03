@@ -8,12 +8,12 @@ describe("getWindowMenu", () => {
 
   it("returns Codex-style in-window menu sections on Windows", () => {
     expect(getWindowMenu("windows").map((section) => section.label)).toEqual([
-      "文件",
-      "编辑",
-      "查看",
+      "Files",
+      "Edit",
+      "View",
       "Agent",
-      "窗口",
-      "帮助",
+      "Window",
+      "Help",
     ]);
   });
 });

@@ -5,9 +5,9 @@ export type FontSize = "small" | "medium" | "large";
 export const FONT_SIZES: FontSize[] = ["small", "medium", "large"];
 
 export const FONT_SIZE_LABELS: Record<FontSize, string> = {
-  small: "小",
-  medium: "中",
-  large: "大",
+  small: "Small",
+  medium: "Medium",
+  large: "Large",
 };
 
 const TERMINAL_FONT_PX: Record<FontSize, number> = { small: 11, medium: 13, large: 15 };

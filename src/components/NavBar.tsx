@@ -2,10 +2,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Icon from "./Icon";
 
 const NAV_ITEMS = [
-  { path: "/", icon: "message", label: "对话" },
-  { path: "/memory", icon: "brain", label: "记忆" },
-  { path: "/dashboard", icon: "dashboard", label: "管理" },
-  { path: "/settings", icon: "settings", label: "设置" },
+  { path: "/", icon: "message", label: "Chat" },
+  { path: "/memory", icon: "brain", label: "Memory" },
+  { path: "/dashboard", icon: "dashboard", label: "Dashboard" },
+  { path: "/settings", icon: "settings", label: "Settings" },
 ] as const;
 
 export default function NavBar() {

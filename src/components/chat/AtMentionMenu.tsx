@@ -31,7 +31,7 @@ export default function AtMentionMenu({ fileItems, skillItems, selectedIndex, on
     <div className="slash-menu">
       {fileItems.length > 0 && (
         <div className="slash-menu-section">
-          <div className="slash-menu-group">文件</div>
+          <div className="slash-menu-group">Files</div>
           {fileItems.map((item) => {
             const i = globalIdx++;
             const isSelected = i === selectedIndex;
@@ -53,7 +53,7 @@ export default function AtMentionMenu({ fileItems, skillItems, selectedIndex, on
       )}
       {skillItems.length > 0 && (
         <div className="slash-menu-section">
-          <div className="slash-menu-group">技能</div>
+          <div className="slash-menu-group">Skills</div>
           {skillItems.map((item) => {
             const i = globalIdx++;
             const isSelected = i === selectedIndex;

@@ -135,8 +135,8 @@ export default function TerminalModal({ sessionId, onClose }: Props) {
             <Icon name="terminal" size={14} />
             Hermes TUI
           </span>
-          <span className="terminal-modal-hint">ESC 或点击外部关闭</span>
-          <button className="terminal-modal-close" onClick={handleClose} title="关闭终端">
+          <span className="terminal-modal-hint">Press ESC or click outside to close</span>
+          <button className="terminal-modal-close" onClick={handleClose} title="Close Terminal">
             <Icon name="close" size={14} />
           </button>
         </div>

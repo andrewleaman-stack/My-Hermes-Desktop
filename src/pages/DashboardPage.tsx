@@ -81,7 +81,7 @@ export default function DashboardPage() {
         setErrorMsg("");
       } else if (msg.includes("timeout")) {
         setStatus("error");
-        setErrorMsg("Dashboard 启动超时，请检查 hermes-agent 是否正确安装");
+        setErrorMsg("Dashboard startup timed out. Check that hermes-agent is installed correctly.");
       } else {
         setStatus("error");
         setErrorMsg(msg);
@@ -105,7 +105,7 @@ export default function DashboardPage() {
     return (
       <div className="dashboard-loading">
         <span className="loading-dots" style={{ fontSize: 20 }} />
-        <div className="dashboard-loading-text ui-font">正在启动 Dashboard…</div>
+        <div className="dashboard-loading-text ui-font">Starting Dashboard...</div>
       </div>
     );
   }
@@ -118,18 +118,18 @@ export default function DashboardPage() {
         <div className="dashboard-guide-icon">
           <Icon name="package" size={34} />
         </div>
-        <div className="dashboard-guide-title ui-font">需要安装 Dashboard 依赖</div>
+        <div className="dashboard-guide-title ui-font">Dashboard dependencies required</div>
         <div className="dashboard-guide-desc">
-          {errorMsg || "运行以下命令安装，完成后点击\"重试\"。"}
+          {errorMsg || "Run the command below to install, then click \"Retry\"."}
         </div>
         <div className="dashboard-guide-cmd">
           <code>{command}</code>
           <button className="guide-copy-btn ui-font" onClick={copyCmd}>
             {copied && <Icon name="check" size={12} />}
-            {copied ? "已复制" : "复制"}
+            {copied ? "Copied" : "Copy"}
           </button>
         </div>
-        <button className="guide-retry-btn ui-font" onClick={start}>重试</button>
+        <button className="guide-retry-btn ui-font" onClick={start}>Retry</button>
       </div>
     );
   }
@@ -141,11 +141,11 @@ export default function DashboardPage() {
         <div className="dashboard-guide-icon error">
           <Icon name="alert" size={34} />
         </div>
-        <div className="dashboard-guide-title ui-font">Dashboard 启动失败</div>
+        <div className="dashboard-guide-title ui-font">Dashboard failed to start</div>
         <div className="dashboard-guide-desc" style={{ color: "var(--error)" }}>
           {errorMsg}
         </div>
-        <button className="guide-retry-btn ui-font" onClick={start}>重试</button>
+        <button className="guide-retry-btn ui-font" onClick={start}>Retry</button>
       </div>
     );
   }

@@ -58,14 +58,14 @@ fn hermes_version() -> Result<String, String> {
     let output = super::sessions::hermes_command()
         .arg("version")
         .output()
-        .map_err(|e| format!("Hermes CLI 未安装或不在 PATH 中：{e}"))?;
+        .map_err(|e| format!("Hermes CLI is not installed or is not in PATH：{e}"))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
         let message = if stderr.is_empty() { stdout } else { stderr };
         return Err(if message.is_empty() {
-            "Hermes CLI 无法正常运行".to_string()
+            "Hermes CLI is not running correctly".to_string()
         } else {
             message
         });
@@ -78,20 +78,22 @@ fn hermes_version() -> Result<String, String> {
 
 #[tauri::command]
 pub async fn check_hermes_setup() -> Result<HermesSetupStatus, String> {
-    let home = crate::commands::sessions::hermes_home();
+    let config_path = crate::commands::sessions::hermes_config_path();
+    let env_path = crate::commands::sessions::hermes_env_path();
+    let home = crate::commands::sessions::active_hermes_home();
     let hermes_home = home
         .as_ref()
         .map(|path| path.to_string_lossy().to_string())
         .unwrap_or_default();
 
-    let config_exists = home
+    let config_exists = config_path
         .as_ref()
-        .map(|path| path.join("config.yaml").exists())
+        .map(|path| path.exists())
         .unwrap_or(false);
 
-    let env_text = home
+    let env_text = env_path
         .as_ref()
-        .and_then(|path| std::fs::read_to_string(path.join(".env")).ok())
+        .and_then(|path| std::fs::read_to_string(path).ok())
         .unwrap_or_default();
     let configured_providers = configured_providers_from_env(&env_text);
     let api_key_configured = !configured_providers.is_empty()
@@ -135,7 +137,7 @@ fn open_terminal_with_command(command: &str) -> Result<(), String> {
             .arg("-e")
             .arg(script)
             .output()
-            .map_err(|e| format!("无法打开终端：{e}"))?;
+            .map_err(|e| format!("Unable to open terminal：{e}"))?;
 
         if output.status.success() {
             return Ok(());
@@ -143,7 +145,7 @@ fn open_terminal_with_command(command: &str) -> Result<(), String> {
 
         let message = String::from_utf8_lossy(&output.stderr).trim().to_string();
         return Err(if message.is_empty() {
-            "无法打开终端".to_string()
+            "Unable to open terminal".to_string()
         } else {
             message
         });
@@ -173,13 +175,13 @@ fn open_terminal_with_command(command: &str) -> Result<(), String> {
         Command::new("cmd")
             .args(["/c", "start", "cmd", "/k", command])
             .spawn()
-            .map_err(|e| format!("无法打开终端：{e}"))?;
+            .map_err(|e| format!("Unable to open terminal：{e}"))?;
         return Ok(());
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
-        Err("当前平台暂不支持自动打开终端，请复制安装命令手动执行。".to_string())
+        Err("This platform does not support opening a terminal automatically. Copy the install command and run it manually.".to_string())
     }
 }
 

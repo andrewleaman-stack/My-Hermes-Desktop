@@ -120,7 +120,7 @@ export default function ModelPicker({ currentModel, onNewSession }: Props) {
       <button
         className="model-picker-btn"
         onClick={() => setOpen((o) => !o)}
-        title="切换模型（直接写入配置，下次会话生效）"
+        title="Switch model (writes directly to config; applies to the next session)"
       >
         <span className="model-picker-label">{displayModel}</span>
         <svg className="model-picker-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -132,7 +132,7 @@ export default function ModelPicker({ currentModel, onNewSession }: Props) {
         <div className="model-picker-dropdown">
           <input
             className="model-picker-search"
-            placeholder="搜索模型..."
+            placeholder="Search models..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
@@ -141,7 +141,7 @@ export default function ModelPicker({ currentModel, onNewSession }: Props) {
 
           <div className="model-picker-list">
             {filtered.length === 0 && (
-              <div className="model-picker-empty">无匹配结果</div>
+              <div className="model-picker-empty">No matches</div>
             )}
             {filtered.map((group) => (
               <div key={group.provider} className="model-picker-group">
@@ -169,7 +169,7 @@ export default function ModelPicker({ currentModel, onNewSession }: Props) {
           </div>
 
           <div className="model-picker-custom">
-            <div className="model-picker-custom-label">自定义模型</div>
+            <div className="model-picker-custom-label">Custom Model</div>
             <div className="model-picker-custom-row">
               <input
                 className="model-picker-custom-input"
@@ -187,13 +187,13 @@ export default function ModelPicker({ currentModel, onNewSession }: Props) {
                 disabled={!custom.trim() || !custom.includes(":")}
                 style={{ height: 28, padding: "0 12px", fontSize: 12 }}
               >
-                切换
+                Switch
               </button>
             </div>
           </div>
 
           <div className="model-picker-hint">
-            切换后自动开启新会话
+            Start a new session automatically after switching
           </div>
         </div>
       )}

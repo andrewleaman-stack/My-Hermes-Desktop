@@ -1,6 +1,6 @@
 use tauri::AppHandle;
 
-/// 由前端调用，同步当前流式状态到系统托盘图标 tooltip 和标题
+/// Called by the frontend to sync streaming state to the system tray tooltip and title
 #[tauri::command]
 pub fn update_tray_status(app: AppHandle, status: String) -> Result<(), String> {
     let Some(tray) = app.tray_by_id("hermes-tray") else {
@@ -8,14 +8,14 @@ pub fn update_tray_status(app: AppHandle, status: String) -> Result<(), String> 
     };
 
     let (tooltip, title) = match status.as_str() {
-        "running" => ("Hermes Desktop — 运行中", "●"),
-        "error" => ("Hermes Desktop — 错误", "⚠"),
+        "running" => ("Hermes Desktop — Running", "●"),
+        "error" => ("Hermes Desktop — Error", "⚠"),
         _ => ("Hermes Desktop", ""),
     };
 
     tray.set_tooltip(Some(tooltip)).map_err(|e| e.to_string())?;
 
-    // macOS 支持在图标右侧显示文字，其他平台忽略
+    // macOS supports text next to the tray icon; other platforms ignore it
     #[cfg(target_os = "macos")]
     tray.set_title(Some(title)).map_err(|e| e.to_string())?;
     #[cfg(not(target_os = "macos"))]

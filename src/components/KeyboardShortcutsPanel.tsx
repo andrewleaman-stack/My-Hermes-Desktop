@@ -10,31 +10,31 @@ const shift = isMac ? "⇧" : "Shift";
 
 const SHORTCUTS = [
   {
-    group: "全局",
+    group: "Global",
     items: [
-      { keys: [mod, shift, "H"], label: "显示 / 隐藏窗口" },
-      { keys: [mod, "/"], label: "快捷键速查面板" },
+      { keys: [mod, shift, "H"], label: "Show / Hide Window" },
+      { keys: [mod, "/"], label: "Keyboard Shortcuts Panel" },
     ],
   },
   {
-    group: "会话",
+    group: "Session",
     items: [
-      { keys: [mod, "N"], label: "新建会话" },
+      { keys: [mod, "N"], label: "New Session" },
     ],
   },
   {
-    group: "对话输入",
+    group: "Chat Input",
     items: [
-      { keys: ["Enter"], label: "发送消息" },
-      { keys: [shift, "Enter"], label: "换行" },
-      { keys: ["Esc"], label: "取消 / 关闭面板" },
+      { keys: ["Enter"], label: "Send Message" },
+      { keys: [shift, "Enter"], label: "New Line" },
+      { keys: ["Esc"], label: "Cancel / Close panel" },
     ],
   },
   {
-    group: "面板",
+    group: "Panels",
     items: [
-      { keys: [mod, "W"], label: "关闭当前面板" },
-      { keys: [mod, "K"], label: "打开快照面板" },
+      { keys: [mod, "W"], label: "Close current panel" },
+      { keys: [mod, "K"], label: "Open snapshots panel" },
     ],
   },
 ];
@@ -52,8 +52,8 @@ export default function KeyboardShortcutsPanel({ onClose }: Props) {
     <div className="kbd-panel-overlay" onClick={onClose}>
       <div className="kbd-panel" onClick={(e) => e.stopPropagation()}>
         <div className="kbd-panel-header">
-          <span className="kbd-panel-title">快捷键</span>
-          <button className="kbd-panel-close" onClick={onClose} title="关闭">✕</button>
+          <span className="kbd-panel-title">Shortcuts</span>
+          <button className="kbd-panel-close" onClick={onClose} title="Off">✕</button>
         </div>
         <div className="kbd-panel-body">
           {SHORTCUTS.map((section) => (

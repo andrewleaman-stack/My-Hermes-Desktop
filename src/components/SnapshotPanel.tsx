@@ -106,7 +106,7 @@ function formatDuration(startIso: string, endIso: string | null) {
 export default function SnapshotPanel({
   onSend,
   onClose,
-  sessionTitle = "未命名会话",
+  sessionTitle = "Untitled Session",
   externalCreateCount = 0,
   initialTab = "snapshot",
   onBgCountChange,
@@ -144,7 +144,7 @@ export default function SnapshotPanel({
     setPrevExternal(externalCreateCount);
   }, [externalCreateCount]);
 
-  // Switch tab when initialTab changes (e.g. user clicks "后台运行" → auto-open background)
+  // Switch tab when initialTab changes (e.g. user clicks "Run in Background" → auto-open background)
   useEffect(() => {
     setTab(initialTab);
   }, [initialTab]);
@@ -174,7 +174,7 @@ export default function SnapshotPanel({
     return {
       id: makeId(),
       hermesId: opts?.hermesId,
-      label: `快照 ${index}`,
+      label: `Snapshots ${index}`,
       createdAt: new Date().toISOString(),
       sessionTitle: title,
       expanded: false,
@@ -187,7 +187,7 @@ export default function SnapshotPanel({
     const index = snapshots.length + 1;
     const placeholder: Snapshot = {
       id: localId,
-      label: `快照 ${index}`,
+      label: `Snapshots ${index}`,
       createdAt: new Date().toISOString(),
       sessionTitle: sessionTitle,
       expanded: false,
@@ -248,7 +248,7 @@ export default function SnapshotPanel({
         const out = await invoke<string>("bg_get_output", { taskId: id });
         setBgFullOutput((prev) => ({ ...prev, [id]: out }));
       } catch (e) {
-        setBgFullOutput((prev) => ({ ...prev, [id]: `读取失败: ${e}` }));
+        setBgFullOutput((prev) => ({ ...prev, [id]: `Read failed: ${e}` }));
       }
     }
   };
@@ -297,13 +297,13 @@ export default function SnapshotPanel({
             className={`right-panel-tab ui-font${tab === "snapshot" ? " active" : ""}`}
             onClick={() => setTab("snapshot")}
           >
-            快照
+            Snapshots
           </button>
           <button
             className={`right-panel-tab ui-font${tab === "background" ? " active" : ""}`}
             onClick={() => setTab("background")}
           >
-            后台任务
+            Background Tasks
             {runningCount > 0 && (
               <span className="right-panel-tab-badge">{runningCount}</span>
             )}
@@ -319,17 +319,17 @@ export default function SnapshotPanel({
         <div className="right-panel-body">
           <button className="snapshot-save-btn ui-font" onClick={handleSave}>
             <Icon name="package" size={13} />
-            保存快照
+            Save Snapshot
           </button>
 
           {/* Disclaimer */}
           <div className="snapshot-notice ui-font">
-            快照保存至 ~/.hermes/state-snapshots/
+            Snapshots are saved to ~/.hermes/state-snapshots/
           </div>
 
           {/* List */}
           {snapshots.length === 0 ? (
-            <div className="snapshot-empty ui-font">暂无记录</div>
+            <div className="snapshot-empty ui-font">No records yet</div>
           ) : (
             <div className="snapshot-list">
               {snapshots.map((snap) => (
@@ -351,8 +351,8 @@ export default function SnapshotPanel({
                     <div className="snapshot-item-meta">
                       <span className="snapshot-item-label ui-font">
                         {snap.label}
-                        {snap.status === "saving" && <span style={{ opacity: 0.5, marginLeft: 4 }}>保存中…</span>}
-                        {snap.status === "error" && <span style={{ color: "var(--danger, #e05)", marginLeft: 4 }}>失败</span>}
+                        {snap.status === "saving" && <span style={{ opacity: 0.5, marginLeft: 4 }}>Saving...</span>}
+                        {snap.status === "error" && <span style={{ color: "var(--danger, #e05)", marginLeft: 4 }}>Failed</span>}
                       </span>
                       <span className="snapshot-item-session ui-font">
                         {snap.hermesId ?? snap.sessionTitle}
@@ -368,16 +368,16 @@ export default function SnapshotPanel({
                       {/* Confirm states */}
                       {confirmRestoreId === snap.id && (
                         <div className="snapshot-confirm-row">
-                          <span className="snapshot-confirm-label ui-font">确认恢复此快照？</span>
-                          <button className="snapshot-action-btn snapshot-action-confirm ui-font" onClick={() => handleRestore(snap)}>确认</button>
-                          <button className="snapshot-action-btn ui-font" onClick={cancelConfirm}>取消</button>
+                          <span className="snapshot-confirm-label ui-font">Resume this snapshot?</span>
+                          <button className="snapshot-action-btn snapshot-action-confirm ui-font" onClick={() => handleRestore(snap)}>Confirm</button>
+                          <button className="snapshot-action-btn ui-font" onClick={cancelConfirm}>Cancel</button>
                         </div>
                       )}
                       {confirmDeleteId === snap.id && (
                         <div className="snapshot-confirm-row">
-                          <span className="snapshot-confirm-label ui-font">删除此记录？</span>
-                          <button className="snapshot-action-btn snapshot-action-danger ui-font" onClick={() => handleDelete(snap.id)}>删除</button>
-                          <button className="snapshot-action-btn ui-font" onClick={cancelConfirm}>取消</button>
+                          <span className="snapshot-confirm-label ui-font">Delete this record?</span>
+                          <button className="snapshot-action-btn snapshot-action-danger ui-font" onClick={() => handleDelete(snap.id)}>Delete</button>
+                          <button className="snapshot-action-btn ui-font" onClick={cancelConfirm}>Cancel</button>
                         </div>
                       )}
                       {!confirmRestoreId && !confirmDeleteId && (
@@ -387,10 +387,10 @@ export default function SnapshotPanel({
                             onClick={() => handleRestore(snap)}
                             disabled={!snap.hermesId || snap.status !== "ok"}
                           >
-                            恢复
+                            Resume
                           </button>
                           <button className="snapshot-action-btn ui-font" onClick={() => handleDelete(snap.id)}>
-                            删除记录
+                            Delete Record
                           </button>
                         </div>
                       )}
@@ -410,37 +410,37 @@ export default function SnapshotPanel({
             <button
               className="bg-toolbar-btn ui-font"
               onClick={refreshBgTasks}
-              title="立即刷新"
+              title="Refresh now"
             >
               <Icon name="refresh" size={12} />
-              刷新
+              Refresh
             </button>
             <button
               className="bg-toolbar-btn ui-font"
               onClick={handleClearFinished}
-              title="移除已完成/失败的记录"
+              title="Remove completed/failed records"
               disabled={bgTasks.every((t) => t.status === "running")}
             >
-              清理已完成
+              Clear Completed
             </button>
             <button
               className={`bg-toolbar-btn ui-font${bgConfirmStopAll ? " bg-toolbar-btn-danger" : ""}`}
               onClick={handleStopAll}
               disabled={runningCount === 0}
             >
-              {bgConfirmStopAll ? "确认停止全部" : "停止全部"}
+              {bgConfirmStopAll ? "ConfirmStopAll" : "StopAll"}
             </button>
           </div>
 
           <div className="snapshot-notice ui-font">
-            后台任务通过独立 hermes 进程运行（--source tool），不会出现在主会话列表
+            Background tasks run in isolated Hermes processes (--source tool) and do not appear in the main session list
           </div>
 
           {bgTasks.length === 0 ? (
             <div className="snapshot-empty ui-font">
-              暂无后台任务<br />
+              No background tasks yet<br />
               <span style={{ fontSize: 11, opacity: 0.7 }}>
-                在输入框点击"后台运行"按钮发起任务
+                Click the "Run in Background" button in the composer to start a task
               </span>
             </div>
           ) : (
@@ -455,10 +455,10 @@ export default function SnapshotPanel({
                     : "bg-dot-failed";
                 const statusLabel =
                   task.status === "running"
-                    ? "运行中"
+                    ? "Running"
                     : task.status === "done"
-                    ? "已完成"
-                    : `失败(${task.exit_code ?? "?"})`;
+                    ? "Completed"
+                    : `Failed(${task.exit_code ?? "?"})`;
                 return (
                   <div key={task.id} className="snapshot-item">
                     <div
@@ -515,15 +515,15 @@ export default function SnapshotPanel({
                               className="snapshot-action-btn snapshot-action-danger ui-font"
                               onClick={() => handleStopOne(task.id)}
                             >
-                              停止
+                              Stop
                             </button>
                           )}
                         </div>
                         {bgFullOutput[task.id] !== undefined && (
                           <details className="bg-full-details">
-                            <summary className="ui-font">完整输出</summary>
+                            <summary className="ui-font">Full Output</summary>
                             <pre className="bg-full-output">
-                              {bgFullOutput[task.id] || "(空)"}
+                              {bgFullOutput[task.id] || "(empty)"}
                             </pre>
                           </details>
                         )}

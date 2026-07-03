@@ -1,41 +1,22 @@
 ---
-name: Bug 报告
-about: 报告一个问题，帮助我们修复它
-title: "[Bug] "
-labels: bug
-assignees: ''
+name: Bug Report
+about: Report a problem so we can fix it
 ---
 
-## 问题描述
+## Problem
 
-<!-- 简洁清晰地描述遇到的 Bug -->
+<!-- Clearly describe the bug. -->
 
-## 复现步骤
+## Steps to Reproduce
 
-1. 打开...
-2. 点击...
-3. 看到错误...
+1. Open ...
+2. Click ...
+3. See ...
 
-## 期望行为
+## Expected Behavior
 
-<!-- 描述你期望发生的事情 -->
+## Environment
 
-## 实际行为
-
-<!-- 描述实际发生的事情，附上截图或错误日志 -->
-
-## 环境信息
-
-- macOS 版本：
-- My Hermes Desktop 版本：
-- Hermes CLI 版本（`hermes --version`）：
-- Node.js 版本：
-- Rust 版本：
-
-## 日志
-
-<!-- 如有相关日志，请粘贴在此（Tauri 开发模式日志、终端输出等） -->
-
-```
-粘贴日志内容
-```
+- OS:
+- Hermes CLI version:
+- App version:

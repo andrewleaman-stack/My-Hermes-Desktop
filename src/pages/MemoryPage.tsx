@@ -39,7 +39,7 @@ function MemoryPanel({ filename, label, description }: PanelProps) {
       setContent(text);
       setOriginal(text);
     } catch (e) {
-      setMsg({ text: `加载失败: ${e}`, ok: false });
+      setMsg({ text: `Load failed: ${e}`, ok: false });
     } finally {
       setLoading(false);
     }
@@ -54,10 +54,10 @@ function MemoryPanel({ filename, label, description }: PanelProps) {
     try {
       await invoke("save_memory", { filename, content });
       setOriginal(content);
-      setMsg({ text: "已保存", ok: true });
+      setMsg({ text: "Saved", ok: true });
       setTimeout(() => setMsg(null), 2000);
     } catch (e) {
-      setMsg({ text: `保存失败: ${e}`, ok: false });
+      setMsg({ text: `Save failed: ${e}`, ok: false });
     } finally {
       setSaving(false);
     }
@@ -75,7 +75,7 @@ function MemoryPanel({ filename, label, description }: PanelProps) {
           <div className="memory-panel-desc">{description}</div>
         </div>
         <div className="memory-panel-actions">
-          <button className="mem-btn-refresh" onClick={load} title="重新加载" disabled={loading}>
+          <button className="mem-btn-refresh" onClick={load} title="Reload" disabled={loading}>
             <Icon name="refresh" size={14} />
           </button>
           <button
@@ -83,7 +83,7 @@ function MemoryPanel({ filename, label, description }: PanelProps) {
             onClick={save}
             disabled={overLimit || saving || !dirty}
           >
-            {saving ? "保存中…" : "保存"}
+            {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>
@@ -93,7 +93,7 @@ function MemoryPanel({ filename, label, description }: PanelProps) {
         className="memory-textarea"
         value={loading ? "" : content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder={loading ? "加载中…" : `编辑 ${filename}…`}
+        placeholder={loading ? "Loading..." : `Edit ${filename}…`}
         disabled={loading}
         spellCheck={false}
       />
@@ -118,7 +118,7 @@ function MemoryPanel({ filename, label, description }: PanelProps) {
         )}
         {overLimit && (
           <span className="memory-msg" style={{ color: "var(--error)" }}>
-            超出上限，无法保存
+            Over the limit; cannot save
           </span>
         )}
       </div>
@@ -137,19 +137,19 @@ export default function MemoryPage() {
         </span>
         <div>
           <div className="memory-page-title ui-font">Agent Memory</div>
-          <div className="memory-page-subtitle">编辑 Agent 的记忆文件，超出上限时禁止保存</div>
+          <div className="memory-page-subtitle">Edit the agent memory files. Saving is disabled when over the limit.</div>
         </div>
       </div>
       <div className="memory-panels">
         <MemoryPanel
           filename="MEMORY.md"
           label="MEMORY.md"
-          description="Agent 自身知识笔记 · 上限 2200 字符"
+          description="Agent knowledge notes - 2,200 character limit"
         />
         <MemoryPanel
           filename="USER.md"
           label="USER.md"
-          description="用户偏好 & 习惯 · 上限 1375 字符"
+          description="User preferences & habits - 1,375 character limit"
         />
       </div>
     </div>

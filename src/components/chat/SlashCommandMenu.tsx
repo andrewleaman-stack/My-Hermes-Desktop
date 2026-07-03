@@ -9,25 +9,25 @@ export interface SlashCommand {
 }
 
 export const SLASH_COMMANDS: SlashCommand[] = [
-  // 会话
-  { command: "/new",        description: "新建会话",                group: "会话",       directSend: true },
-  { command: "/branch",     description: "分支当前对话，探索不同方向", group: "会话",       args: "[name]" },
-  { command: "/title",      description: "重命名当前会话",            group: "会话",       args: "[name]" },
-  { command: "/save",       description: "保存当前对话",              group: "会话",       directSend: true },
-  // 上下文
-  { command: "/compress",   description: "压缩上下文（节省 token）",  group: "上下文",     args: "[focus]" },
-  { command: "/retry",      description: "重试上一条消息",            group: "上下文",     directSend: true },
-  { command: "/undo",       description: "撤销上一轮对话",            group: "上下文",     directSend: true },
-  // 目标与任务
-  { command: "/goal",       description: "设置持久目标",              group: "目标与任务", args: "[text | pause | resume | clear | status]" },
-  { command: "/subgoal",    description: "添加子目标条件",            group: "目标与任务", args: "[text | remove N | clear]" },
-  { command: "/background", description: "后台运行任务",              group: "目标与任务", args: "<prompt>" },
-  { command: "/queue",      description: "排队下一条消息",            group: "目标与任务", args: "<prompt>" },
-  // 快照
-  { command: "/snapshot",   description: "保存或恢复状态快照",        group: "快照",       args: "[create | restore <id> | prune]" },
-  { command: "/rollback",   description: "回滚文件变更",              group: "快照",       args: "[number]" },
-  // 信息
-  { command: "/status",     description: "查看当前会话信息",          group: "信息",       directSend: true },
+  // Session
+  { command: "/new",        description: "New Session",                group: "Session",       directSend: true },
+  { command: "/branch",     description: "Branch the current conversation to explore a different direction", group: "Session",       args: "[name]" },
+  { command: "/title",      description: "Rename the current session",            group: "Session",       args: "[name]" },
+  { command: "/save",       description: "Save the current conversation",              group: "Session",       directSend: true },
+  // Context
+  { command: "/compress",   description: "Compress context (save tokens)",  group: "Context",     args: "[focus]" },
+  { command: "/retry",      description: "Retry the previous message",            group: "Context",     directSend: true },
+  { command: "/undo",       description: "Undo the previous chat round",            group: "Context",     directSend: true },
+  // Goals & Tasks
+  { command: "/goal",       description: "Set persistent goal",              group: "Goals & Tasks", args: "[text | pause | resume | clear | status]" },
+  { command: "/subgoal",    description: "Add a sub-goal condition",            group: "Goals & Tasks", args: "[text | remove N | clear]" },
+  { command: "/background", description: "Run task in background",              group: "Goals & Tasks", args: "<prompt>" },
+  { command: "/queue",      description: "Queue the next message",            group: "Goals & Tasks", args: "<prompt>" },
+  // Snapshots
+  { command: "/snapshot",   description: "Save or restore state snapshots",        group: "Snapshots",       args: "[create | restore <id> | prune]" },
+  { command: "/rollback",   description: "Roll back file changes",              group: "Snapshots",       args: "[number]" },
+  // Info
+  { command: "/status",     description: "View current session info",          group: "Info",       directSend: true },
 ];
 
 interface Props {
