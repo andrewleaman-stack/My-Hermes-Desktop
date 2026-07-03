@@ -29,7 +29,7 @@ export default function DashboardPage() {
     const resolvedMode =
       document.documentElement.getAttribute("data-mode") === "dark" ? "dark" : "light";
     const name =
-      t === "warp" ? "warp" : resolvedMode === "dark" ? `${t}-dark` : "default";
+      t === "warp" ? "warp" : `${t}${resolvedMode === "dark" ? "-dark" : ""}`;
     if (lastSentRef.current === name) return; // avoid duplicates
     void (async () => {
       try {
