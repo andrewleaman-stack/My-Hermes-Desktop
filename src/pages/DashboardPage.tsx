@@ -18,23 +18,31 @@ type Status = "idle" | "starting" | "ready" | "error" | "missing";
 
 export default function DashboardPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { theme } = useTheme();
+  const { theme, mode } = useTheme();
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState(false);
   const lastSentRef = useRef<string | null>(null);
   const pendingThemeRef = useRef<Theme | null>(null);
 
-  /** Send the current desktop theme to the dashboard iframe via postMessage. */
+  /** Send the current desktop theme + mode to the dashboard iframe. */
   const syncTheme = useCallback((target: HTMLIFrameElement | null, t: Theme) => {
     if (!target?.contentWindow) return;
-    const dashboardTheme = DASHBOARD_THEME_MAP[t];
+    // data-mode carries the RESOLVED mode (auto → light/dark) set by useTheme.
+    const resolvedMode =
+      document.documentElement.getAttribute("data-mode") === "dark" ? "dark" : "light";
+    // The dashboard has no dark variants of claude/apple yet — warp is its
+    // dark theme, so a dark desktop gets a dark dashboard. desktopMode is
+    // included so a future dashboard plugin can do proper per-brand darks.
+    const dashboardTheme =
+      resolvedMode === "dark" ? "warp" : DASHBOARD_THEME_MAP[t];
     if (!dashboardTheme) return;
-    if (lastSentRef.current === dashboardTheme) return; // avoid duplicates
-    lastSentRef.current = dashboardTheme;
+    const dedupeKey = `${dashboardTheme}|${resolvedMode}`;
+    if (lastSentRef.current === dedupeKey) return; // avoid duplicates
+    lastSentRef.current = dedupeKey;
     pendingThemeRef.current = null;
     target.contentWindow.postMessage(
-      { type: "hermes-theme-sync", desktopTheme: t, dashboardTheme },
+      { type: "hermes-theme-sync", desktopTheme: t, desktopMode: resolvedMode, dashboardTheme },
       DASHBOARD_URL,
     );
   }, []);
@@ -55,10 +63,10 @@ export default function DashboardPage() {
     return () => window.removeEventListener("message", onMessage);
   }, [theme, syncTheme]);
 
-  // Sync theme whenever it changes in the desktop app
+  // Sync theme whenever theme or color mode changes in the desktop app
   useEffect(() => {
     syncTheme(iframeRef.current, theme);
-  }, [theme, syncTheme]);
+  }, [theme, mode, syncTheme]);
 
   const start = useCallback(async () => {
     setStatus("starting");

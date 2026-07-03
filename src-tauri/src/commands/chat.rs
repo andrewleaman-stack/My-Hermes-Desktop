@@ -549,6 +549,21 @@ pub async fn list_skills() -> Result<Vec<SkillInfo>, String> {
         });
     }
 
+    // CLI table parsing is brittle (box-drawing format may change between
+    // Hermes releases). If it yielded nothing, fall back to the SKILL.md
+    // files we already scanned from ~/.hermes/skills/.
+    if skills.is_empty() && !desc_map.is_empty() {
+        let mut names: Vec<_> = desc_map.into_iter().collect();
+        names.sort_by(|a, b| a.0.cmp(&b.0));
+        for (name, description) in names {
+            skills.push(SkillInfo {
+                name,
+                category: "custom".to_string(),
+                description,
+            });
+        }
+    }
+
     Ok(skills)
 }
 
@@ -742,6 +757,15 @@ pub fn shutdown_gateway() {
     }
 }
 
+/// Write via temp file + rename so a crash mid-write can't leave a torn
+/// config.yaml (the line-rewriting below preserves comments/format, but the
+/// write itself must be atomic).
+fn write_atomic(path: &std::path::Path, contents: &str) -> Result<(), String> {
+    let tmp = path.with_extension("yaml.tmp");
+    std::fs::write(&tmp, contents).map_err(|e| format!("Cannot write temp config: {e}"))?;
+    std::fs::rename(&tmp, path).map_err(|e| format!("Cannot replace config: {e}"))
+}
+
 // ─── set_hermes_model: directly edit config.yaml ────────────────────────────
 
 fn normalize_model_id(provider: &str, model: &str) -> String {
@@ -787,7 +811,7 @@ pub async fn set_hermes_model(provider: String, model: String) -> Result<(), Str
         std::fs::read_to_string(&path).map_err(|e| format!("Cannot read config.yaml: {e}"))?;
     let model = normalize_model_id(&provider, &model);
     let updated = rewrite_model_section(&text, &provider, &model);
-    std::fs::write(&path, updated).map_err(|e| format!("Cannot write config.yaml: {e}"))
+    write_atomic(&path, &updated)
 }
 
 // ─── Reasoning Effort ────────────────────────────────────────────────────────
@@ -876,7 +900,7 @@ pub async fn set_reasoning_effort(level: String) -> Result<(), String> {
     let path = home.join("config.yaml");
     let text = std::fs::read_to_string(&path).map_err(|e| format!("Cannot read config.yaml: {e}"))?;
     let updated = rewrite_reasoning_effort(&text, &level);
-    std::fs::write(&path, updated).map_err(|e| format!("Cannot write config.yaml: {e}"))
+    write_atomic(&path, &updated)
 }
 
 // ─── Helpers for get_hermes_model_config ─────────────────────────────────────

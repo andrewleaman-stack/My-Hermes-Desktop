@@ -57,7 +57,6 @@ pub struct AppState {
     pub background_tasks:
         Arc<Mutex<std::collections::HashMap<String, commands::background::BackgroundTask>>>,
     pub say_process: std::sync::Mutex<Option<std::process::Child>>,
-    pub chat_processes: std::sync::Mutex<std::collections::HashMap<String, std::process::Child>>,
 }
 
 impl AppState {
@@ -69,7 +68,6 @@ impl AppState {
             dashboard_child: std::sync::Mutex::new(None),
             background_tasks: Arc::new(Mutex::new(std::collections::HashMap::new())),
             say_process: std::sync::Mutex::new(None),
-            chat_processes: std::sync::Mutex::new(std::collections::HashMap::new()),
         }
     }
 }
@@ -78,10 +76,6 @@ fn shutdown_children(app: &AppHandle) {
     commands::chat::shutdown_gateway();
     let state = app.state::<AppState>();
     if let Some(mut child) = state.dashboard_child.lock().unwrap().take() {
-        child.kill().ok();
-    }
-    let mut procs = state.chat_processes.lock().unwrap();
-    for (_, mut child) in procs.drain() {
         child.kill().ok();
     }
 }
@@ -401,8 +395,6 @@ pub fn run() {
             commands::snapshot::snapshot_create,
             commands::tray::update_tray_status,
             quit_app,
-            commands::settings::load_guide_bot_settings,
-            commands::settings::save_guide_bot_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

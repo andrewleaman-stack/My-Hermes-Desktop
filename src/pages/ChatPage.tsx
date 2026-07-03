@@ -12,6 +12,7 @@ import SnapshotPanel from "../components/SnapshotPanel";
 import WorkingDirBar from "../components/WorkingDirBar";
 import FileTreePanel from "../components/FileTreePanel";
 import { getLastUserText } from "../utils/messageActions";
+import { applyChunk } from "../utils/chunkReducer";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -945,111 +946,17 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
         const sessionId = chunk.session_id;
         if (!sessionId) return;
 
+        // Transcript-shaping chunks go through the pure reducer (tested in
+        // chunkReducer.test.ts); session-level chunks are handled below.
         setSessionMessages((prev) => {
-          const msgs = [...(prev[sessionId] ?? [])];
-          const lastAssistantIdx = [...msgs]
-            .reverse()
-            .findIndex((m) => m.role === "assistant" && m.status === "streaming");
-          if (lastAssistantIdx < 0) return prev;
-          const idx = msgs.length - 1 - lastAssistantIdx;
-
-          const msg = { ...msgs[idx] };
-          const blocks = [...msg.blocks];
-
-          switch (chunk.kind) {
-            case "raw": {
-              msg.rawOutput = msg.rawOutput
-                ? `${msg.rawOutput}\n${chunk.content}`
-                : chunk.content;
-              break;
-            }
-            case "text": {
-              const last = blocks[blocks.length - 1];
-              if (last?.type === "text") {
-                const next = last.content + chunk.content;
-                blocks[blocks.length - 1] = {
-                  ...last,
-                  content: next.replace(/\n{3,}/g, "\n\n"),
-                };
-              } else if (chunk.content.trim()) {
-                blocks.push({ type: "text", content: chunk.content });
-              }
-              break;
-            }
-            case "think_start":
-              blocks.push({ type: "think", content: "" });
-              break;
-            case "think": {
-              const last = blocks[blocks.length - 1];
-              if (last?.type === "think") {
-                blocks[blocks.length - 1] = {
-                  ...last,
-                  content:
-                    last.content + (last.content ? "\n" : "") + chunk.content,
-                };
-              }
-              break;
-            }
-            case "think_end":
-              break;
-            case "tool_name":
-              blocks.push({
-                type: "tool",
-                name: chunk.content || "tool",
-                input: "",
-                output: "",
-                outputDone: false,
-              });
-              break;
-            case "tool_input": {
-              const last = blocks[blocks.length - 1];
-              if (last?.type === "tool") {
-                blocks[blocks.length - 1] = {
-                  ...last,
-                  input: last.input + (last.input ? "\n" : "") + chunk.content,
-                };
-              }
-              break;
-            }
-            case "tool_output": {
-              const last = blocks[blocks.length - 1];
-              if (last?.type === "tool") {
-                blocks[blocks.length - 1] = {
-                  ...last,
-                  output: last.output + (last.output ? "\n" : "") + chunk.content,
-                };
-              }
-              break;
-            }
-            case "tool_output_end": {
-              const last = blocks[blocks.length - 1];
-              if (last?.type === "tool") {
-                blocks[blocks.length - 1] = { ...last, outputDone: true };
-              }
-              break;
-            }
-          }
-
-          if (chunk.kind === "error") {
-            setSessionErrors((ePrev) => ({
-              ...ePrev,
-              [sessionId]: chunk.content,
-            }));
-            msg.status = "error";
-            msg.rawOutput = msg.rawOutput
-              ? `${msg.rawOutput}\n${chunk.content}`
-              : chunk.content;
-          }
-
-          if (chunk.kind === "done") {
-            if (msg.status !== "error") {
-              msg.status = "done";
-            }
-          }
-
-          msgs[idx] = { ...msg, blocks };
-          return { ...prev, [sessionId]: msgs };
+          const current = prev[sessionId] ?? [];
+          const next = applyChunk(current, chunk);
+          return next === current ? prev : { ...prev, [sessionId]: next };
         });
+
+        if (chunk.kind === "error") {
+          setSessionErrors((ePrev) => ({ ...ePrev, [sessionId]: chunk.content }));
+        }
 
         // Done cleanup runs unconditionally — must not be inside setSessionMessages
         // because an early-return (lastAssistantIdx < 0) would skip these operations,

@@ -7,5 +7,4 @@ pub mod sessions;
 pub mod setup;
 pub mod terminal;
 pub mod snapshot;
-pub mod settings;
 pub mod tray;

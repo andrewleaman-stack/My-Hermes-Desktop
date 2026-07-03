@@ -143,13 +143,17 @@ export default function ChatView({
   const wasAtBottomRef = useRef(true);
 
   // Identify Hermes error types and return a structured description; unknown errors return null
-  function parseErrorCard(msg: string | null): { title: string; desc: string; dashboard?: string } | null {
+  function parseErrorCard(
+    msg: string | null
+  ): { title: string; desc: string; dashboard?: string; retry?: boolean } | null {
     if (!msg) return null;
     const m = msg.toLowerCase();
     if (m.includes("401") || m.includes("unauthorized") || m.includes("invalid api key") || m.includes("authentication"))
       return { title: "API key is invalid or not configured", desc: "Go to Dashboard to check or re-enter your API key.", dashboard: "dashboard" };
-    if (m.includes("429") || m.includes("rate limit") || m.includes("too many requests"))
-      return { title: "Rate limit exceeded", desc: "API usage has hit the limit. Try again later or upgrade your plan.", dashboard: "dashboard" };
+    if (m.includes("429") || m.includes("rate limit") || m.includes("too many requests") || m.includes("quota") || m.includes("overloaded"))
+      return { title: "Rate limit exceeded", desc: "The provider throttled this request. It usually clears within a minute.", dashboard: "dashboard", retry: true };
+    if (m.includes("timed out") || m.includes("timeout") || m.includes("gateway exited") || m.includes("abandoned") || m.includes("connection") || m.includes("network"))
+      return { title: "Hermes stopped responding", desc: "The turn was interrupted — likely a hiccup, not your prompt. Retrying usually works.", retry: true };
     if (m.includes("model not found") || m.includes("invalid model") || m.includes("does not exist"))
       return { title: "Model unavailable", desc: "The selected model cannot be accessed. Change the model configuration in Dashboard.", dashboard: "dashboard" };
     if (m.includes("mcp") || m.includes("tool error") || m.includes("tool call"))
@@ -585,6 +589,11 @@ export default function ChatView({
           <span>{card.title}</span>
         </div>
         <div className="error-card-desc">{card.desc}</div>
+        {card.retry && (
+          <button className="error-card-btn" onClick={onRetryLastMessage}>
+            Retry now
+          </button>
+        )}
         {card.dashboard && onGoToDashboard && (
           <button className="error-card-btn" onClick={onGoToDashboard}>
             Go to Dashboard →
