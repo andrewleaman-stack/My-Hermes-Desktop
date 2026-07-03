@@ -56,42 +56,42 @@ const SUPPORTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/we
 const ATTACHMENT_EXTENSIONS = ["pdf", "docx", "doc", "xlsx", "xls", "pptx", "ppt", "txt", "md", "csv", "png", "jpg", "jpeg", "gif", "webp", "bmp"];
 
 const DAILY_PROMPTS = [
-  // 行动型 — 文件与整理
-  "帮我整理下载文件夹，按文件类型归类到子文件夹",
-  "扫描桌面，找出超过 30 天没修改的文件并列出清单",
-  "帮我把文件夹里的图片批量重命名为日期格式",
-  "分析当前项目目录，找出重复或冗余的文件",
-  "搜索当前目录下所有 TODO 注释并汇总列出",
-  // 行动型 — 写作与文档
-  "写一份会议纪要模板，含时间/参与者/决议/待办事项",
-  "帮我把以下内容整理成 PPT 大纲，按章节分层列出：\n\n",
-  "把这段内容整理成结构清晰的 Markdown 文档：\n\n",
-  "帮我起草一封专业商务邮件，收件人是：",
-  "把我说的内容整理成一份简洁的工作汇报：\n\n",
-  // 行动型 — 日程与任务
-  "创建一个本周工作计划模板并保存到桌面",
-  "创建一个今天日期的每日任务清单文件",
-  "设置一个 30 分钟后的提醒，提醒内容是：",
-  "帮我列出今天最重要的 3 件事，按优先级排序",
-  // 查询型 — 实时信息
-  "今天深圳的天气怎么样？适合出门吗？",
-  "今天有哪些值得关注的国内外新闻？",
-  "今天全球主要股市的表现如何？",
-  "今天人民币兑美元的汇率是多少？",
-  "最近有什么重要的科技或 AI 新进展？",
-  "今天体育圈有什么大事发生？",
-  // 查询型 — 知识与娱乐
-  "今天历史上发生了哪些大事？",
-  "给我一个有趣的冷知识",
-  "用简单的话解释一个有趣的科学概念",
-  "最近有哪些值得读的新书推荐？",
-  "推荐一部最近口碑好的电影或剧集",
-  "给我写一首关于今天的短诗",
-  // 查询型 — 健康生活
-  "今天适合做什么类型的运动？",
-  "给我一个快速健康的午餐食谱建议",
-  "分享一个改善睡眠质量的小建议",
-  "给我一个今天可以做到的微小习惯改变",
+  // Action prompts — files and organization
+  "Organize my Downloads folder into subfolders by file type",
+  "Scan my Desktop and list files not modified in more than 30 days",
+  "Batch rename the images in this folder using a date-based format",
+  "Analyze the current project folder and find duplicate or redundant files",
+  "Find and summarize all TODO comments under the current directory",
+  // Action prompts — writing and documents
+  "Write a meeting-notes template with time, participants, decisions, and action items",
+  "Turn the following into a slide deck outline, organized by sections:\n\n",
+  "Turn this into a clearly structured Markdown document:\n\n",
+  "Draft a professional business email to:",
+  "Turn what I said into a concise work report:\n\n",
+  // Action prompts — schedule and tasks
+  "Create a weekly work-plan template and save it to the Desktop",
+  "Create a daily task-list file dated today",
+  "Set a reminder for 30 minutes from now that says:",
+  "List today's three most important tasks in priority order",
+  // Query prompts — live information
+  "What is the weather like today, and is it a good day to go out?",
+  "What domestic and international news is worth watching today?",
+  "How are the major global stock markets performing today?",
+  "What is today's exchange rate?",
+  "What important tech or AI developments happened recently?",
+  "What major sports stories happened today?",
+  // Query prompts — knowledge and entertainment
+  "What major events happened on this day in history?",
+  "Give me an interesting piece of trivia",
+  "Explain an interesting science concept in simple terms",
+  "Recommend some recent books worth reading",
+  "Recommend a recent well-reviewed movie or show",
+  "Write me a short poem about today",
+  // Query prompts — health and life
+  "What kind of workout makes sense today?",
+  "Suggest a quick, healthy lunch recipe",
+  "Share one small tip for improving sleep quality",
+  "Give me one tiny habit change I can do today",
 ];
 
 function readFileAsDataURL(file: File): Promise<string> {
@@ -133,18 +133,18 @@ export default function ChatView({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const wasAtBottomRef = useRef(true);
 
-  // 识别 hermes 错误类型，返回结构化描述；无法识别则返回 null
+  // Identify Hermes error types and return a structured description; unknown errors return null
   function parseErrorCard(msg: string | null): { title: string; desc: string; dashboard?: string } | null {
     if (!msg) return null;
     const m = msg.toLowerCase();
     if (m.includes("401") || m.includes("unauthorized") || m.includes("invalid api key") || m.includes("authentication"))
-      return { title: "API Key 无效或未配置", desc: "请前往 Dashboard 检查或重新填写 API Key。", dashboard: "dashboard" };
+      return { title: "API key is invalid or not configured", desc: "Go to Dashboard to check or re-enter your API key.", dashboard: "dashboard" };
     if (m.includes("429") || m.includes("rate limit") || m.includes("too many requests"))
-      return { title: "请求频率超限", desc: "API 调用次数已达上限，请稍后重试或升级套餐。", dashboard: "dashboard" };
+      return { title: "Rate limit exceeded", desc: "API usage has hit the limit. Try again later or upgrade your plan.", dashboard: "dashboard" };
     if (m.includes("model not found") || m.includes("invalid model") || m.includes("does not exist"))
-      return { title: "模型不存在", desc: "当前选择的模型无法访问，请在 Dashboard 更换模型配置。", dashboard: "dashboard" };
+      return { title: "Model unavailable", desc: "The selected model cannot be accessed. Change the model configuration in Dashboard.", dashboard: "dashboard" };
     if (m.includes("mcp") || m.includes("tool error") || m.includes("tool call"))
-      return { title: "MCP 工具调用失败", desc: "本次调用的 MCP 工具发生错误，可在 Dashboard 检查 MCP 配置。", dashboard: "dashboard" };
+      return { title: "MCP tool call failed", desc: "An MCP tool failed during this run. Check MCP configuration in Dashboard.", dashboard: "dashboard" };
     return null;
   }
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -179,7 +179,7 @@ export default function ChatView({
     const w = window as any;
     const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!SR) {
-      alert("当前环境不支持语音识别。请在系统设置 → 隐私与安全性 → 麦克风 中为本应用授权后重启。");
+      alert("Speech recognition is not supported here. Grant microphone access in System Settings → Privacy & Security → Microphone, then restart the app.");
       return;
     }
     const recognition = new SR();
@@ -518,18 +518,18 @@ export default function ChatView({
   const STARTER_PROMPTS = [
     {
       icon: "terminal" as const,
-      title: "写一个脚本",
-      text: "帮我写一个 shell 脚本：",
+      title: "Write a script",
+      text: "Write me a shell script:",
     },
     {
       icon: "alert" as const,
-      title: "解释报错",
-      text: "解释这段报错信息，告诉我原因和解决方法：\n\n",
+      title: "Explain an error",
+      text: "Explain this error message and tell me the cause and fix:\n\n",
     },
     {
       icon: "code" as const,
-      title: "分析代码",
-      text: "分析当前项目的代码结构，给我一个简洁的概览，说明各主要模块的职责",
+      title: "Analyze code",
+      text: "Analyze the current project structure and give me a concise overview of the main modules",
     },
   ];
 
@@ -540,8 +540,6 @@ export default function ChatView({
     lastAssistantIdx >= 0
       ? messages[messages.length - 1 - lastAssistantIdx].id
       : null;
-
-  const memoryText = memoryLoaded === true ? "个人记忆已加载" : memoryLoaded === false ? "个人记忆未配置" : null;
 
   // Pre-compute assistantIndex per message for Grounding popover
   const assistantIndexMap = new Map<string, number>();
@@ -580,7 +578,7 @@ export default function ChatView({
         <div className="error-card-desc">{card.desc}</div>
         {card.dashboard && onGoToDashboard && (
           <button className="error-card-btn" onClick={onGoToDashboard}>
-            前往 Dashboard →
+            Go to Dashboard →
           </button>
         )}
       </div>
@@ -595,13 +593,6 @@ export default function ChatView({
   return (
     <div className="main-area">
       <GoalBar streaming={streaming} onSend={onSend} />
-      {/* Context info bar */}
-      <div className="context-info-bar ui-font">
-        {messages.length === 0
-          ? <>新会话{memoryText && <> · <span className={memoryLoaded ? "ctx-memory-ok" : "ctx-memory-none"}>{memoryText}</span></>}</>
-          : <>已加载：会话历史 {messages.length} 条{memoryText && <> · <span className={memoryLoaded ? "ctx-memory-ok" : "ctx-memory-none"}>{memoryText}</span></>}</>
-        }
-      </div>
       {/* Messages */}
       {messages.length === 0 ? (
         <div className="chat-messages">
@@ -625,7 +616,7 @@ export default function ChatView({
               ))}
             </div>
             <div className="daily-prompts-section">
-              <span className="daily-prompts-label ui-font">今日一问</span>
+              <span className="daily-prompts-label ui-font">Today's prompt</span>
               <div className="daily-prompts-grid">
                 {dailyPrompts.map((q) => (
                   <button
@@ -662,7 +653,7 @@ export default function ChatView({
                     onRetry={onRetryLastMessage}
                   />
                 ) : (
-                  <div className="conversation-orphan-label ui-font">会话开始前的 Hermes 回复</div>
+                  <div className="conversation-orphan-label ui-font">Hermes reply before the conversation started</div>
                 )}
 
                 {replyCount > 0 && (
@@ -680,12 +671,12 @@ export default function ChatView({
                           className="conversation-replies-chevron"
                         />
                         <Icon name="spark" size={12} />
-                        <span>Hermes 回复</span>
+                        <span>Hermes replies</span>
                         {replyCount > 1 && (
-                          <span className="conversation-replies-count">{replyCount} 条</span>
+                          <span className="conversation-replies-count">{replyCount} replies</span>
                         )}
                         <span className="conversation-replies-action">
-                          {hasStreamingReply ? "回复中" : "点击展开"}
+                          {hasStreamingReply ? "Replying" : "Click to expand"}
                         </span>
                       </button>
                     ) : (
@@ -702,12 +693,12 @@ export default function ChatView({
                             className="conversation-replies-chevron open"
                           />
                           <Icon name="spark" size={12} />
-                          <span>Hermes 回复</span>
+                          <span>Hermes replies</span>
                           {replyCount > 1 && (
-                            <span className="conversation-replies-count">{replyCount} 条</span>
+                            <span className="conversation-replies-count">{replyCount} replies</span>
                           )}
                           <span className="conversation-replies-action">
-                            {hasStreamingReply ? "回复中" : "收起"}
+                            {hasStreamingReply ? "Replying" : "Collapse"}
                           </span>
                         </button>
                         <div className="conversation-replies">
@@ -770,7 +761,7 @@ export default function ChatView({
             <div className="error-card-desc">{card.desc}</div>
             {card.dashboard && onGoToDashboard && (
               <button className="error-card-btn" onClick={onGoToDashboard}>
-                前往 Dashboard →
+                Go to Dashboard →
               </button>
             )}
           </div>
@@ -792,7 +783,7 @@ export default function ChatView({
         {isDragging && (
           <div className="image-drop-overlay">
             <Icon name="spark" size={20} />
-            <span>松开以附加图片</span>
+            <span>Drop to attach image</span>
           </div>
         )}
         <GuideBot
@@ -824,7 +815,7 @@ export default function ChatView({
                       prev.filter((r) => !(r.type === ref.type && r.name === ref.name))
                     )
                   }
-                  title="移除"
+                  title="Remove"
                 >
                   <Icon name="close" size={10} />
                 </button>
@@ -843,7 +834,7 @@ export default function ChatView({
                   type="button"
                   className="image-attachment-remove ref-chip-remove"
                   onClick={() => setAttachedFiles((prev) => prev.filter((x) => x.path !== f.path))}
-                  title="移除"
+                  title="Remove"
                 >
                   <Icon name="close" size={10} />
                 </button>
@@ -860,13 +851,13 @@ export default function ChatView({
                 type="button"
                 className="image-attachment-remove"
                 onClick={() => setAttachedImage(null)}
-                title="移除图片"
+                title="Remove image"
               >
                 <Icon name="close" size={12} />
               </button>
             </div>
             <span className="image-attachment-name">
-              {attachedImage.filename ?? "粘贴的图片"}
+              {attachedImage.filename ?? "Pasted image"}
             </span>
           </div>
         )}
@@ -909,7 +900,7 @@ export default function ChatView({
           >
             {streaming ? (
               <>
-                排队 ⏸
+                Queue ⏸
               </>
             ) : (
               <>
@@ -924,9 +915,9 @@ export default function ChatView({
         {queue.length > 0 && (
           <div className="queue-list">
             <div className="queue-header">
-              <span className="queue-label">排队中（{queue.length} 条）：</span>
-              <button className="queue-clear" onClick={onClearQueue} title="全部取消">
-                全部取消
+              <span className="queue-label">Queued ({queue.length} messages):</span>
+              <button className="queue-clear" onClick={onClearQueue} title="Cancel all">
+                Cancel all
               </button>
             </div>
             {queue.map((text, index) => (
@@ -936,7 +927,7 @@ export default function ChatView({
                 <button
                   className="queue-cancel"
                   onClick={() => onCancelQueue(index)}
-                  title="移除此条"
+                  title="Remove this item"
                 >
                   <Icon name="close" size={12} />
                 </button>
@@ -951,16 +942,16 @@ export default function ChatView({
               type="button"
               className="bg-run-btn ui-font"
               onClick={handleAttachClick}
-              title="添加附件（图片/PDF/Word/Excel/PPT/文本）"
+              title="Add attachments (images/PDF/Word/Excel/PPT/text)"
             >
               <Icon name="paperclip" size={13} />
-              附件
+              Attach
             </button>
             <button
               type="button"
               className="bg-run-btn ui-font"
               onClick={openAtMenu}
-              title="引用文件或技能（也可直接输入 @）"
+              title="Reference files or skills (you can also type @)"
             >
               @
             </button>
@@ -970,20 +961,20 @@ export default function ChatView({
                 type="button"
                 className="bg-run-btn stop-btn ui-font"
                 onClick={onStop}
-                title="中断当前 Agent 执行"
+                title="Stop the current agent run"
               >
                 <Icon name="close" size={12} />
-                停止
+                Stop
               </button>
             )}
             <button
               type="button"
               className={`bg-run-btn ui-font${isRecording ? " mic-recording" : ""}`}
               onClick={toggleRecording}
-              title={isRecording ? "点击停止录音" : "语音输入"}
+              title={isRecording ? "Click to stop recording" : "Voice input"}
             >
               <Icon name="mic" size={13} />
-              {isRecording ? "录音中" : "语音"}
+              {isRecording ? "Recording" : "Voice"}
             </button>
             {onRunBackground && (
               <button
@@ -991,10 +982,10 @@ export default function ChatView({
                 className="bg-run-btn ui-font"
                 onClick={submitBackground}
                 disabled={!isTyping}
-                title="把当前输入作为独立任务在后台运行（不影响当前会话）"
+                title="Run the current input as a separate background task without affecting this conversation"
               >
                 <Icon name="bot" size={13} />
-                后台运行
+                Run in background
                 {bgRunningCount > 0 && (
                   <span className="bg-run-badge">{bgRunningCount}</span>
                 )}
@@ -1006,10 +997,10 @@ export default function ChatView({
                 className="bg-run-btn ui-font"
                 onClick={submitToTui}
                 disabled={!isTyping}
-                title="把当前输入发送到 TUI 终端（测试 PTY 控制）"
+                title="Send the current input to the TUI terminal (PTY control test)"
               >
                 <Icon name="terminal" size={13} />
-                发送到 TUI
+                Send to TUI
               </button>
             )}
           </div>

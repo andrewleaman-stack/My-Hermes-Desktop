@@ -57,10 +57,10 @@ function formatDate(iso: string): string {
   try {
     const d = new Date(iso);
     const diff = Date.now() - d.getTime();
-    if (diff < 60_000) return "刚刚";
-    if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}分钟前`;
-    if (diff < DAY) return `${Math.floor(diff / 3_600_000)}小时前`;
-    if (diff < 3 * DAY) return `${Math.floor(diff / DAY)}天前`;
+    if (diff < 60_000) return "Just now";
+    if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} min ago`;
+    if (diff < DAY) return `${Math.floor(diff / 3_600_000)} hr ago`;
+    if (diff < 3 * DAY) return `${Math.floor(diff / DAY)} d ago`;
     return `${d.getMonth() + 1}/${d.getDate()}`;
   } catch {
     return "";
@@ -68,9 +68,9 @@ function formatDate(iso: string): string {
 }
 
 const badgeMeta: Record<Props["badges"][string], { icon: "spark" | "timer" | "check"; label: string }> = {
-  running: { icon: "spark", label: "执行中" },
-  queued: { icon: "timer", label: "排队中" },
-  done: { icon: "check", label: "执行完成" },
+  running: { icon: "spark", label: "Running" },
+  queued: { icon: "timer", label: "Queued" },
+  done: { icon: "check", label: "Done" },
 };
 
 export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete, onRefresh, badges }: Props) {
@@ -195,19 +195,19 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete,
       else older.push(s);
     }
     return [
-      { label: "24 小时内", items: recent },
-      { label: "最近 3 天", items: days3 },
-      { label: "更早", items: older },
+      { label: "Last 24 Hours", items: recent },
+      { label: "Last 3 Days", items: days3 },
+      { label: "Earlier", items: older },
     ].filter((g) => g.items.length > 0);
   }, [visible]);
 
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   const filterLabel = (() => {
-    if (filter === null) return "全部";
-    if (filter === UNTAGGED) return "未标记";
+    if (filter === null) return "All";
+    if (filter === UNTAGGED) return "Untagged";
     const found = tagList.find((t) => t.key === filter);
-    return found ? found.text : "全部";
+    return found ? found.text : "All";
   })();
 
   const renderItem = (s: Session) => {
@@ -215,7 +215,11 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete,
     const meta = badge ? badgeMeta[badge] : null;
     const tag = tags[s.id];
     const isBranch = !!branchMeta[s.id];
-    const full = s.title || "Untitled";
+    // Hermes auto-names untitled sessions like "20260702_170628" — fall back
+    // to the last user message so the list reads like conversations, not logs.
+    const rawTitle = s.title || "";
+    const isAutoName = /^\d{8}_\d{6}/.test(rawTitle);
+    const full = (isAutoName ? s.last_message?.trim() || "Untitled session" : rawTitle) || "Untitled";
     const displayTitle = (isBranch ? "⎇ " : "") + (full.length > 15 ? full.slice(0, 15) + "…" : full);
 
     return (
@@ -236,7 +240,7 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete,
               className="session-tag-chip"
               style={{ color: tag.color, background: `${tag.color}1f`, borderColor: `${tag.color}59` }}
               onClick={(e) => { stop(e); openTagEditor(s); }}
-              title="编辑标签"
+              title="Edit tag"
             >
               {tag.text}
             </button>
@@ -244,7 +248,7 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete,
             <button
               className="session-tag-add"
               onClick={(e) => { stop(e); openTagEditor(s); }}
-              title="添加标签"
+              title="Add tag"
             >
               +
             </button>
@@ -266,12 +270,12 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete,
         )}
 
         <div className="session-item-meta">
-          <span className="session-meta-chip" title="更新时间">
+          <span className="session-meta-chip" title="Updated time">
             <Icon name="timer" size={11} />
             {formatDate(s.updated_at)}
           </span>
           {s.message_count !== undefined && (
-            <span className="session-meta-chip" title="消息数">
+            <span className="session-meta-chip" title="Message count">
               <Icon name="message" size={11} />
               {s.message_count}
             </span>
@@ -297,20 +301,20 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete,
                 maxLength={5}
                 autoFocus
                 value={draftText}
-                placeholder="标签名（≤5字）"
+                placeholder="Tag name (up to 5 chars)"
                 onChange={(e) => setDraftText(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") saveTag(s.id);
                   if (e.key === "Escape") setEditingTagId(null);
                 }}
               />
-              <button className="tag-save" onClick={() => saveTag(s.id)} title="保存">
+              <button className="tag-save" onClick={() => saveTag(s.id)} title="Save">
                 <Icon name="check" size={12} />
               </button>
               <button
                 className={tag ? "tag-clear" : "tag-cancel"}
                 onClick={() => (tag ? clearTag(s.id) : setEditingTagId(null))}
-                title={tag ? "清除标签" : "取消"}
+                title={tag ? "Clear tag" : "Cancel"}
               >
                 <Icon name="close" size={12} />
               </button>
@@ -320,11 +324,11 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete,
 
         {pendingId === s.id ? (
           <div className="session-delete-confirm" onClick={stop}>
-            <span className="session-delete-label">删除?</span>
-            <button className="session-delete-yes" onClick={() => confirmDelete(s.id)} title="确认删除">
+            <span className="session-delete-label">Delete?</span>
+            <button className="session-delete-yes" onClick={() => confirmDelete(s.id)} title="ConfirmDelete">
               <Icon name="check" size={11} />
             </button>
-            <button className="session-delete-no" onClick={cancelDelete} title="取消">
+            <button className="session-delete-no" onClick={cancelDelete} title="Cancel">
               <Icon name="close" size={11} />
             </button>
           </div>
@@ -332,7 +336,7 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete,
           <button
             className="session-delete"
             onClick={(e) => { e.stopPropagation(); requestDelete(s.id); }}
-            title="删除会话"
+            title="DeleteSession"
           >
             <Icon name="close" size={12} />
           </button>
@@ -350,7 +354,7 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete,
             <button
               className={`btn-sidebar-icon ${filter !== null ? "active" : ""}`}
               onClick={() => setFilterOpen((v) => !v)}
-              title="按标签筛选"
+              title="Filter by tag"
             >
               <Icon name="flag" size={13} />
               {filter !== null && <span className="session-filter-label">{filterLabel}</span>}
@@ -362,13 +366,13 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete,
                   className={`session-filter-item ${filter === null ? "sel" : ""}`}
                   onClick={() => { setFilter(null); setFilterOpen(false); }}
                 >
-                  全部
+                  All
                 </button>
                 <button
                   className={`session-filter-item ${filter === UNTAGGED ? "sel" : ""}`}
                   onClick={() => { setFilter(UNTAGGED); setFilterOpen(false); }}
                 >
-                  未标记
+                  Untagged
                 </button>
                 {tagList.length > 0 && <div className="session-filter-sep" />}
                 {tagList.map((t) => (
@@ -387,7 +391,7 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete,
           <button
             className={`btn-sidebar-icon ${refreshing ? "spinning" : ""}`}
             onClick={handleRefresh}
-            title="刷新会话列表"
+            title="Refresh session list"
           >
             <Icon name="refresh" size={14} />
           </button>
@@ -404,7 +408,7 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete,
 
         {sessions.length > 0 && visible.length === 0 && (
           <div style={{ padding: "16px 12px", color: "var(--muted)", fontSize: 11 }}>
-            没有匹配该标签的会话。
+            No sessions match this tag.
           </div>
         )}
 

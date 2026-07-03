@@ -225,15 +225,6 @@ export default function TopBar({
         Terminal
       </button>
 
-      {/* Hermes version */}
-      {hermesVersion && (
-        <div className="status-pill">
-          <span className="label" style={{ fontSize: 10 }}>
-            {hermesVersion.split("\n")[0].slice(0, 28)}
-          </span>
-        </div>
-      )}
-
       {/* Think blocks toggle */}
       <button
         className={`app-titlebar-icon-btn topbar-tools-toggle${showThink ? " active" : ""}`}

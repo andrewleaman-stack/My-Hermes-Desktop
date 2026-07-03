@@ -281,6 +281,22 @@ pub fn run() {
             setup_app_menu(app)?;
             setup_tray(app)?;
             setup_shortcuts(app)?;
+            // Belt-and-braces: make sure the main window is visible, on-screen,
+            // and focused at launch (guards against stale off-screen positions
+            // and hidden-at-start states).
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.center();
+                let _ = win.show();
+                let _ = win.set_focus();
+                // macOS: translucent sidebar material behind the window. The
+                // frontend keeps content surfaces opaque and only lets the
+                // nav/sidebar columns show the vibrancy (see [data-vibrancy]).
+                #[cfg(target_os = "macos")]
+                {
+                    use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
+                    let _ = apply_vibrancy(&win, NSVisualEffectMaterial::Sidebar, None, None);
+                }
+            }
             Ok(())
         })
         .on_menu_event(|app, event| match event.id().as_ref() {

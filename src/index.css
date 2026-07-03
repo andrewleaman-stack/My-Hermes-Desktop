@@ -1966,13 +1966,13 @@ body {
   align-items: center;
   gap: 6px;
   padding: 7px 14px;
-  border: 1px solid var(--hairline);
+  border: 1px solid transparent;
   border-radius: 999px;
   background: var(--surface-card);
   color: var(--muted);
   font-size: 12px;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 .starter-prompt-card:hover {
   color: var(--body);
@@ -2011,7 +2011,7 @@ body {
   align-items: flex-start;
   gap: 7px;
   padding: 10px 14px;
-  border: 1px solid var(--hairline);
+  border: 1px solid transparent;
   border-radius: 10px;
   background: var(--surface-card);
   color: var(--muted);
@@ -2019,12 +2019,12 @@ body {
   line-height: 1.5;
   text-align: left;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 .daily-prompt-card:hover {
   color: var(--body);
-  border-color: var(--primary-disabled);
   background: var(--surface-cream-strong);
+  box-shadow: var(--shadow-sm);
 }
 .daily-prompt-icon {
   flex-shrink: 0;
@@ -3153,6 +3153,43 @@ body {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
 }
 
+/* Dark column layering: depth recedes outward (nav rail darkest, sidebar mid,
+   chat canvas lightest) so focus lands on content. Light mode already layers
+   correctly via its cream tokens. */
+[data-mode="dark"] .navbar {
+  background: var(--surface-dark);
+  border-right-color: var(--hairline-soft);
+}
+[data-mode="dark"] .sidebar {
+  background: var(--surface-dark-soft);
+}
+
+/* ── macOS vibrancy ──
+   Rust applies an NSVisualEffectView (Sidebar material) behind the window.
+   Release the window/chrome backgrounds to translucency so it shows through;
+   content columns stay opaque for readability. Non-macOS is unaffected. */
+html[data-vibrancy="true"],
+[data-vibrancy="true"] body,
+[data-vibrancy="true"] .app-layout {
+  background: transparent;
+}
+[data-vibrancy="true"] .navbar {
+  background: color-mix(in srgb, var(--surface-card) 55%, transparent);
+}
+[data-vibrancy="true"] .sidebar {
+  background: color-mix(in srgb, var(--surface-soft) 55%, transparent);
+}
+[data-mode="dark"][data-vibrancy="true"] .navbar {
+  background: color-mix(in srgb, var(--surface-dark) 55%, transparent);
+}
+[data-mode="dark"][data-vibrancy="true"] .sidebar {
+  background: color-mix(in srgb, var(--surface-dark-soft) 55%, transparent);
+}
+[data-vibrancy="true"] .content-area,
+[data-vibrancy="true"] .main-area {
+  background: var(--canvas);
+}
+
 @keyframes guide-bubble-pop {
   from {
     opacity: 0;
@@ -3538,7 +3575,6 @@ body {
 }
 
 .settings-section {
-  border: 1px solid var(--hairline);
   border-radius: var(--radius-lg);
   background: var(--surface-soft);
   padding: 16px;
@@ -4838,6 +4874,29 @@ body {
 .md-content tr:hover td { background: var(--surface-soft); }
 
 /* ── Transitions ── */
+/* ── Micro-motion ── */
+/* Baseline ease on all interactive controls; component rules that declare
+   their own transition still win via specificity. */
+button {
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.terminal-panel { animation: panel-drop 0.18s ease-out; }
+.right-panel { animation: panel-slide-left 0.18s ease-out; }
+.file-tree-slide { animation: panel-slide-left 0.2s ease-out; }
+
+@keyframes panel-drop {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+@keyframes panel-slide-left {
+  from { opacity: 0; transform: translateX(16px); }
+}
+
 .fade-in { animation: fadeIn 0.15s ease-in; }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(4px); }

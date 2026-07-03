@@ -326,13 +326,13 @@ export default function FileTreePanel({ initialPath, onClose, onAddToChat }: Pro
   const canGoUp = currentPath !== "/" && currentPath.split("/").filter(Boolean).length > 0;
 
   return (
-    <div style={panelStyle}>
+    <div className="file-tree-slide" style={panelStyle}>
       {/* Header */}
       <div style={headerStyle}>
         <button
           onClick={() => canGoUp && loadDir(parentPath(currentPath))}
           disabled={!canGoUp}
-          title="上级目录"
+          title="Parent Directory"
           style={{ ...iconBtn, opacity: canGoUp ? 0.75 : 0.25 }}
         >
           ←
@@ -344,7 +344,7 @@ export default function FileTreePanel({ initialPath, onClose, onAddToChat }: Pro
           {toDisplayPath(currentPath)}
         </span>
         <CopyPathButton path={currentPath} />
-        <button onClick={onClose} title="关闭" style={{ ...iconBtn, opacity: 0.5 }}>✕</button>
+        <button onClick={onClose} title="Off" style={{ ...iconBtn, opacity: 0.5 }}>✕</button>
       </div>
 
       {/* Body */}
@@ -352,10 +352,10 @@ export default function FileTreePanel({ initialPath, onClose, onAddToChat }: Pro
         {/* Tree column */}
         <div style={treeColStyle}>
           {loadingDir === currentPath && nodes.length === 0 && (
-            <div style={emptyHint}>加载中…</div>
+            <div style={emptyHint}>Loading...</div>
           )}
           {loadingDir !== currentPath && nodes.length === 0 && (
-            <div style={emptyHint}>空目录</div>
+            <div style={emptyHint}>Empty directory</div>
           )}
           {nodes.map((node) => (
             <TreeRow
@@ -377,8 +377,8 @@ export default function FileTreePanel({ initialPath, onClose, onAddToChat }: Pro
 
         {/* Preview column */}
         <div style={previewColStyle}>
-          {!selectedFile && <div style={emptyHint}>点击文件预览内容</div>}
-          {selectedFile && loadingFile && <div style={emptyHint}>读取中…</div>}
+          {!selectedFile && <div style={emptyHint}>Click a file to preview its contents</div>}
+          {selectedFile && loadingFile && <div style={emptyHint}>Reading...</div>}
           {selectedFile && previewError === "binary" && (
             <BinaryPrompt path={selectedFile} onOpen={openWithSystem} />
           )}
@@ -386,7 +386,7 @@ export default function FileTreePanel({ initialPath, onClose, onAddToChat }: Pro
             <div style={{ ...emptyHint, flexDirection: "column", gap: "10px" }}>
               <span style={{ color: "var(--error, #e06c6c)", fontSize: "12px" }}>{previewError}</span>
               <button onClick={() => openWithSystem(selectedFile)} style={actionBtn}>
-                用系统应用打开
+                Open with system app
               </button>
             </div>
           )}
@@ -444,7 +444,7 @@ function TreeRow({
         {node.is_dir ? (
           <button
             onClick={() => onToggle(node)}
-            title={isExpanded ? "折叠" : "展开"}
+            title={isExpanded ? "Collapse" : "Expand"}
             style={{
               ...iconBtn,
               fontSize: "11px",
@@ -531,7 +531,7 @@ function CopyPathButton({ path, variant = "inline" }: { path: string; variant?: 
         color: copied ? "#fff" : "var(--text-secondary, #aaa)",
         border: "1px solid var(--border)",
       }}>
-        {copied ? "✓ 已复制" : "复制路径"}
+        {copied ? "✓ Copied" : "Copy Path"}
       </button>
     );
   }
@@ -549,7 +549,7 @@ function CopyPathButton({ path, variant = "inline" }: { path: string; variant?: 
       whiteSpace: "nowrap",
       transition: "background 0.15s",
     }}>
-      {copied ? "✓ 已复制" : "复制路径"}
+      {copied ? "✓ Copied" : "Copy Path"}
     </button>
   );
 }
@@ -630,8 +630,8 @@ function EditWithEditorButton({ path }: { path: string }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") saveEditor(); if (e.key === "Escape") setConfiguring(false); }}
-            placeholder="自定义命令，如 code、cursor"
-            title={error || "编辑器 CLI 命令"}
+            placeholder="Custom command, e.g. code or cursor"
+            title={error || "Editor CLI command"}
             autoFocus
             style={{
               width: "140px",
@@ -656,7 +656,7 @@ function EditWithEditorButton({ path }: { path: string }) {
     <div style={{ display: "flex", alignItems: "center", gap: "2px", flexShrink: 0 }}>
       <button
         onClick={handleOpen}
-        title={`用 ${editor} 打开`}
+        title={`Open with ${editor}`}
         style={{
           background: "var(--bg-secondary, rgba(255,255,255,0.08))",
           border: "1px solid var(--border)",
@@ -669,11 +669,11 @@ function EditWithEditorButton({ path }: { path: string }) {
           borderRight: "none",
         }}
       >
-        编辑
+        Edit
       </button>
       <button
         onClick={() => { setInput(editor); setConfiguring(true); }}
-        title={`当前编辑器：${editor}，点击修改`}
+        title={`Current editor: ${editor}; click to change`}
         style={{
           background: "var(--bg-secondary, rgba(255,255,255,0.08))",
           border: "1px solid var(--border)",
@@ -782,7 +782,7 @@ function FilePreview({ path, content, onOpenSystem, onAddToChat }: {
         </span>
         <button
           onClick={toggleWordWrap}
-          title={wordWrap ? "关闭自动换行" : "开启自动换行"}
+          title={wordWrap ? "Turn off word wrap" : "Turn on word wrap"}
           aria-pressed={wordWrap}
           style={{
             ...previewIconBtn,
@@ -805,7 +805,7 @@ function FilePreview({ path, content, onOpenSystem, onAddToChat }: {
         </span>
         <EditWithEditorButton path={path} />
         <CopyPathButton path={path} />
-        <button onClick={onOpenSystem} title="用系统应用打开" style={{ ...iconBtn, opacity: 0.6 }}>↗</button>
+        <button onClick={onOpenSystem} title="Open with system app" style={{ ...iconBtn, opacity: 0.6 }}>↗</button>
       </div>
 
       <div
@@ -844,7 +844,7 @@ function FilePreview({ path, content, onOpenSystem, onAddToChat }: {
                 whiteSpace: "nowrap",
               }}
             >
-              添加到对话
+              Add to Chat
             </button>
           </div>
         )}
@@ -957,9 +957,9 @@ function BinaryPrompt({ path, onOpen }: { path: string; onOpen: (p: string) => v
     <div style={{ ...emptyHint, flexDirection: "column", gap: "10px" }}>
       <FileTypeIcon src={getFileIcon(name)} label="file" size={32} opacity={0.55} />
       <span style={{ fontSize: "12px", opacity: 0.6 }}>{name}</span>
-      <span style={{ fontSize: "11px", opacity: 0.4 }}>无法预览此文件类型</span>
+      <span style={{ fontSize: "11px", opacity: 0.4 }}>This file type cannot be previewed</span>
       <div style={{ display: "flex", gap: "8px" }}>
-        <button onClick={() => onOpen(path)} style={actionBtn}>用系统应用打开</button>
+        <button onClick={() => onOpen(path)} style={actionBtn}>Open with system app</button>
         <CopyPathButton path={path} variant="block" />
       </div>
     </div>
@@ -1088,10 +1088,10 @@ const panelStyle: React.CSSProperties = {
   width: "640px",
   display: "flex",
   flexDirection: "column",
-  background: "var(--bg-primary, #1e1e1e)",
-  borderLeft: "1px solid var(--border)",
+  background: "var(--canvas)",
+  borderLeft: "1px solid var(--hairline)",
   zIndex: 100,
-  boxShadow: "-4px 0 24px rgba(0,0,0,0.3)",
+  boxShadow: "var(--shadow-md)",
 };
 
 const headerStyle: React.CSSProperties = {

@@ -6,6 +6,9 @@ interface Props {
   onDirChange: (dir: string | null) => void;
   fileTreeOpen?: boolean;
   onToggleFileTree?: () => void;
+  /** Conversation status shown right-aligned (message count, memory state). */
+  messageCount?: number;
+  memoryLoaded?: boolean | null;
 }
 
 function normalizePath(raw: string): string {
@@ -25,7 +28,14 @@ function buildSegments(absPath: string): { label: string; path: string }[] {
   }));
 }
 
-export default function WorkingDirBar({ workingDir, onDirChange, fileTreeOpen, onToggleFileTree }: Props) {
+export default function WorkingDirBar({
+  workingDir,
+  onDirChange,
+  fileTreeOpen,
+  onToggleFileTree,
+  messageCount,
+  memoryLoaded = null,
+}: Props) {
   const [editing, setEditing] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -86,14 +96,13 @@ export default function WorkingDirBar({ workingDir, onDirChange, fileTreeOpen, o
         display: "flex",
         alignItems: "center",
         gap: "4px",
-        padding: "5px 14px",
-        borderBottom: "1px solid var(--border)",
-        background: "var(--bg-secondary, rgba(128,128,128,0.05))",
+        padding: "4px 14px",
+        background: "transparent",
         fontSize: "12px",
-        color: "var(--text-secondary, #888)",
+        color: "var(--muted)",
         userSelect: "none",
         flexShrink: 0,
-        minHeight: "30px",
+        minHeight: "26px",
       }}
     >
       {/* folder icon */}
@@ -105,7 +114,7 @@ export default function WorkingDirBar({ workingDir, onDirChange, fileTreeOpen, o
       </svg>
 
       {editing ? (
-        /* ── 编辑态 ── */
+        /* Edit state */
         <>
           <input
             ref={inputRef}
@@ -126,18 +135,18 @@ export default function WorkingDirBar({ workingDir, onDirChange, fileTreeOpen, o
               fontFamily: "var(--font-mono, monospace)",
             }}
           />
-          <button onClick={handleBrowse} style={btnStyle}>浏览…</button>
-          <button onClick={confirmEdit} title="确认 (Enter)" style={iconBtnStyle}>✓</button>
-          <button onClick={cancelEdit} title="取消 (Esc)" style={{ ...iconBtnStyle, opacity: 0.5 }}>✕</button>
+          <button onClick={handleBrowse} style={btnStyle}>Browse...</button>
+          <button onClick={confirmEdit} title="Confirm (Enter)" style={iconBtnStyle}>✓</button>
+          <button onClick={cancelEdit} title="Cancel (Esc)" style={{ ...iconBtnStyle, opacity: 0.5 }}>✕</button>
         </>
       ) : (
-        /* ── 面包屑态 ── */
+        /* Breadcrumb state */
         <>
           {/* home segment */}
           <BreadcrumbSegment
             label="~"
             onClick={handleReset}
-            title="重置到主目录"
+            title="Reset to home directory"
           />
 
           {segments.map((seg, i) => (
@@ -155,10 +164,28 @@ export default function WorkingDirBar({ workingDir, onDirChange, fileTreeOpen, o
           {/* spacer */}
           <span style={{ flex: 1 }} />
 
+          {/* conversation status (merged from the old context-info bar) */}
+          {messageCount !== undefined && (
+            <span
+              className="ui-font"
+              style={{ whiteSpace: "nowrap", color: "var(--muted-soft)", marginRight: "6px" }}
+            >
+              {messageCount === 0 ? "New conversation" : `${messageCount} messages`}
+              {memoryLoaded !== null && (
+                <>
+                  {" · "}
+                  <span className={memoryLoaded ? "ctx-memory-ok" : "ctx-memory-none"}>
+                    {memoryLoaded ? "Personal memory loaded" : "Personal memory not configured"}
+                  </span>
+                </>
+              )}
+            </span>
+          )}
+
           {/* edit trigger */}
           <button
             onClick={enterEdit}
-            title={"编辑路径: " + displayPath}
+            title={"Edit path: " + displayPath}
             style={{ ...iconBtnStyle, opacity: 0 }}
             className="workingdir-edit-btn"
           >
@@ -169,7 +196,7 @@ export default function WorkingDirBar({ workingDir, onDirChange, fileTreeOpen, o
           {onToggleFileTree && (
             <button
               onClick={onToggleFileTree}
-              title={fileTreeOpen ? "关闭文件树" : "浏览文件树"}
+              title={fileTreeOpen ? "Close file tree" : "Browse file tree"}
               style={{
                 ...iconBtnStyle,
                 opacity: fileTreeOpen ? 1 : 0.5,

@@ -20,7 +20,7 @@
         "decorations": true,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
-        "transparent": false,
+        "transparent": true,
         "resizable": true,
         "center": true,
         "dragDropEnabled": false
@@ -28,7 +28,8 @@
     ],
     "security": {
       "csp": null
-    }
+    },
+    "macOSPrivateApi": true
   },
   "bundle": {
     "active": true,

@@ -2,10 +2,10 @@
 name = "hermes-desktop"
 version = "0.1.0"
 description = "A beautiful desktop UI for Hermes Agent"
-authors = ["吴桂荣 <wuguirong@gmail.com>"]
+authors = ["Wu Guirong <wuguirong@gmail.com>"]
 license = "Apache-2.0"
 repository = "https://gitee.com/wuguirong/hermes-desktop"
-edition = "2021"
+edition = "2024"
 
 [lib]
 name = "hermes_desktop_lib"
@@ -15,7 +15,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon"] }
+tauri = { version = "2", features = ["tray-icon", "macos-private-api"] }
 tauri-plugin-shell = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
@@ -31,3 +31,5 @@ anyhow = "1"
 portable-pty = "0.9"
 base64 = "0.22"
 rusqlite = "0.32"
+serde_yaml = "0.9.34"
+window-vibrancy = "0.7.1"

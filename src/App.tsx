@@ -20,7 +20,7 @@ const isMac = navigator.platform.toLowerCase().includes("mac");
 function setupErrorMessage(error: unknown) {
   const message = String(error);
   if (message.includes("invoke") || message.includes("__TAURI")) {
-    return "未检测到 Hermes CLI，请完成安装后重新检测。";
+    return "Hermes CLI was not detected. Complete installation, then check again.";
   }
   return message;
 }
@@ -36,6 +36,14 @@ function AppShell() {
   useFontSize();
   const isChat = location.pathname === "/";
   const platformKind = detectPlatformKind();
+
+  // macOS gets a translucent NSVisualEffectView behind the window (applied in
+  // Rust); this attribute lets the CSS release the chrome columns to show it.
+  useEffect(() => {
+    if (platformKind === "macos") {
+      document.documentElement.setAttribute("data-vibrancy", "true");
+    }
+  }, [platformKind]);
   const [checkingSetup, setCheckingSetup] = useState(true);
   const [setup, setSetup] = useState<HermesSetupStatus | null>(null);
   const [ready, setReady] = useState(false);
@@ -79,13 +87,17 @@ function AppShell() {
         e.preventDefault();
         setShowShortcuts((v) => !v);
       }
-      if (modKey && e.key === "n") {
+      if (modKey && e.altKey && e.key.toLowerCase() === "i") {
         e.preventDefault();
-        window.dispatchEvent(new CustomEvent("new-session-hotkey"));
+        window.dispatchEvent(new CustomEvent("toggle-inspector"));
       }
       if (modKey && e.key === "w") {
         e.preventDefault();
         setShowShortcuts(false);
+      }
+      if (modKey && e.key === "i") {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("toggle-inspector"));
       }
     };
     window.addEventListener("keydown", handler);
@@ -151,7 +163,7 @@ function AppShell() {
       return (
         <div className="setup-loading">
           <span className="loading-dots" style={{ fontSize: 20 }} />
-          <div className="dashboard-loading-text ui-font">正在检测 Hermes CLI…</div>
+          <div className="dashboard-loading-text ui-font">Checking Hermes CLI...</div>
         </div>
       );
     }

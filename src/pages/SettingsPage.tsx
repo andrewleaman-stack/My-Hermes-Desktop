@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import Icon from "../components/Icon";
 import {
   GUIDE_BOT_APPEARANCES,
@@ -235,6 +236,13 @@ export default function SettingsPage() {
   const { appearance, setAppearance } = useGuideBotAppearance();
   const { size: guideBotSize, setSize: setGuideBotSize } = useGuideBotSize();
   const { display: guideBotDisplay, setDisplay: setGuideBotDisplay } = useGuideBotDisplay();
+  const [hermesVersion, setHermesVersion] = useState("");
+
+  useEffect(() => {
+    invoke<{ version: string }>("get_hermes_info")
+      .then((info) => setHermesVersion(info.version))
+      .catch(() => {});
+  }, []);
   const { terminalBg, setTerminalBg } = useTerminalBg();
   const {
     uiFontSize, setUiFontSize,
@@ -481,6 +489,7 @@ export default function SettingsPage() {
       </div>
 
       <footer className="settings-copyright ui-font">
+        {hermesVersion && <div className="settings-version">{hermesVersion.split("\n")[0]}</div>}
         © {new Date().getFullYear()} Beacon AI
       </footer>
     </div>

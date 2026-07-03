@@ -1328,6 +1328,8 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
             setFileTreeOpen((v) => !v);
             if (!fileTreeOpen) setSnapshotPanelOpen(false);
           }}
+          messageCount={messages.length}
+          memoryLoaded={memoryLoaded}
         />
         {terminalOpen && (
           <TerminalPanel ptyId={activePtyId.current} sessionId={tuiSessionId} onClose={() => setTerminalOpen(false)} />
