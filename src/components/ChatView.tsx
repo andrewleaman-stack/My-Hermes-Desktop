@@ -37,6 +37,12 @@ interface Props {
   error: string | null;
   hasSession: boolean;
   contextPct?: number;
+  /** "tool:<name>" | "thinking" | null — what the agent is doing right now */
+  agentActivity?: string | null;
+  /** Context-compression progress line while the gateway compacts */
+  compressing?: string | null;
+  /** Timestamp bump when a background task completes */
+  bgDoneSignal?: number;
   onCompress?: () => void;
   onRunBackground?: (text: string) => void;
   bgRunningCount?: number;
@@ -116,6 +122,9 @@ export default function ChatView({
   error,
   hasSession,
   contextPct,
+  agentActivity = null,
+  compressing = null,
+  bgDoneSignal = 0,
   onCompress,
   onRunBackground,
   bgRunningCount = 0,
@@ -796,6 +805,9 @@ export default function ChatView({
           justFinished={justFinished}
           contextPct={contextPct}
           longTask={longTask}
+          agentActivity={agentActivity}
+          compressing={compressing}
+          bgDoneSignal={bgDoneSignal}
           onFocusInput={focusInput}
           onRetryLastMessage={onRetryLastMessage}
           onCompress={onCompress}

@@ -235,6 +235,10 @@ export default function ChatPage({ apiKeyConfigured = true }: { apiKeyConfigured
   const [streamingSessions, setStreamingSessions] = useState<Set<string>>(new Set());
   const [sessionStatus, setSessionStatus] = useState<Record<string, HermesStatus>>({});
   const [sessionErrors, setSessionErrors] = useState<Record<string, string | null>>({});
+  // Live agent activity per session ("tool:<name>" | "thinking" | null) — drives April
+  const [sessionAgentActivity, setSessionAgentActivity] = useState<Record<string, string | null>>({});
+  // Bumped when a background task completes — April reacts to the change
+  const [bgDoneSignal, setBgDoneSignal] = useState(0);
 const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "queued" | "done">>({});
 
   // Memory state (for feat-211 / feat-213)
@@ -463,6 +467,7 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
     const unlisten = listen<{ task_id: string; session_id: string | null; status: string }>(
       "bg-task-done",
       async ({ payload }) => {
+        setBgDoneSignal(Date.now());
         await loadSessions();
         if (payload.session_id) {
           setActiveSessionId(payload.session_id);
@@ -1115,6 +1120,25 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
           }
         }
 
+        // Live agent activity for April: what is Hermes doing right now?
+        if (chunk.kind === "tool_name") {
+          setSessionAgentActivity((prev) => ({ ...prev, [sessionId]: `tool:${chunk.content || "tool"}` }));
+        } else if (chunk.kind === "think_start" || chunk.kind === "think") {
+          setSessionAgentActivity((prev) =>
+            prev[sessionId] === "thinking" ? prev : { ...prev, [sessionId]: "thinking" }
+          );
+        } else if (
+          chunk.kind === "text" ||
+          chunk.kind === "tool_output_end" ||
+          chunk.kind === "think_end" ||
+          chunk.kind === "done" ||
+          chunk.kind === "error"
+        ) {
+          setSessionAgentActivity((prev) =>
+            prev[sessionId] == null ? prev : { ...prev, [sessionId]: null }
+          );
+        }
+
         // Structured stats from the persistent gateway's session.info events
         if (chunk.kind === "status_json") {
           try {
@@ -1421,6 +1445,9 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
           repliesCollapsed={repliesCollapsed}
           showThink={showThink}
           contextPct={contextPct}
+          agentActivity={activeSessionId ? (sessionAgentActivity[activeSessionId] ?? null) : null}
+          compressing={status?.activity ?? null}
+          bgDoneSignal={bgDoneSignal}
           onCompress={() => handlePtyWrite("/compress")}
         />
       </div>

@@ -194,6 +194,7 @@ type GuideMood =
   | "pulse"
   | "error"
   | "typing"
+  | "thinking"
   | "alert"
   | "success"
   | "tool"
@@ -227,6 +228,12 @@ interface Props {
   longTask?: boolean;
   isTyping?: boolean;
   justFinished?: boolean;
+  /** "tool:<name>" | "thinking" | null — live agent activity */
+  agentActivity?: string | null;
+  /** Compression progress line while the gateway compacts context */
+  compressing?: string | null;
+  /** Timestamp bump when a background task completes */
+  bgDoneSignal?: number;
   onFocusInput: () => void;
   onRetryLastMessage: () => void;
   onCompress?: () => void;
@@ -260,7 +267,8 @@ function getAprilV4Frame(mood: GuideMood, blinkOn: boolean, talkFrame: number): 
   if (mood === "blink") return blinkOn ? aprilIdle1 : aprilIdle0;
   if (mood === "sleep") return blinkOn ? aprilSleepy1 : aprilSleepy0;
   if (mood === "heartbeat") return talkFrame === 0 ? aprilTalk0 : aprilTalk1;
-  if (mood === "tool") return blinkOn ? aprilTool1 : aprilTool0;
+  if (mood === "tool") return talkFrame === 0 ? aprilTool0 : aprilTool1;
+  if (mood === "thinking") return talkFrame === 0 ? aprilThinking0 : aprilThinking1;
   if (mood === "typing") return aprilThinkingHand;
   return APRIL_V4_REACTION_FRAMES[mood] ?? aprilIdle0;
 }
@@ -280,7 +288,7 @@ export function GuideBotAvatar({
   const avatarSize = size ?? savedSize;
 
   useEffect(() => {
-    if (appearance !== "april-v4" || !["blink", "tool"].includes(mood)) {
+    if (appearance !== "april-v4" || !["blink", "sleep"].includes(mood)) {
       setBlinkOn(false);
       return;
     }
@@ -306,11 +314,15 @@ export function GuideBotAvatar({
   }, [appearance, mood]);
 
   useEffect(() => {
-    if (appearance !== "april-v4" || mood !== "heartbeat") {
+    // Two-frame loops with mood-specific cadence: talking is fast, tool work
+    // is a steady tinker, thinking is a slow ponder.
+    const cadence: Partial<Record<GuideMood, number>> = { heartbeat: 190, tool: 450, thinking: 750 };
+    const ms = cadence[mood];
+    if (appearance !== "april-v4" || !ms) {
       setTalkFrame(0);
       return;
     }
-    const interval = window.setInterval(() => setTalkFrame((frame) => (frame === 0 ? 1 : 0)), 190);
+    const interval = window.setInterval(() => setTalkFrame((frame) => (frame === 0 ? 1 : 0)), ms);
     return () => window.clearInterval(interval);
   }, [appearance, mood]);
 
@@ -380,6 +392,27 @@ export function GuideBotAvatar({
   );
 }
 
+// Rotating deadpan lines — indexed by turn count so they vary per turn
+// without flickering mid-render.
+const HEARTBEAT_TEXTS = [
+  "Hermes is working. You can keep typing; I’ll queue it for the next turn.",
+  "Working. Queue up the next thing if you want.",
+  "On it. This is the part where I look busy.",
+];
+const THINKING_TEXTS = [
+  "Thinking it through…",
+  "Reasoning. Give it a second.",
+];
+const SLEEP_TEXTS = [
+  "Standing by. I’ll speak up when queueing, compression, or retry matters.",
+  "Quiet in here. Wake me with a message.",
+  "Idle. Judging the silence.",
+];
+
+function pickLine(pool: string[], seed: number): string {
+  return pool[Math.abs(seed) % pool.length];
+}
+
 function getGuideState({
   messages,
   streaming,
@@ -389,22 +422,29 @@ function getGuideState({
   contextPct,
   longTask,
   isTyping,
-  showSuccess,
+  agentActivity,
+  compressing,
+  finishMood,
   onFocusInput,
   onRetryLastMessage,
   onCompress,
   onSetGoal,
-}: Props & { showSuccess: boolean }): {
+}: Props & { finishMood: "success" | "celebrate" | null }): {
   mood: GuideMood;
   text: string;
   actions: GuideAction[];
 } {
-  // 1. error
+  const seed = messages.length;
+
+  // 1. error — rate limits get a different face than hard failures
   if (error) {
     const canRetry = messages.some((message) => message.role === "assistant");
+    const rateLimited = /rate.?limit|429|quota|overloaded/i.test(error);
     return {
-      mood: "error",
-      text: "This run hit a problem. Check the error first.",
+      mood: rateLimited ? "annoyed" : "error",
+      text: rateLimited
+        ? "Rate-limited. The free tier is feeling very free. Retry in a moment."
+        : "This run hit a problem. Check the error first.",
       actions: [
         canRetry
           ? { label: "Retry", onClick: onRetryLastMessage }
@@ -413,7 +453,21 @@ function getGuideState({
     };
   }
 
-  // 2. alert — idle but with actionable suggestion
+  // 2. compression — the gateway is summarizing mid-turn
+  if (compressing) {
+    return { mood: "typing", text: compressing, actions: [] };
+  }
+
+  // 3. live activity while streaming: tools, then reasoning
+  if (streaming && agentActivity?.startsWith("tool:")) {
+    const name = agentActivity.slice(5);
+    return { mood: "tool", text: `Running ${name}…`, actions: [] };
+  }
+  if (streaming && agentActivity === "thinking") {
+    return { mood: "thinking", text: pickLine(THINKING_TEXTS, seed), actions: [] };
+  }
+
+  // 4. alert — idle but with actionable suggestion
   if (!streaming && contextPct !== undefined && contextPct >= 0.7) {
     return {
       mood: "alert",
@@ -430,7 +484,7 @@ function getGuideState({
     };
   }
 
-  // 3. ok — streaming with queue
+  // 5. ok — streaming with queue
   if (streaming && queue.length > 0) {
     return {
       mood: "ok",
@@ -439,25 +493,24 @@ function getGuideState({
     };
   }
 
-  // 4. heartbeat — streaming
+  // 6. heartbeat — streaming
   if (streaming) {
     return {
       mood: "heartbeat",
-      text: "Hermes is working. You can keep typing; I’ll queue it for the next turn.",
+      text: pickLine(HEARTBEAT_TEXTS, seed),
       actions: [{ label: "Keep typing", onClick: onFocusInput }],
     };
   }
 
-  // 5. success — just finished streaming
-  if (showSuccess) {
-    return {
-      mood: "success",
-      text: "Got the result.",
-      actions: [],
-    };
+  // 7. just finished: quick success nod, or a celebration for marathon turns
+  if (finishMood === "celebrate") {
+    return { mood: "celebrate", text: "Done. That one was a marathon.", actions: [] };
+  }
+  if (finishMood === "success") {
+    return { mood: "success", text: "Got the result.", actions: [] };
   }
 
-  // 6. typing — user is typing
+  // 8. typing — user is typing
   if (isTyping) {
     return {
       mood: "typing",
@@ -466,7 +519,7 @@ function getGuideState({
     };
   }
 
-  // 7. blink/pulse — empty session
+  // 9. blink/pulse — empty session
   if (messages.length === 0) {
     return {
       mood: hasSession ? "pulse" : "blink",
@@ -477,10 +530,10 @@ function getGuideState({
     };
   }
 
-  // 8. sleep — quiet idle
+  // 10. sleep — quiet idle
   return {
     mood: "sleep",
-    text: "Standing by. I’ll speak up when queueing, compression, or retry matters.",
+    text: pickLine(SLEEP_TEXTS, seed),
     actions: [],
   };
 }
@@ -511,18 +564,33 @@ function getStreamingTail(messages: Message[], maxChars = 220): string {
   return text.length > maxChars ? `…${text.slice(-maxChars)}` : text;
 }
 
+// Ordered reaction pools — first match wins, then a random pick within the
+// pool so repeated praise doesn't always land on the same face.
+const REACTION_POOLS: Array<{ re: RegExp; moods: GuideMood[] }> = [
+  { re: /\b(hi|hello|hey|yo|good ?morning|good ?evening|morning)\b/, moods: ["pulse"] }, // wave
+  { re: /\b(bye|goodnight|good night|later|see ya|heading out)\b/, moods: ["peace"] },
+  { re: /(thanks|thank you|appreciate|good job|nice work|awesome|perfect|love it|great work|beautiful)/, moods: ["smug", "love", "heart_hands"] },
+  { re: /(sorry|oops|my bad|whoops)/, moods: ["shy"] },
+  { re: /(stop|pause|hold on|quiet|shush)/, moods: ["shush"] },
+  { re: /(haha|lol|lmao|rofl|funny)/, moods: ["excited", "celebrate"] },
+  { re: /(what|huh|confused|lost|unclear|not sure)/, moods: ["confused"] },
+  { re: /\b(no|wrong|bad|broken|failed|hate|ugh)\b/, moods: ["sad", "shrug"] },
+  { re: /\b(yes|yep|yeah|approved|go ahead|do it|continue|ship it)\b/, moods: ["ok", "excited"] },
+];
+
 function reactionMoodFromUserText(text: string): GuideMood | null {
   const normalized = text.toLowerCase();
-  if (/(thanks|thank you|appreciate|good job|nice work|awesome|perfect)/.test(normalized)) return "smug";
-  if (/(stop|pause|hold|quiet|shush)/.test(normalized)) return "shush";
-  if (/(what|huh|confused|lost|unclear|not sure)/.test(normalized)) return "confused";
-  if (/(yes|yep|approved|go ahead|do it|continue)/.test(normalized)) return "ok";
+  for (const pool of REACTION_POOLS) {
+    if (pool.re.test(normalized)) {
+      return pool.moods[Math.floor(Math.random() * pool.moods.length)];
+    }
+  }
   return null;
 }
 
 
 export default function GuideBot(props: Props) {
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [finishMood, setFinishMood] = useState<"success" | "celebrate" | null>(null);
   const [reactionMood, setReactionMood] = useState<GuideMood | null>(null);
   const { appearance: savedAppearance } = useGuideBotAppearance();
   const { display } = useGuideBotDisplay();
@@ -530,26 +598,62 @@ export default function GuideBot(props: Props) {
   // other shell appearances fall back to the april-v4 frames there.
   const appearance = display === "companion" ? "april-v4" : savedAppearance;
 
+  // Turn finished: quick nod for normal turns, a real celebration when the
+  // turn ran long or chewed through several tools.
   useEffect(() => {
-    if (props.justFinished && !showSuccess) {
-      setShowSuccess(true);
-      const timer = setTimeout(() => setShowSuccess(false), 1500);
-      return () => clearTimeout(timer);
+    if (!props.justFinished || finishMood) return;
+    const lastAssistant = [...props.messages].reverse().find((m) => m.role === "assistant");
+    const toolCount = lastAssistant?.blocks.filter((b) => b.type === "tool").length ?? 0;
+    const lastUser = [...props.messages].reverse().find((m) => m.role === "user");
+    let marathon = toolCount >= 3;
+    if (!marathon && lastUser?.timestamp) {
+      const elapsed = Date.now() - new Date(lastUser.timestamp).getTime();
+      marathon = elapsed > 60_000 && elapsed < 6 * 3_600_000;
     }
+    setFinishMood(marathon ? "celebrate" : "success");
+    const timer = setTimeout(() => setFinishMood(null), marathon ? 2600 : 1500);
+    return () => clearTimeout(timer);
   }, [props.justFinished]);
 
+  // React to what the user just said — including right as a turn starts, so
+  // she acknowledges the message before settling into her working animation.
   useEffect(() => {
-    if (props.streaming || props.error) return;
+    if (props.error) return;
     const lastUser = [...props.messages].reverse().find((message) => message.role === "user");
     const mood = reactionMoodFromUserText(getMessageText(lastUser));
     if (!mood) return;
     setReactionMood(mood);
-    const timer = window.setTimeout(() => setReactionMood(null), 1600);
+    const timer = window.setTimeout(() => setReactionMood(null), 1800);
     return () => window.clearTimeout(timer);
-  }, [props.messages.length, props.streaming, props.error]);
+  }, [props.messages.length, props.error]);
 
-  const state = getGuideState({ ...props, showSuccess });
-  const canUseReaction = appearance === "april-v4" && ["blink", "sleep", "typing"].includes(state.mood);
+  // A background task finished — brief excitement.
+  useEffect(() => {
+    if (!props.bgDoneSignal) return;
+    setReactionMood("excited");
+    const timer = window.setTimeout(() => setReactionMood(null), 2400);
+    return () => window.clearTimeout(timer);
+  }, [props.bgDoneSignal]);
+
+  const state = getGuideState({ ...props, finishMood });
+
+  // Idle fidgets: while asleep or idling, occasionally do something small.
+  useEffect(() => {
+    if (!["sleep", "blink"].includes(state.mood)) return;
+    const interval = window.setInterval(() => {
+      if (Math.random() > 0.3) return;
+      const fidgets: GuideMood[] = ["peace", "shrug", "shy"];
+      setReactionMood(fidgets[Math.floor(Math.random() * fidgets.length)]);
+      window.setTimeout(() => setReactionMood(null), 1800);
+    }, 45_000);
+    return () => window.clearInterval(interval);
+  }, [state.mood]);
+
+  // Reactions may briefly overlay idle AND working moods (she glances up from
+  // the wrench to acknowledge you, then goes back to it).
+  const canUseReaction =
+    appearance === "april-v4" &&
+    ["blink", "sleep", "typing", "heartbeat", "tool", "thinking"].includes(state.mood);
   const effectiveMood = canUseReaction && reactionMood ? reactionMood : state.mood;
 
   // Companion mode: while streaming, April "speaks" the tail of the live reply
