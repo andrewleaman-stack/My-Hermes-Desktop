@@ -62,6 +62,8 @@ export default function AppTitleBar({ platform, currentPath, onAction }: Props) 
   const handleMouseDown = (e: React.MouseEvent) => {
     const target = e.target as Element;
     if (target.closest("button, input, a, [role='button']")) return;
+    // Stop the browser starting a text selection while the async drag spins up
+    e.preventDefault();
     void withCurrentWindow("startDragging");
   };
 
@@ -79,6 +81,7 @@ export default function AppTitleBar({ platform, currentPath, onAction }: Props) 
             <Icon name="spark" size={13} />
           </span>
           <span>Hermes</span>
+          {import.meta.env.DEV && <span className="titlebar-dev-badge">dev</span>}
         </div>
 
         {menu.length > 0 && (

@@ -175,13 +175,17 @@ export default function Sidebar({ sessions, activeId, onSelect, onNew, onDelete,
   }, [sessions, tags]);
 
   const visible = useMemo(() => {
-    if (filter === null) return sessions;
-    if (filter === UNTAGGED) return sessions.filter((s) => !tags[s.id]);
-    return sessions.filter((s) => {
+    // Hide empty debris (sessions created but never used) unless active now.
+    const nonEmpty = sessions.filter(
+      (s) => (s.message_count ?? 1) > 0 || s.id === activeId
+    );
+    if (filter === null) return nonEmpty;
+    if (filter === UNTAGGED) return nonEmpty.filter((s) => !tags[s.id]);
+    return nonEmpty.filter((s) => {
       const t = tags[s.id];
       return t && `${t.color}|${t.text}` === filter;
     });
-  }, [sessions, tags, filter]);
+  }, [sessions, tags, filter, activeId]);
 
   const groups = useMemo(() => {
     const now = Date.now();

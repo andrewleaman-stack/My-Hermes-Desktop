@@ -365,6 +365,8 @@ body {
 }
 
 .app-titlebar {
+  user-select: none;
+  -webkit-user-select: none;
   height: var(--app-titlebar-h);
   min-height: var(--app-titlebar-h);
   display: grid;
@@ -3188,6 +3190,25 @@ html[data-vibrancy="true"],
 [data-vibrancy="true"] .content-area,
 [data-vibrancy="true"] .main-area {
   background: var(--canvas);
+}
+[data-vibrancy="true"] .app-titlebar {
+  background: color-mix(in srgb, var(--surface-soft) 45%, transparent);
+}
+[data-mode="dark"][data-vibrancy="true"] .app-titlebar {
+  background: color-mix(in srgb, var(--surface-dark) 45%, transparent);
+}
+
+/* Dev-build badge so the debug binary is never mistaken for the installed app */
+.titlebar-dev-badge {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-amber);
+  background: color-mix(in srgb, var(--accent-amber) 16%, transparent);
 }
 
 @keyframes guide-bubble-pop {
