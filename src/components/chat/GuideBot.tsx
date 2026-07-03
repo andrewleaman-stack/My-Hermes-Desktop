@@ -429,7 +429,7 @@ function getGuideState({
   onRetryLastMessage,
   onCompress,
   onSetGoal,
-}: Props & { finishMood: "success" | "celebrate" | null }): {
+}: Props & { finishMood: GuideMood | null }): {
   mood: GuideMood;
   text: string;
   actions: GuideAction[];
@@ -502,12 +502,13 @@ function getGuideState({
     };
   }
 
-  // 7. just finished: quick success nod, or a celebration for marathon turns
-  if (finishMood === "celebrate") {
-    return { mood: "celebrate", text: "Done. That one was a marathon.", actions: [] };
-  }
-  if (finishMood === "success") {
-    return { mood: "success", text: "Got the result.", actions: [] };
+  // 7. just finished — her chosen mood (or the heuristic success/celebrate)
+  if (finishMood) {
+    return {
+      mood: finishMood,
+      text: FINISH_LINES[finishMood] ?? "Done.",
+      actions: [],
+    };
   }
 
   // 8. typing — user is typing
@@ -564,6 +565,53 @@ function getStreamingTail(messages: Message[], maxChars = 220): string {
   return text.length > maxChars ? `…${text.slice(-maxChars)}` : text;
 }
 
+// ── Model-driven moods ──
+// April ends replies with one emoji reflecting her mood (SOUL-side habit).
+// The trailing emoji maps to a frame; when present it beats the
+// success/celebrate heuristic. Keys are stored without VS16 (U+FE0F).
+const EMOJI_MOOD: Record<string, GuideMood> = {
+  "😏": "smug", "😼": "smug",
+  "😍": "love", "🥰": "love", "❤": "love", "💛": "love", "🧡": "love", "💜": "love", "💙": "love", "💚": "love",
+  "🫶": "heart_hands",
+  "🎉": "celebrate", "🥳": "celebrate", "🎊": "celebrate",
+  "✨": "excited", "🤩": "excited", "😆": "excited", "⚡": "excited",
+  "✌": "peace",
+  "😳": "shy", "☺": "shy", "😊": "shy",
+  "😢": "sad", "😞": "sad", "😔": "sad", "☹": "sad",
+  "🤷": "shrug",
+  "😕": "confused",
+  "🤔": "typing", // chin-on-hand thinking frame
+  "😤": "annoyed", "🙄": "annoyed", "😒": "annoyed",
+  "😮": "surprised", "😲": "surprised", "😯": "surprised",
+  "🤫": "shush",
+  "👋": "pulse", // wave
+  "👍": "ok",
+  "✅": "success",
+  "😴": "sleep",
+  "🛠": "tool", "🔧": "tool",
+};
+
+const FINISH_LINES: Partial<Record<GuideMood, string>> = {
+  success: "Got the result.",
+  celebrate: "Done. That one was a marathon.",
+  smug: "Nailed it. Obviously.",
+  annoyed: "Done, under protest.",
+  shy: "Done. Don’t look at me like that.",
+};
+
+// Trailing emoji (with optional VS16/ZWJ sequence) at the end of the reply.
+const TRAILING_EMOJI_RE = /(\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic})*)\s*$/u;
+
+function moodFromReply(message: Message | undefined): GuideMood | null {
+  if (!message) return null;
+  const lastText = [...message.blocks].reverse().find((b) => b.type === "text");
+  if (!lastText || lastText.type !== "text") return null;
+  const match = lastText.content.trimEnd().match(TRAILING_EMOJI_RE);
+  if (!match) return null;
+  const key = match[1].replace(/️/g, "").replace(/‍[\s\S]*$/u, "");
+  return EMOJI_MOOD[key] ?? null;
+}
+
 // Ordered reaction pools — first match wins, then a random pick within the
 // pool so repeated praise doesn't always land on the same face.
 const REACTION_POOLS: Array<{ re: RegExp; moods: GuideMood[] }> = [
@@ -590,7 +638,7 @@ function reactionMoodFromUserText(text: string): GuideMood | null {
 
 
 export default function GuideBot(props: Props) {
-  const [finishMood, setFinishMood] = useState<"success" | "celebrate" | null>(null);
+  const [finishMood, setFinishMood] = useState<GuideMood | null>(null);
   const [reactionMood, setReactionMood] = useState<GuideMood | null>(null);
   const { appearance: savedAppearance } = useGuideBotAppearance();
   const { display } = useGuideBotDisplay();
@@ -598,20 +646,30 @@ export default function GuideBot(props: Props) {
   // other shell appearances fall back to the april-v4 frames there.
   const appearance = display === "companion" ? "april-v4" : savedAppearance;
 
-  // Turn finished: quick nod for normal turns, a real celebration when the
-  // turn ran long or chewed through several tools.
+  // Turn finished. Priority: the mood SHE chose (trailing emoji in her reply),
+  // then the heuristics — celebrate marathons, otherwise a quick success nod.
   useEffect(() => {
     if (!props.justFinished || finishMood) return;
     const lastAssistant = [...props.messages].reverse().find((m) => m.role === "assistant");
-    const toolCount = lastAssistant?.blocks.filter((b) => b.type === "tool").length ?? 0;
-    const lastUser = [...props.messages].reverse().find((m) => m.role === "user");
-    let marathon = toolCount >= 3;
-    if (!marathon && lastUser?.timestamp) {
-      const elapsed = Date.now() - new Date(lastUser.timestamp).getTime();
-      marathon = elapsed > 60_000 && elapsed < 6 * 3_600_000;
+    const modelMood = moodFromReply(lastAssistant);
+    let mood: GuideMood;
+    let hold: number;
+    if (modelMood) {
+      mood = modelMood;
+      hold = 5000;
+    } else {
+      const toolCount = lastAssistant?.blocks.filter((b) => b.type === "tool").length ?? 0;
+      const lastUser = [...props.messages].reverse().find((m) => m.role === "user");
+      let marathon = toolCount >= 3;
+      if (!marathon && lastUser?.timestamp) {
+        const elapsed = Date.now() - new Date(lastUser.timestamp).getTime();
+        marathon = elapsed > 60_000 && elapsed < 6 * 3_600_000;
+      }
+      mood = marathon ? "celebrate" : "success";
+      hold = marathon ? 2600 : 1500;
     }
-    setFinishMood(marathon ? "celebrate" : "success");
-    const timer = setTimeout(() => setFinishMood(null), marathon ? 2600 : 1500);
+    setFinishMood(mood);
+    const timer = setTimeout(() => setFinishMood(null), hold);
     return () => clearTimeout(timer);
   }, [props.justFinished]);
 
