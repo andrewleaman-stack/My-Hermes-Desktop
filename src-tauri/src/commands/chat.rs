@@ -290,8 +290,13 @@ fn start_gateway_if_needed(app: &AppHandle, gateway: &Arc<GatewayState>) -> Resu
 
     let mut cmd = Command::new(gateway_python());
     cmd.args(["-u", "-m", "tui_gateway.entry"])
-        .env("PYTHONUNBUFFERED", "1")
-        .stdin(Stdio::piped())
+        .env("PYTHONUNBUFFERED", "1");
+    // Pin the gateway to the desktop-selected profile (sessions, config,
+    // memory, SOUL all live under this home).
+    if let Some(home) = crate::commands::sessions::hermes_home() {
+        cmd.env("HERMES_HOME", &home);
+    }
+    cmd.stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     if let Some(cwd) = gateway_cwd() {

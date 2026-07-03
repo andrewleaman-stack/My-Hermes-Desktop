@@ -237,6 +237,16 @@ export default function SettingsPage() {
   const { size: guideBotSize, setSize: setGuideBotSize } = useGuideBotSize();
   const { display: guideBotDisplay, setDisplay: setGuideBotDisplay } = useGuideBotDisplay();
   const [hermesVersion, setHermesVersion] = useState("");
+  const [autoSpeak, setAutoSpeak] = useState(
+    () => localStorage.getItem("hermes_auto_speak") === "true"
+  );
+
+  const toggleAutoSpeak = (next: boolean) => {
+    setAutoSpeak(next);
+    try {
+      localStorage.setItem("hermes_auto_speak", String(next));
+    } catch {}
+  };
 
   useEffect(() => {
     invoke<{ version: string }>("get_hermes_info")
@@ -403,6 +413,35 @@ export default function SettingsPage() {
                     title={item.description}
                   >
                     {item.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="settings-section">
+          <div className="settings-section-header">
+            <div>
+              <h2 className="settings-section-title ui-font">April voice</h2>
+              <p className="settings-section-desc">
+                Read replies aloud with the system voice when a turn finishes.
+              </p>
+            </div>
+          </div>
+
+          <div className="font-size-rows">
+            <div className="font-size-row">
+              <span className="font-size-row-label ui-font">Speak replies</span>
+              <div className="font-size-chips">
+                {[false, true].map((v) => (
+                  <button
+                    key={String(v)}
+                    type="button"
+                    className={`font-size-chip ui-font${autoSpeak === v ? " selected" : ""}`}
+                    onClick={() => toggleAutoSpeak(v)}
+                  >
+                    {v ? "On" : "Off"}
                   </button>
                 ))}
               </div>

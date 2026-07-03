@@ -1,0 +1,11 @@
+name: apple-dark
+label: Apple Dark
+description: System grays with Apple blue — matches the desktop Apple Dark theme
+palette:
+  background: "#1c1c1e"
+  midground: "#3a3a3c"
+  foreground: "#f5f5f7"
+  warmGlow: "rgba(10, 132, 255, 0.28)"
+  noiseOpacity: 0.3
+terminalBackground: "#111113"
+terminalForeground: "#f5f5f7"

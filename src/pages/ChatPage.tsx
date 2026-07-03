@@ -358,6 +358,26 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
     checkMemory();
   }, []);
 
+  // Agent profile switched: everything (sessions, memory, agent) now lives
+  // under a different HERMES_HOME — reset to a clean slate and reload.
+  useEffect(() => {
+    const handler = () => {
+      setActiveSessionId(null);
+      setSessionMessages({});
+      setSessionQueues({});
+      setStreamingSessions(new Set());
+      setSessionStatus({});
+      setSessionErrors({});
+      setSessionBadges({});
+      setSessionAgentActivity({});
+      loadSessions();
+      loadHermesInfo();
+      checkMemory();
+    };
+    window.addEventListener("hermes-profile-changed", handler);
+    return () => window.removeEventListener("hermes-profile-changed", handler);
+  }, [loadSessions, loadHermesInfo, checkMemory]);
+
   useEffect(() => {
     checkMemory();
   }, [activeSessionId]);
@@ -990,6 +1010,25 @@ const [sessionBadges, setSessionBadges] = useState<Record<string, "running" | "q
               });
               const reloaded = parseHistoryMessages(raw);
               if (reloaded.length === 0) return;
+              // Auto-speak: read the finished reply aloud (Settings toggle),
+              // only for the session the user is currently looking at.
+              if (
+                localStorage.getItem("hermes_auto_speak") === "true" &&
+                activeSessionIdRef.current === sessionId
+              ) {
+                const lastAssistant = [...reloaded].reverse().find((m) => m.role === "assistant");
+                const speech = (lastAssistant?.blocks ?? [])
+                  .filter((b) => b.type === "text")
+                  .map((b) => (b as { content: string }).content)
+                  .join(" ")
+                  .replace(/```[\s\S]*?```/g, " code block omitted ")
+                  .replace(/[*_`#>|]/g, "")
+                  .replace(/\p{Extended_Pictographic}/gu, "")
+                  .replace(/\s+/g, " ")
+                  .trim()
+                  .slice(0, 800);
+                if (speech) invoke("speak_text", { text: speech }).catch(() => {});
+              }
               setSessionMessages((prev) => {
                 const current = prev[sessionId] ?? [];
                 // Preserve any messages already started for the next queued turn

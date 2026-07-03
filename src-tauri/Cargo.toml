@@ -1,6 +1,6 @@
 [package]
 name = "hermes-desktop"
-version = "0.1.0"
+version = "3.0.0"
 description = "A beautiful desktop UI for Hermes Agent"
 authors = ["Wu Guirong <wuguirong@gmail.com>"]
 license = "Apache-2.0"

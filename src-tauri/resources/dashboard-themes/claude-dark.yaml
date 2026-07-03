@@ -1,0 +1,11 @@
+name: claude-dark
+label: Claude Dark
+description: Warm graphite with terracotta glow — matches the desktop Claude Dark theme
+palette:
+  background: "#1a1915"
+  midground: "#312e29"
+  foreground: "#f5f0e8"
+  warmGlow: "rgba(217, 141, 112, 0.30)"
+  noiseOpacity: 0.5
+terminalBackground: "#141312"
+terminalForeground: "#f5f0e8"

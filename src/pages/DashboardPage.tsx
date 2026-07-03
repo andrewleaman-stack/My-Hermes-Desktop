@@ -7,13 +7,6 @@ const DASHBOARD_URL = "http://127.0.0.1:9119";
 const INSTALL_CMD = "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash";
 const DASHBOARD_BUILD_CMD = "cd ~/.hermes/hermes-agent/web && npm install && npm run build";
 
-/** Map Hermes Desktop theme names to Hermes Dashboard YAML theme names. */
-const DASHBOARD_THEME_MAP: Record<Theme, string> = {
-  claude: "claude",
-  apple:  "apple",
-  warp:   "warp",
-};
-
 type Status = "idle" | "starting" | "ready" | "error" | "missing";
 
 export default function DashboardPage() {
@@ -25,48 +18,42 @@ export default function DashboardPage() {
   const lastSentRef = useRef<string | null>(null);
   const pendingThemeRef = useRef<Theme | null>(null);
 
-  /** Send the current desktop theme + mode to the dashboard iframe. */
+  const [iframeGen, setIframeGen] = useState(0);
+
+  /** Sync the dashboard theme via its own HTTP API (PUT persists to
+   *  config.yaml server-side), then reload the iframe to apply it. Our
+   *  dark theme YAMLs (claude-dark / apple-dark / warp) are installed by
+   *  the "Dashboard Themes" installer below; light modes map to the
+   *  dashboard's built-in default until light variants exist. */
   const syncTheme = useCallback((target: HTMLIFrameElement | null, t: Theme) => {
-    if (!target?.contentWindow) return;
-    // data-mode carries the RESOLVED mode (auto → light/dark) set by useTheme.
     const resolvedMode =
       document.documentElement.getAttribute("data-mode") === "dark" ? "dark" : "light";
-    // The dashboard has no dark variants of claude/apple yet — warp is its
-    // dark theme, so a dark desktop gets a dark dashboard. desktopMode is
-    // included so a future dashboard plugin can do proper per-brand darks.
-    const dashboardTheme =
-      resolvedMode === "dark" ? "warp" : DASHBOARD_THEME_MAP[t];
-    if (!dashboardTheme) return;
-    const dedupeKey = `${dashboardTheme}|${resolvedMode}`;
-    if (lastSentRef.current === dedupeKey) return; // avoid duplicates
-    lastSentRef.current = dedupeKey;
-    pendingThemeRef.current = null;
-    target.contentWindow.postMessage(
-      { type: "hermes-theme-sync", desktopTheme: t, desktopMode: resolvedMode, dashboardTheme },
-      DASHBOARD_URL,
-    );
+    const name =
+      t === "warp" ? "warp" : resolvedMode === "dark" ? `${t}-dark` : "default";
+    if (lastSentRef.current === name) return; // avoid duplicates
+    void (async () => {
+      try {
+        const res = await fetch(`${DASHBOARD_URL}/api/dashboard/theme`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        if (res.ok) {
+          lastSentRef.current = name;
+          pendingThemeRef.current = null;
+          if (target) setIframeGen((g) => g + 1); // reload to apply
+        }
+      } catch {
+        // dashboard not running yet — retried on next status/theme change
+      }
+    })();
   }, []);
 
-  // Listen for theme requests from the dashboard iframe (plugin may ask for
-  // current theme after it finishes loading).
+  // Sync theme whenever theme/mode changes or the dashboard comes up
   useEffect(() => {
-    function onMessage(event: MessageEvent) {
-      if (event.source !== iframeRef.current?.contentWindow) return;
-      if (event.data?.type === "hermes-theme-request") {
-        // Plugin is ready — send the pending theme if we have one, otherwise current.
-        const t = pendingThemeRef.current ?? theme;
-        syncTheme(iframeRef.current, t);
-        pendingThemeRef.current = null;
-      }
-    }
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [theme, syncTheme]);
-
-  // Sync theme whenever theme or color mode changes in the desktop app
-  useEffect(() => {
+    if (status !== "ready") return;
     syncTheme(iframeRef.current, theme);
-  }, [theme, mode, syncTheme]);
+  }, [theme, mode, status, syncTheme]);
 
   const start = useCallback(async () => {
     setStatus("starting");
@@ -158,19 +145,15 @@ export default function DashboardPage() {
     );
   }
 
-  // ── Ready: show iframe ──
+  // ── Ready: show iframe (key bumps to reload after a theme change) ──
   return (
     <iframe
+      key={iframeGen}
       ref={iframeRef}
       className="dashboard-iframe"
       src={DASHBOARD_URL}
       title="Hermes Dashboard"
       sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-      onLoad={() => {
-        // Plugin may not be loaded yet — queue the theme.
-        // The plugin will send "hermes-theme-request" when ready.
-        pendingThemeRef.current = theme;
-      }}
     />
   );
 }

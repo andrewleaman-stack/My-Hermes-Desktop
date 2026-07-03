@@ -88,7 +88,11 @@ pub fn hermes_command() -> Command {
     }
     #[cfg(not(target_os = "windows"))]
     {
-        Command::new(hermes_binary())
+        let mut cmd = Command::new(hermes_binary());
+        if let Some(home) = hermes_home() {
+            cmd.env("HERMES_HOME", &home);
+        }
+        cmd
     }
 }
 
@@ -187,6 +191,23 @@ fn enrich_history_with_images(value: &mut serde_json::Value) {
     }
 }
 
+/// Marker file (in the BASE ~/.hermes, never a profile dir) holding the
+/// desktop-selected profile name. Absent/"default" = base home.
+fn profile_marker_path() -> Option<std::path::PathBuf> {
+    dirs::home_dir().map(|h| h.join(".hermes").join(".desktop_profile"))
+}
+
+/// Profile the desktop is pinned to, if any (None = default ~/.hermes).
+pub fn selected_profile() -> Option<String> {
+    let name = std::fs::read_to_string(profile_marker_path()?).ok()?;
+    let name = name.trim().to_string();
+    if name.is_empty() || name == "default" {
+        None
+    } else {
+        Some(name)
+    }
+}
+
 pub fn hermes_home() -> Option<std::path::PathBuf> {
     #[cfg(target_os = "windows")]
     if use_wsl_hermes() {
@@ -196,7 +217,50 @@ pub fn hermes_home() -> Option<std::path::PathBuf> {
             }
         }
     }
-    dirs::home_dir().map(|h| h.join(".hermes"))
+    let base = dirs::home_dir().map(|h| h.join(".hermes"))?;
+    if let Some(name) = selected_profile() {
+        let profile_home = base.join("profiles").join(&name);
+        if profile_home.is_dir() {
+            return Some(profile_home);
+        }
+    }
+    Some(base)
+}
+
+#[tauri::command]
+pub async fn list_hermes_profiles() -> Result<Vec<String>, String> {
+    let mut out = vec!["default".to_string()];
+    if let Some(home) = dirs::home_dir() {
+        if let Ok(entries) = std::fs::read_dir(home.join(".hermes").join("profiles")) {
+            let mut names: Vec<String> = entries
+                .flatten()
+                .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+                .filter_map(|e| e.file_name().into_string().ok())
+                .filter(|n| !n.starts_with('_') && !n.starts_with('.'))
+                .collect();
+            names.sort();
+            out.extend(names);
+        }
+    }
+    Ok(out)
+}
+
+#[tauri::command]
+pub async fn get_hermes_profile() -> Result<String, String> {
+    Ok(selected_profile().unwrap_or_else(|| "default".to_string()))
+}
+
+#[tauri::command]
+pub async fn set_hermes_profile(name: String) -> Result<(), String> {
+    let path = profile_marker_path().ok_or("Cannot find home dir")?;
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    std::fs::write(&path, name.trim()).map_err(|e| e.to_string())?;
+    // Kill the running gateway so the next message spawns one under the new
+    // profile's HERMES_HOME (sessions/config/memory all follow hermes_home()).
+    crate::commands::chat::shutdown_gateway();
+    Ok(())
 }
 
 fn hermes_config_file(command: &str, fallback_name: &str) -> Option<std::path::PathBuf> {

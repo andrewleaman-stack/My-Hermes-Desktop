@@ -3,6 +3,7 @@ import { HermesStatus } from "../../types";
 import Icon from "../Icon";
 import ContextBar from "./ContextBar";
 import ModelPicker from "./ModelPicker";
+import ProfilePicker from "./ProfilePicker";
 import ReasoningPicker from "./ReasoningPicker";
 
 interface Props {
@@ -144,6 +145,9 @@ export default function TopBar({
       </div>
 
       <div className="topbar-divider" />
+
+      {/* Agent profile picker (hidden when only the default profile exists) */}
+      <ProfilePicker />
 
       {/* Model picker */}
       <ModelPicker currentModel={status?.model} onNewSession={onNewSession} />
